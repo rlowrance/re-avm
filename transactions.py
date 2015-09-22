@@ -6,7 +6,7 @@ INPUT FILES
  INPUT/corelogic-taxrolls-090402_05/CAC06037F1.zip ...
 
 OUTPUT FILES
- WORKING/transactions3-al-g-sfr.csv
+ WORKING/transactions-al-g-sfr.csv
 
 NOTES:
     1. The deeds file has the prior sale info, which we could use
