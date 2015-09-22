@@ -17,7 +17,6 @@ NOTES:
 '''
 
 import collections
-import datetime
 import numpy as np
 import pandas as pd
 import cPickle as pickle
@@ -29,12 +28,12 @@ import time
 
 
 from Bunch import Bunch
-import census
-import deeds
 from directory import directory
+import layout_census as census
+import layout_deeds as deeds
+import layout_parcels as parcels
 from Logger import Logger
-import parse_command_line
-import parcels
+from ParseCommandLine import ParseCommandLine
 
 
 def usage(msg=None):
@@ -50,36 +49,32 @@ def make_control(argv):
     # return a Bunch
 
     print argv
-    if len(argv) not in (1, 2, 3, 4):
+    if len(argv) not in (1, 2):
         usage('invalid number of arguments')
 
-    random.seed(123456)
-    base_name = argv[0].split('.')[0]
-    now = datetime.datetime.now()
+    pcl = ParseCommandLine(argv)
+    arg = Bunch(
+        base_name=argv[0].split('.')[0],
+        test=pcl.has_arg('--test'),
+    )
 
-    def cache_path(name):
-        return directory('working') + base_name + '-cache-' + name + '.pickle'
+    random_seed = 123456
+    random.seed(random_seed)
 
-    test = parse_command_line.has_arg(argv, '--test')
     debug = False
-    cache = True
 
     return Bunch(
+        arg=arg,
         debug=debug,
-        test=test,
-        cache=cache,
-        just=parse_command_line.default(argv, '--just', None),
+        test=arg.test,
         path_in_census=directory('input') + 'neighborhood-data/census.csv',
         path_in_geocoding=directory('input') + 'geocoding.tsv',
-        path_log=directory('log') + base_name + '.' + now.isoformat('T') + '.log',
-        path_out_transactions=directory('working') + base_name + '-al-g-sfr.csv',
+        path_out_transactions=directory('working') + arg.base_name + '-al-g-sfr.csv',
         dir_deeds_a=directory('input') + 'corelogic-deeds-090402_07/',
         dir_deeds_b=directory('input') + 'corelogic-deeds-090402_09/',
         dir_parcels=directory('input') + 'corelogic-taxrolls-090402_05/',
-        now=str(now),
         max_sale_price=85e6,  # according to Wall Street Journal
-        random_seed=123,
-        fraction_test=0.1,
+        random_seed=random_seed,
     )
 
 
@@ -333,7 +328,7 @@ def just_parcels(control):
 
 def main(argv):
     control = make_control(argv)
-    sys.stdout = Logger(control.path_log)
+    sys.stdout = Logger(base_name=control.arg.base_name)
     print control
 
     if control.just:
@@ -433,7 +428,6 @@ if __name__ == '__main__':
         # avoid pyflakes warnings
         pdb.set_trace()
         pprint()
-        parse_command_line()
         pd.DataFrame()
         np.array()
 
