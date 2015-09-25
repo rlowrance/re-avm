@@ -11,13 +11,14 @@ def directory(name):
     string: path to the named directory, ending with a "/"
     '''
 
-    root = '../'
+    root = '../'  # root of this project
     if name == 'cells' or name == 'cv-cell' or name == 'cv-cell-natural':
         return root + 'data/working/cv-cell/'
     elif name == 'cv-cell-rescaled':
         return root + 'data/working/cv-cell-rescaled/'
     elif name == 'input':
-        return root + 'data/input/'
+        # input directory is shared across projects
+        return '../../../real-estate-log-angeles/'
     elif name == 'log':
         return root + 'data/working/log/'
     elif name == 'working':
