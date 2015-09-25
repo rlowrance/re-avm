@@ -15,7 +15,7 @@ class Logger(object):
 
     def __init__(self, logfile_path=None, logfile_mode='w', base_name=None):
         def path(s):
-            return directory('log') + s + datetime.datetime.now().isoformat('T') + '.log'
+            return directory('log') + s + '-' + datetime.datetime.now().isoformat('T') + '.log'
         self.terminal = sys.stdout
         clean_path = logfile_path.replace(':', '-') if base_name is None else path(base_name)
         self.log = open(clean_path, logfile_mode)
