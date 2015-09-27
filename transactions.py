@@ -34,13 +34,14 @@ import layout_deeds as deeds
 import layout_parcels as parcels
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
+from Path import Path
 
 
 def usage(msg=None):
     if msg is not None:
         print msg
-    print 'usage  : python transactions_subset3.py [--just TAG] [--test]'
-    print ' TAG   : run only a portion of the analysis (used during development)'
+    print 'usage  : python transactions_subset3.py --input PATH [--test]'
+    print ' PATH  : path to input data; ex: ~/Dropbox/real-estate-los-angeles/'
     print ' --test: run in test mode'
     sys.exit(1)
 
@@ -49,32 +50,33 @@ def make_control(argv):
     # return a Bunch
 
     print argv
-    if len(argv) not in (1, 2):
+    if len(argv) not in (3, 4):
         usage('invalid number of arguments')
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
         base_name=argv[0].split('.')[0],
+        dir_input=pcl.get_arg('--input'),
         test=pcl.has_arg('--test'),
     )
+    if arg.dir_input[-1] != '/':
+        usage('input PATH must end with /')
 
     random_seed = 123456
     random.seed(random_seed)
+
+    path = Path(arg.dir_input)
 
     debug = False
 
     return Bunch(
         arg=arg,
         debug=debug,
-        test=arg.test,
-        path_in_census=directory('input') + 'neighborhood-data/census.csv',
-        path_in_geocoding=directory('input') + 'geocoding.tsv',
-        path_out_transactions=directory('working') + arg.base_name + '-al-g-sfr.csv',
-        dir_deeds_a=directory('input') + 'corelogic-deeds-090402_07/',
-        dir_deeds_b=directory('input') + 'corelogic-deeds-090402_09/',
-        dir_parcels=directory('input') + 'corelogic-taxrolls-090402_05/',
         max_sale_price=85e6,  # according to Wall Street Journal
+        path=path,
+        path_out_transactions=path.dir_working() + arg.base_name + '-al-g-sfr.csv',
         random_seed=random_seed,
+        test=arg.test,
     )
 
 
@@ -103,74 +105,58 @@ def best_apn(df, feature_formatted, feature_unformatted):
 def read_census(control):
     'return dataframe'
     print 'reading census'
-    df = pd.read_csv(control.path_in_census, sep='\t')
+    df = pd.read_csv(control.path.dir_input('census'), sep='\t')
     return df
 
 
 def read_geocoding(control):
     'return dataframe'
     print 'reading geocoding'
-    df = pd.read_csv(control.path_in_geocoding, sep='\t')
+    df = pd.read_csv(control.path.dir_input('geocoding'), sep='\t')
     return df
 
 
 def parcels_derived_features(parcels_df):
-    'mutate parcels_df by addinging indicator columns for tract and zip code features'
+    'mutate parcels_df by addinging indicator columns for tract and zip5 code features'
     def truncate_zipcode(zip):
         'convert possible zip9 to zip5'
         x = zip / 10000.0 if zip > 99999 else zip
         return int(x if not np.isnan(x) else 0)
 
-    def make_tracts(mask_function):
-        'return set of tracts containing the specified feature'
+    # some zipcodes are 5 digits, others are 9 digits
+    # create new feature that has the first 5 digits
+    parcels_df['zip5'] = parcels_df[parcels.zipcode].apply(truncate_zipcode)
+
+    def make_items(geo, mask_function, column_name):
         mask = mask_function(parcels_df)
         subset = parcels_df[mask]
+        items = subset[column_name]
         r = set(int(item)
-                for item in subset[parcels.census_tract]
+                for item in items
                 if not np.isnan(item))
         return r
 
-    def make_zips(mask_function):
-        'return set of tracts containing the specified feature'
-        mask = mask_function(parcels_df)
-        subset = parcels_df[mask]
-        r = set(truncate_zipcode(item)
-                for item in subset[parcels.zipcode]
-                if not np.isnan(item))
-        return r
-
-    # add columns for censu tract indicators
-    tracts = {
-        'has_commercial': make_tracts(parcels.mask_commercial),
-        'has_industry': make_tracts(parcels.mask_industry),
-        'has_park': make_tracts(parcels.mask_park),
-        'has_retail': make_tracts(parcels.mask_retail),
-        'has_school': make_tracts(parcels.mask_school),
+    name_mask = {
+        'has_commercial': parcels.mask_commercial,
+        'has_industry': parcels.mask_industry,
+        'has_park': parcels.mask_park,
+        'has_retail': parcels.mask_retail,
+        'has_school': parcels.mask_school,
     }
-    for k, tract_set in tracts.iteritems():
-        for tract in tract_set:
-            parcels_df['tract ' + k] = parcels_df[parcels.census_tract] == tract
 
-    # add columns for zip code indicators
-    zips = {
-        'has_commercial': make_zips(parcels.mask_commercial),
-        'has_industry': make_zips(parcels.mask_industry),
-        'has_park': make_zips(parcels.mask_park),
-        'has_retail': make_zips(parcels.mask_retail),
-        'has_school': make_zips(parcels.mask_school),
-    }
-    truncated_zipcodes = parcels_df[parcels.zipcode].apply(truncate_zipcode)
-    for k, zip_set in zips.iteritems():
-        for zip5 in zip_set:
-            parcels_df['zip ' + k] = truncated_zipcodes == zip5
-
-    # report on geographic features
-    for geo in ('tract', 'zip'):
-        for feature in ('has_commercial', 'has_industry', 'has_park', 'has_retail', 'has_school'):
-            print 'location kind %6s %15s count: %7d' % (
-                geo, feature, sum(parcels_df[geo + ' ' + feature])
-            )
-
+    for geo in ('tract', 'zip5'):
+        column_name = parcels.census_tract if geo == 'tract' else parcels.zip5
+        for name, mask in name_mask.iteritems():
+            new_feature_name = geo + '_' + name
+            items = make_items(geo, mask, column_name)
+            if len(items) == 0:
+                # this happens turning testing and maybe during production
+                parcels_df[new_feature_name] = pd.Series(data=False, index=parcels_df.index)
+            else:
+                for item in make_items(geo, mask, column_name):
+                    parcels_df[new_feature_name] = parcels_df[column_name] == item
+            print 'new feature %25s is True %6d times' % (
+                new_feature_name, sum(parcels_df[new_feature_name]))
     return
 
 
@@ -331,23 +317,10 @@ def main(argv):
     sys.stdout = Logger(base_name=control.arg.base_name)
     print control
 
-    if control.just:
-        if control.just == 'timing':
-            just_timing(control)
-        elif control.just == 'cache':
-            just_cache(control)
-        elif control.just == 'parcels':
-            just_parcels(control)
-        else:
-            assert False, control.just
-        pdb.set_trace()
-        print 'DISCARD RESULTS; JUST', control.just
-        sys.exit(1)
-
     # create dataframes
-    deeds_g_al_df = deeds.read_g_al(directory('input'),
+    deeds_g_al_df = deeds.read_g_al(control.path,
                                     10000 if control.test else None)
-    parcels_df = parcels.read(directory('input'),
+    parcels_df = parcels.read(control.path,
                               10000 if control.test else None)
     parcels_sfr_df = parcels_df[parcels.mask_sfr(parcels_df)]
 
@@ -413,6 +386,7 @@ def main(argv):
     print 'final shape', final.shape
 
     # write merged,augmented dataframe
+    print 'writing final dataframe to csv file'
     final.to_csv(control.path_out_transactions)
 
     print control
