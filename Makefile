@@ -14,14 +14,7 @@ ALL += $(WORKING)/transactions-subset-test.csv   # proxy for -train -validate -t
 all: $(ALL)
 
 $(WORKING)/transactions-al-g-sfr.csv: transactions.py
-	$(PYTHON) transactions.py
+	$(PYTHON) transactions.py --input ~/Dropbox/real-estate-los-angeles/
 
 $(WORKING)/transactions-subset-test.csv: transactions-subset.py
 	$(PYTHON) transactions-subset.py
-
-#$(WORKING)/transactions-subset-test%csv \
-#	$(WORKING)/transactions-subset-train%csv \
-#	$(WORKING)/transactions-subset-validate%csv \
-#	$(WORKING)/transactions-subset-train+validate%csv \
-#	: transactions-subset.py
-#	$(PYTHON) transactions-subset.py
