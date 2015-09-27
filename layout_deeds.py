@@ -36,7 +36,6 @@ best_apn = 'best_apn'
 
 def is_type(values, types):
     x = values.iloc[0]
-    print x, type(x)
     return isinstance(x, types)
 
 
@@ -81,45 +80,33 @@ def mask_resale(df):
 # read file from disk
 
 
-def read_g_al(dir_input, nrows):
+def read_g_al(path, nrows):
     'return df containing all the grant, arms-length deeds'
 
-    def read_deed(dir, file_name):
+    def read_deeds(path_zip_file):
         'return subset df, length of read df'
-        z = zipfile.ZipFile(dir + file_name)
+        z = zipfile.ZipFile(path_zip_file)
         assert len(z.namelist()) == 1
         for archive_member_name in z.namelist():
             print 'opening deeds archive member', archive_member_name
             f = z.open(archive_member_name)
-            try:
-                # line 255719 has an stray " that messes up the parse
-                skiprows = (255718,) if archive_member_name == 'CAC06037F3.txt' else None
-                df = pd.read_csv(f, sep='\t', nrows=nrows,  skiprows=skiprows)
-                # df = pd.read_csv(f, sep='\t', nrows=10000 if control.test else None)
-            except:
-                print 'exception', sys.exc_info()[0]
-                print 'exception', sys.exc_info()
-                pdb.set_trace()
-                sys.exit(1)
+            # line 255719 in one member has an stray " that messes up the csv parser
+            skiprows = (255718,) if archive_member_name == 'CAC06037F3.txt' else None
+            df = pd.read_csv(f, sep='\t', nrows=nrows,  skiprows=skiprows)
             mask_keep = mask_arms_length(df) & mask_grant(df)
             keep = df[mask_keep]
             return keep, len(df)
 
     print 'reading deeds g al'
-    dir_deeds_a = dir_input + 'corelogic-deeds-090402_07/'
-    df1, l1 = read_deed(dir_deeds_a, 'CAC06037F1.zip')
-    df2, l2 = read_deed(dir_deeds_a, 'CAC06037F2.zip')
-    df3, l3 = read_deed(dir_deeds_a, 'CAC06037F3.zip')
-    df4, l4 = read_deed(dir_deeds_a, 'CAC06037F4.zip')
-    dir_deeds_b = dir_input + 'corelogic-deeds-090402_09/'
-    df5, l5 = read_deed(dir_deeds_b, 'CAC06037F5.zip')
-    df6, l6 = read_deed(dir_deeds_b, 'CAC06037F6.zip')
-    df7, l7 = read_deed(dir_deeds_b, 'CAC06037F7.zip')
-    df8, l8 = read_deed(dir_deeds_b, 'CAC06037F8.zip')
-    df = pd.concat([df1, df2, df3, df4, df5, df6, df7, df8])
-    lsum = l1 + l2 + l3 + l4 + l5 + l6 + l7 + l8
-    print 'read %d deeds, kept %d, discarded %d' % (lsum, len(df), lsum - len(df))
-    return df
+    dfs = []
+    n_read = 0
+    for i in (1, 2, 3, 4, 5, 6, 7, 8):
+        df, n = read_deeds(path.dir_input('deeds-CAC06037F%d.zip' % i))
+        dfs.append(df)
+        n_read += n
+    all_df = pd.concat(dfs)
+    print 'read %d deeds, kept %d, discarded %d' % (n_read, len(all_df), n_read - len(all_df))
+    return all_df
 
 
 if __name__ == '__main__':
