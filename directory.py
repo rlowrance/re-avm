@@ -16,9 +16,6 @@ def directory(name):
         return root + 'data/working/cv-cell/'
     elif name == 'cv-cell-rescaled':
         return root + 'data/working/cv-cell-rescaled/'
-    elif name == 'input':
-        # input directory is shared across projects
-        return '../../../real-estate-log-angeles/'
     elif name == 'log':
         return root + 'data/working/log/'
     elif name == 'working':
