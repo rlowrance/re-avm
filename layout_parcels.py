@@ -33,6 +33,7 @@ zipcode = 'PROPERTY ZIPCODE'  # not owner zipcode
 
 # feature created by our code
 best_apn = 'best_apn'
+zip5 = 'zip5'
 
 
 # select rows with certain properties
@@ -40,7 +41,6 @@ best_apn = 'best_apn'
 
 def mask_commercial(df):
     values = df[property_indicator]
-    assert isinstance(values.iloc[0], np.int64)
     r1 = values == 30  # commercial
     r2 = values == 24  # commercial (condominium)
     return r1 | r2
@@ -48,7 +48,6 @@ def mask_commercial(df):
 
 def mask_industry(df):
     values = df[property_indicator]
-    assert isinstance(values.iloc[0], np.int64)
     r1 = values == 50  # industry
     r2 = values == 51  # industry light
     r3 = values == 52  # industry heavy
@@ -57,28 +56,24 @@ def mask_industry(df):
 
 def mask_park(df):
     values = df[land_use]
-    assert isinstance(values.iloc[0], np.int64)
     r1 = values == 757  # park
     return r1
 
 
 def mask_sfr(df):
     values = df[land_use]
-    assert isinstance(values.iloc[0], np.int64)
     r1 = values == 163  # single family residential
     return r1
 
 
 def mask_retail(df):
     values = df[property_indicator]
-    assert isinstance(values.iloc[0], np.int64)
     r1 = values == 25  # retail
     return r1
 
 
 def mask_school(df):
     values = df[land_use]
-    assert isinstance(values.iloc[0], np.int64)
     r1 = values == 650  # school
     r2 = values == 652  # nursery school
     r3 = values == 654  # high school
@@ -92,47 +87,35 @@ def mask_school(df):
     return r1 | r2 | r3 | r4 | r5 | r6
 
 
-def read_driver(dir_input, nrows, just_sfr):
+def read(path, nrows):
     'return df containing all parcels (not just single family residences)'
-    def read_parcels(dir, file_name):
+
+    def read_parcels(path_zip_file):
         'return subset kept (which is all), length of read df'
 
-        def make_sfr(df):
-            keep = df[mask_sfr(df)]
-            return keep, len(keep)
-
-        z = zipfile.ZipFile(dir + file_name)
+        z = zipfile.ZipFile(path_zip_file)
         assert len(z.namelist()) == 1
         for archive_member_name in z.namelist():
+            print 'opening parcels archive member', archive_member_name
             f = z.open(archive_member_name)
             try:
                 df = pd.read_csv(f, sep='\t', nrows=nrows)
-            except:
-                print 'exception', sys.exc_info()[0]
-            return make_sfr(df) if just_sfr else df, len(df)
+            except Exception as e:
+                print 'exception reading archive member ', archive_member_name
+                print 'the exception', e
+                pdb.set_trace()
+            return df, len(df)
 
     print 'reading parcels'
-    dir_parcels = dir_input + 'corelogic-taxrolls-090402_05/'
-    df1, l1 = read_parcels(dir_parcels, 'CAC06037F1.zip')
-    df2, l2 = read_parcels(dir_parcels, 'CAC06037F2.zip')
-    df3, l3 = read_parcels(dir_parcels, 'CAC06037F3.zip')
-    df4, l4 = read_parcels(dir_parcels, 'CAC06037F4.zip')
-    df5, l5 = read_parcels(dir_parcels, 'CAC06037F5.zip')
-    df6, l6 = read_parcels(dir_parcels, 'CAC06037F6.zip')
-    df7, l7 = read_parcels(dir_parcels, 'CAC06037F7.zip')
-    df8, l8 = read_parcels(dir_parcels, 'CAC06037F8.zip')
-    df = pd.concat([df1, df2, df3, df4, df5, df6, df7, df8])
-    lsum = l1 + l2 + l3 + l4 + l5 + l6 + l7 + l8
-    print 'read %d parcels, kept %d, discarded %d' % (lsum, len(df), lsum - len(df))
-    return df
-
-
-def read(dir_input, nrows):
-    return read_driver(just_sfr=False, dir_input=dir_input, nrows=nrows)
-
-
-def read_sfr(dir_input, nrows):
-    return read_driver(just_sfr=True, dir_input=dir_input, nrows=nrows)
+    dfs = []
+    n_read = 0
+    for i in (1, 2, 3, 4, 5, 6, 7, 8):
+        df, n = read_parcels(path.dir_input('parcels-CAC06037F%d.zip' % i))
+        dfs.append(df)
+        n_read += n
+    all_df = pd.concat(dfs)
+    print 'read %d parcels, kept %d, discarded %d' % (n_read, len(all_df), n_read - len(all_df))
+    return all_df
 
 
 if __name__ == '__main__':
