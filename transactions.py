@@ -14,21 +14,29 @@ NOTES:
        census data from the year 2000, and we use census tract
        features, so its not effective to go back before sometime
        in 2002, when the 2000 census data became public.
+
+    2. Fields created in this program
+       avg_commute
+       fraction_owner_occupied
+       median_household_income
+       X_has_commercial
+       X_has_industry
+       X_has_park
+       X_has_retail
+       X_has_school, for X in {census_tract, zip5}
+       best_apn
 '''
 
 import collections
 import numpy as np
 import pandas as pd
-import cPickle as pickle
 import pdb
 from pprint import pprint
 import random
 import sys
-import time
 
 
 from Bunch import Bunch
-from directory import directory
 import layout_census as census
 import layout_deeds as deeds
 import layout_parcels as parcels
@@ -160,62 +168,6 @@ def parcels_derived_features(parcels_df):
     return
 
 
-def just_timing(control):
-    '''report timing for long-IO operations
-
-    SAMPLE OUTPUT
-    read all parcel files : 103 sec
-    dump parcels to pickle: 338
-    read pickle           : 760
-    write parcels to csv  :  87
-    read csv engine python: 218
-    read csv engine c     :  38
-    '''
-    if False:
-        start = time.time()
-        parcels.read(directory('input'), control.test)
-        print 'read parcels:', time.time() - start
-
-    path_csv = '/tmp/parcels.csv'
-    path_pickle = '/tmp/parcels.pickle'
-
-    if False:
-        start = time.time()
-        f = open(path_pickle, 'wb')
-        pickle.dump(parcels, f)
-        f.close()
-        print 'dump parcels in pickle form:', time.time() - start
-
-    if False:
-        start = time.time()
-        f = open(path_pickle, 'rb')
-        pickle.load(f)
-        f.close()
-        print 'load parcels from pickle file:', time.time() - start
-
-    if False:
-        start = time.time()
-        parcels.to_csv(path_csv)
-        print 'write parcels to csv:', time.time() - start
-
-    start = time.time()
-    pd.read_csv(path_csv, engine='python')
-    print 'read parcels from csv file, parser=python:', time.time() - start
-
-    start = time.time()
-    pd.read_csv(path_csv, engine='c')
-    print 'read parcels from csv file, parser=c:', time.time() - start
-
-
-def read_and_write(read_function, write_path, control):
-    start = time.time()
-    df = read_function(directory('input'), control.test)
-    print 'secs to read:', time.time() - start
-    start = time.time()
-    df.to_csv(write_path)
-    print 'secs to write:', time.time() - start
-
-
 CensusFeatures = collections.namedtuple('CensusFeatures', (
     'avg_commute', 'median_hh_income', 'fraction_owner_occupied',
 )
@@ -294,22 +246,6 @@ def make_census_reduced_df(d):
                        'median_household_income': [d[k][1] for k in d.keys()]
                        })
     return df
-
-
-def just_cache(control):
-    'consolidate the parcels and deeds files into 2 csv files'
-    # goal: speed up testing but don't use in production
-
-    print 'deeds g al'
-    read_and_write(deeds.read_g_al, control.path_cache_base + 'deeds-g-al.csv', control)
-
-    print 'parcels'
-    read_and_write(parcels.read, control.path_cache_base + 'parcels.csv', control)
-
-
-def just_parcels(control):
-    print 'parcels'
-    read_and_write(parcels.read, control.path_cache_base + 'parcels.csv', control)
 
 
 def main(argv):
