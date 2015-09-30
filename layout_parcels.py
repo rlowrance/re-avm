@@ -2,10 +2,8 @@
 # called record type 2580 in the Corelogic documentation
 
 
-import numpy as np
 import pandas as pd
 import pdb
-import sys
 import zipfile
 
 
@@ -34,6 +32,7 @@ zipcode = 'PROPERTY ZIPCODE'  # not owner zipcode
 # feature created by our code
 best_apn = 'best_apn'
 zip5 = 'zip5'
+zip9 = zipcode
 
 
 # select rows with certain properties
