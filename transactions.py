@@ -40,6 +40,7 @@ from Bunch import Bunch
 import layout_census as census
 import layout_deeds as deeds
 import layout_parcels as parcels
+import layout_transactions as transactions
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
 from Path import Path
@@ -48,8 +49,7 @@ from Path import Path
 def usage(msg=None):
     if msg is not None:
         print msg
-    print 'usage  : python transactions_subset3.py --input PATH [--test]'
-    print ' PATH  : path to input data; ex: ~/Dropbox/real-estate-los-angeles/'
+    print 'usage  : python transactions_subset3.py [--test]'
     print ' --test: run in test mode'
     sys.exit(1)
 
@@ -58,22 +58,19 @@ def make_control(argv):
     # return a Bunch
 
     print argv
-    if len(argv) not in (3, 4):
+    if len(argv) not in (1, 2):
         usage('invalid number of arguments')
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
         base_name=argv[0].split('.')[0],
-        dir_input=pcl.get_arg('--input'),
         test=pcl.has_arg('--test'),
     )
-    if arg.dir_input[-1] != '/':
-        usage('input PATH must end with /')
 
     random_seed = 123456
     random.seed(random_seed)
 
-    path = Path(arg.dir_input)
+    path = Path()  # use the default dir_input
 
     debug = False
 
@@ -124,49 +121,129 @@ def read_geocoding(control):
     return df
 
 
-def parcels_derived_features(parcels_df):
-    'mutate parcels_df by addinging indicator columns for tract and zip5 code features'
+def columns_contain(x, df):
+    'for interactive debugging'
+    print [column_name for column_name in df.columns if x.lower() in column_name.lower()]
+
+
+def derive(parcels_df, parcels_geo_column_name, parcels_mask_function,
+           transactions_df, transactions_geo_column_name, new_feature_name):
+    'add new_feature_name to transactions_df'
+
+    # get the unique geo ids
+    mask = parcels_mask_function(parcels_df)
+    parcels_df_subset = parcels_df[mask]
+    geo_ids_all = parcels_df_subset[parcels_geo_column_name]
+    geo_ids = set(int(geo_id)
+                  for geo_id in geo_ids_all
+                  if not np.isnan(geo_id)
+                  )
+    print parcels_geo_column_name, len(geo_ids), parcels_mask_function
+
+    if len(geo_ids) == 0:
+        # this happens turning testing and maybe during production
+        transactions_df[new_feature_name] = pd.Series(data=False, index=transactions_df.index)
+    else:
+        all_indicators = []
+
+        print 'number of indicators for', parcels_geo_column_name, parcels_mask_function
+        for geo_id in geo_ids:
+            indicators = transactions_df[transactions_geo_column_name] == geo_id
+            print transactions_geo_column_name, geo_id, sum(indicators)
+            all_indicators.append(indicators)
+        has_feature = reduce(lambda a, b: a | b, all_indicators)
+        print transactions_geo_column_name, 'all', sum(has_feature)
+        transactions_df[new_feature_name] = pd.Series(has_feature, index=transactions_df.index)
+        print 'new feature %25s is True %6d times' % (
+            new_feature_name, sum(transactions_df[new_feature_name]))
+
+
+def test_derived():
+    'unit test'
+    verbose = False
+
+    def vp(x):
+        if verbose:
+            print x
+
+    parcels_df = pd.DataFrame({'geo': [1, 2, 3]})
+
+    def parcels_mask_function(parcels_df):
+        return parcels_df['geo'] >= 2
+
+    transactions_df = pd.DataFrame({'geo_t': [1, 2, 3, 2, 1]})
+    vp(parcels_df)
+    vp(transactions_df)
+
+    derive(parcels_df, 'geo', parcels_mask_function, transactions_df, 'geo_t', 'new feature')
+    new_column = transactions_df['new feature']
+    vp(new_column)
+    assert new_column.equals(pd.Series([False, True, True, True, False])), new_column
+
+
+def parcels_derived_features(parcels_df, transactions_df):
+    'mutate transactions_df by addinging indicator columns for tract and zip5 code features'
     def truncate_zipcode(zip):
         'convert possible zip9 to zip5'
         x = zip / 10000.0 if zip > 99999 else zip
         return int(x if not np.isnan(x) else 0)
 
     # some zipcodes are 5 digits, others are 9 digits
-    # create new feature that has the first 5 digits
-    parcels_df['zip5'] = parcels_df[parcels.zipcode].apply(truncate_zipcode)
+    # create new feature that has the first 5 digits of the zip code
+    transactions_df[transactions.zip5] = transactions_df[transactions.zip9].apply(truncate_zipcode)
+    parcels_df[parcels.zip5] = parcels_df[parcels.zip9].apply(truncate_zipcode)
 
-    def make_items(geo, mask_function, column_name):
-        mask = mask_function(parcels_df)
-        subset = parcels_df[mask]
-        items = subset[column_name]
-        r = set(int(item)
-                for item in items
-                if not np.isnan(item))
-        return r
+    def make_geo_ids(geo, mask_function):
+        def make(column_name):
+            print geo, mask_function, column_name
+            parcels_df_subset = parcels_df[mask_function(parcels_df)]
+            items = parcels_df_subset[column_name]
+            r = set(int(item)
+                    for item in items
+                    if not np.isnan(item)
+                    )
+            return r
+        if geo == 'census_tract':
+            return make(parcels.census_tract)
+        else:
+            return make(parcels.zip5)
 
-    name_mask = {
-        'has_commercial': parcels.mask_commercial,
-        'has_industry': parcels.mask_industry,
-        'has_park': parcels.mask_park,
-        'has_retail': parcels.mask_retail,
-        'has_school': parcels.mask_school,
-    }
+    name_masks = (
+        ('has_commercial', parcels.mask_commercial),
+        ('has_industry', parcels.mask_industry),
+        ('has_park', parcels.mask_park),
+        ('has_retail', parcels.mask_retail),
+        ('has_school', parcels.mask_school),
+    )
+    column_names = (
+        (parcels.census_tract, transactions.census_tract),
+        (parcels.zip5, transactions.zip5),
+    )
 
-    for geo in ('tract', 'zip5'):
-        column_name = parcels.census_tract if geo == 'tract' else parcels.zip5
-        for name, mask in name_mask.iteritems():
-            new_feature_name = geo + '_' + name
-            items = make_items(geo, mask, column_name)
-            if len(items) == 0:
-                # this happens turning testing and maybe during production
-                parcels_df[new_feature_name] = pd.Series(data=False, index=parcels_df.index)
-            else:
-                for item in make_items(geo, mask, column_name):
-                    parcels_df[new_feature_name] = parcels_df[column_name] == item
-            print 'new feature %25s is True %6d times' % (
-                new_feature_name, sum(parcels_df[new_feature_name]))
-    return
-
+    for parcels_column_name, transactions_column_name in column_names:
+        for mask_name, mask_function in name_masks:
+            new_feature_name = parcels_column_name + ' ' + mask_name
+            derive(parcels_df, parcels_column_name, mask_function,
+                   transactions_df, transactions_column_name, new_feature_name)
+            continue
+#            new_feature_name = geo + '_' + transactions_column_name_suffix
+#            geo_ids = make_geo_ids(geo_name, mask_function)   # census tract nums or zip5 nums
+#            print geo_name, transactions_column_name_suffix, len(geo_ids)
+#            if len(geo_ids) == 0:
+#                # this happens turning testing and maybe during production
+#                transactions_df[new_feature_name] = pd.Series(data=False, index=transactions_df.index)
+#            else:
+#                all_indicators = []
+#                for geo_id in geo_ids:
+#                    indicators = transactions_df[parcels_column_name_geo] == geo_id
+#                    print geo_name, parcels_column_name_geo, geo_id, sum(indicators)
+#                    all_indicators.append(indicators)
+#                has_feature = reduce(lambda a, b: a | b, all_indicators)
+#                print geo, name, 'all', sum(has_feature)
+#                transactions_df[new_feature_name] = pd.Series(has_feature, index=transactions_df.index)
+#                print 'new feature %25s is True %6d times' % (
+#                    new_feature_name, sum(transactions_df[new_feature_name]))
+#
 
 CensusFeatures = collections.namedtuple('CensusFeatures', (
     'avg_commute', 'median_hh_income', 'fraction_owner_occupied',
@@ -296,7 +373,7 @@ def main(argv):
     ps('dp', dp)
 
     # add in derived parcels features
-    parcels_derived_features(parcels_df)  # mutate parcels_df
+    parcels_derived_features(parcels_df, dp)  # mutate dp
 
     # add in census data
     census_df = make_census_reduced_df(reduce_census(read_census(control)))
@@ -341,4 +418,5 @@ if __name__ == '__main__':
         pd.DataFrame()
         np.array()
 
+    test_derived()
     main(sys.argv)
