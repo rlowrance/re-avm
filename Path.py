@@ -1,12 +1,13 @@
 'hold all the knowledge about how the file system is layed out'
 
+import os
 import pdb
 
 
 class Path(object):
-    def __init__(self, dir_input):
+    def __init__(self, dir_input='~/Dropbox/real-estate-los-angeles/'):
         assert dir_input[-1] == '/', dir_input + ' does not end in /'
-        self._dir_input = dir_input
+        self._dir_input = os.path.expanduser(dir_input)
         self._dir_working = '../data/working/'  # relative to src directory
         self._dir_src = '../src/'
 
