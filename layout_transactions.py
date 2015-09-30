@@ -7,33 +7,76 @@ import pdb
 
 
 # map feature names to column names
-apn = 'best_apn'
+# features created in these programs are in lower case; added in subset unless otherwise indicated
+# features in the source files are in upper case
+apn = 'best_apn'  # added in transactions.py
+
+age = 'age'
+age2 = 'age2'
+age_effective = 'effective age'
+age_effective2 = 'effective age2'
+
 assessment_improvement = 'ASSD IMPROVEMENT VALUE'
 assessment_land = 'ASSD LAND VALUE'
 assessment_total = 'ASSD TOTAL VALUE'
+
+building_basement_square_feet = 'BASEMENT SQUARE FEET'
+building_baths = 'TOTAL BATHS CALCULATED'
+building_bedrooms = 'BEDROOMS'
+building_fireplace_number = 'FIREPLACE NUMBER'
+building_has_pool = 'has_pool'
+building_is_new_construction = 'is_new_construction'
+building_living_square_feet = 'LIVING SQUARE FEET'
+building_rooms = 'TOTAL ROOMS'
+building_stories = 'STORIES NUMBER'
+
+census2000_fraction_owner_occupied = 'fraction_owner_occupied'  # created in transactions.py
+census2000_median_household_income = 'median_household_income'  # created in transactions.py
+census2000_avg_commute = 'avg_commute'                          # created in transactions.py
+
 census_tract = 'CENSUS TRACT_parcel'
+
+census_tract_has_commercial = 'census_tract_has_commerical'  # created in transactions.py
+census_tract_has_industry = 'census_tract_has_industry'      # created in transactions.py
+census_tract_has_park = 'census_tract_has_park'              # created in transactions.py
+census_tract_has_retail = 'census_tract_has_retail'          # created in transactions.py
+census_tract_has_school = 'census_tract_has_school'          # created in transactions.py
+
 gps_latitude = 'G LATITUDE'
 gps_longitude = 'G LONGITUDE'
-land_size = 'LAND SQUARE FOOTAGE'
-living_size = 'LIVING SQUARE FEET'
+
+lot_land_square_feet = 'LAND SQUARE FOOTAGE'
+lot_parking_spaces = 'PARKING SPACES'
+
 municipality_name = 'MUNICIPALITY NAME'
 multi_apn_flag_code = 'MULTI APN FLAG CODE_deed'
 n_buildings = 'NUMBER OF BUILDINGS'
-n_rooms = 'TOTAL ROOMS'
 n_units = 'UNITS NUMBER'
 price = 'SALE AMOUNT_deed'
 recording_date = 'RECORDING DATE_deed'
-rooms = 'TOTAL ROOMS'
 sale_code = 'SALE CODE_deed'
+
 sale_date = 'SALE DATE_deed'
+sale_date_python = 'sale_date_python'
+
 township = 'TOWNSHIP'
 transaction_type_code = 'TRANSACTION TYPE CODE'
+
 year_built = 'YEAR BUILT'
 year_built_effective = 'EFFECTIVE YEAR BUILT'
+
+zip5 = 'zip5'
+zip9 = 'PROPERTY ZIPCODE_parcel'
+
+zip5_has_commercial = 'zip5_has_commerical'  # created in transactions.py
+zip5_has_industry = 'zip5_has_industry'      # created in transactions.py
+zip5_has_park = 'zip5_has_park'              # created in transactions.py
+zip5_has_retail = 'zip5_has_retail'          # created in transactions.py
+zip5_has_school = 'zip5_has_school'          # created in transactions.py
+
 zoning = 'ZONING'
 
-# fields created in transactions3-subset.py
-sale_date_python = 'sale_date_python'
+# fields created in transactions-subset.py
 yyyymm = 'yyyymm'
 
 
