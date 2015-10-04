@@ -2,6 +2,7 @@
 # called record type 2580 in the Corelogic documentation
 
 
+import numpy as np
 import pandas as pd
 import pdb
 import zipfile
@@ -98,8 +99,43 @@ def mask_is_school(df):
     return r1 | r2 | r3 | r4 | r5 | r6
 
 
-def read(path, nrows):
-    'return df containing all parcels (not just single family residences)'
+def add_zip5(df):
+    '''mutate df by appending column with zip5 values
+
+    NOTE: some of the zipcode values are already 5 digit values
+    '''
+
+    def to_int(x):
+        return x if np.isnan(x) else int(x)
+
+    pdb.set_trace()
+    zip9_values = df[zipcode]
+    zip5_values = (zip9_values / 10000.0).apply(to_int)
+    values = np.where(zip9_values <= 99999, zip9_values, zip5_values)
+    df[zip5] = pd.Series(data=values,
+                         dtype=np.int32,
+                         )
+    return
+    df[zip5] = pd.Series(data=(df[zipcode] / 10000.0).apply(to_int),
+                         dtype=np.int32,
+                         index=df.index)
+
+
+def test_add_zip5():
+    pdb.set_trace()
+    verbose = False
+    df = pd.DataFrame({zipcode: (123456790.0, 98765.0, np.nan)})
+    add_zip5(df)
+    if verbose:
+        print df.columns
+        print df
+
+
+test_add_zip5()
+
+
+def read(path, nrows, just_sfr=False):
+    'return df containing all parcels or just the single-family residential parcels'
 
     def read_parcels(path_zip_file):
         'return subset kept (which is all), length of read df'
@@ -115,7 +151,10 @@ def read(path, nrows):
                 print 'exception reading archive member ', archive_member_name
                 print 'the exception', e
                 pdb.set_trace()
-            return df, len(df)
+            return (
+                df[mask_is_sfr(df)] if just_sfr else df,
+                len(df),
+            )
 
     print 'reading parcels'
     dfs = []
