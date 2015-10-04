@@ -13,7 +13,11 @@ ALL += $(WORKING)/parcels-features-zip5.csv
 ALL += $(WORKING)/transactions-al-g-sfr.csv
 ALL += $(WORKING)/transactions-subset-test.csv   # proxy for -train -validate -train+validate
 
+.PHONY : all
 all: $(ALL)
+
+.PHONY : parcels-features
+parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcels-features-zip5.csv
 
 $(WORKING)/parcels-features-census_tract.csv: parcels-features.py
 	$(PYTHON) parcels-features.py --geo census_tract
