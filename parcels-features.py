@@ -10,7 +10,7 @@ OUTPUT FILES
 Each parcels was classified as single family retail.
 
 The fields in the output csv files are
- geo: census_tract (6 digits) or zip5 (5 digits)
+ index: the code for either the census_tract (6 digits) or zip5 (5 digits)
  has_commercial
  has_industry
  has_park
@@ -88,7 +88,7 @@ def just_used(geo, df):
 
 
 def make_has_indicators(df, name_masks):
-    'return new df with on index for each geo value'
+    'return new df with an index for each geo value'
     result_index = set(df.index)
     result = {}
     for name, mask in name_masks:
@@ -167,8 +167,11 @@ def main(argv):
         ('has_school', parcels.mask_is_school),
     )
     parcels_df.index = parcels_df.geo  # the index must be the geo field
+    n_unique_indices = parcels_df.index.nunique()
     has_indicators = make_has_indicators(parcels_df, name_masks)
     print 'has_indicators shape', has_indicators.shape
+    print '# of unique geo codes', n_unique_indices
+    assert has_indicators.shape[0] == n_unique_indices
     if control.test:
         print has_indicators
     has_indicators.to_csv(control.path_out)
