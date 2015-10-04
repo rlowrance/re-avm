@@ -260,7 +260,6 @@ def main(argv):
     # drop samples without a zipcode
     # rationale: we use the zip5 to join the features derived from parcels
     # and zip5 is derived from zipcode
-    pdb.set_trace()
     zipcode_present = parcels_sfr_df[parcels.zipcode].notnull()
     parcels_sfr_df = parcels_sfr_df[zipcode_present]
     parcels.add_zip5(parcels_sfr_df)
@@ -298,11 +297,15 @@ def main(argv):
     print
 
     # add in derived parcels features
-    pdb.set_trace()
     dp_parcels_features = parcels_derived_features(control, dp)  # mutate dp
     ps('dp_parcels_features', dp_parcels_features)
+    dppf = dp_parcels_features
 
     # add in census data
+    pdb.set_trace()
+    pdc = census_derived_features(control, dppf)
+    # OLD BELOW ME
+
     census_df = make_census_reduced_df(reduce_census(read_census(control)))
     dpc = dp.merge(census_df,
                    left_on=parcels.census_tract + '_parcel',
