@@ -5,6 +5,8 @@ import datetime
 import numpy as np
 import pdb
 
+import layout_parcels as parcels
+
 
 # map feature names to column names
 # features created in these programs are in lower case; added in subset unless otherwise indicated
@@ -107,6 +109,26 @@ def mask_gps_longitude_known(df):
         pdb.set_trace()
     r = value != 0
     return r
+
+
+def mask_census_tract_has_commercial(df):
+    return parcels.has_commercial(df)  # may need a new field name; e.g. parcel_has_commercial
+
+
+def mask_census_tract_industry(df):
+    return parcels.mask_census_tract_industry(df)   # may need a new field name
+
+
+def mask_census_tract_park(df):
+    return parcels.mask_census_tract_park(df)   # may need a new field name
+
+
+def mask_census_tract_retail(df):
+    return parcels.mask_census_tract_retail(df)   # may need a new field name
+
+
+def mask_census_tract_school(df):
+    return parcels.mask_census_tract_school(df)   # may need a new field name
 
 
 def mask_is_one_building(df):
