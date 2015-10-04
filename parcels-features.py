@@ -4,22 +4,18 @@ INPUT FILES
  INPUT/corelogic-deeds-*/CAC*.txt
 
 OUTPUT FILES
- WORKING/parcels-features-census-tract-sfr.csv
- WORKING/parcels-features-zip5-sfr.csv
+ WORKING/parcels-features-census-tract.csv
+ WORKING/parcels-features-zip5.csv
 
 Each parcels was classified as single family retail.
 
 The fields in the output csv files are
- census_tract|zip5  primary key
+ geo: census_tract (6 digits) or zip5 (5 digits)
  has_commercial
  has_industry
  has_park
  has_retail
  has_school
-
-The output files are joined to the subset.
-
-Joining them to transactions.csv ran out of memory with 64 GB
 '''
 
 import numpy as np
@@ -81,107 +77,6 @@ def make_control(argv):
     )
 
 
-def derive(parcels_df, parcels_geo_column_name, parcels_mask_function,
-           transactions_df, transactions_geo_column_name, new_feature_name):
-    'add new_feature_name to transactions_df'
-
-    # get the unique geo ids
-    mask = parcels_mask_function(parcels_df)
-    parcels_df_subset = parcels_df[mask]
-    geo_ids_all = parcels_df_subset[parcels_geo_column_name]
-    geo_ids = set(int(geo_id)
-                  for geo_id in geo_ids_all
-                  if not np.isnan(geo_id)
-                  )
-    print parcels_geo_column_name, len(geo_ids), parcels_mask_function
-
-    if len(geo_ids) == 0:
-        # this happens turning testing and maybe during production
-        transactions_df[new_feature_name] = pd.Series(data=False, index=transactions_df.index)
-    else:
-        all_indicators = []
-
-        print 'number of indicators for', parcels_geo_column_name, parcels_mask_function
-        for geo_id in geo_ids:
-            indicators = transactions_df[transactions_geo_column_name] == geo_id
-            print transactions_geo_column_name, geo_id, sum(indicators)
-            all_indicators.append(indicators)
-        has_feature = reduce(lambda a, b: a | b, all_indicators)
-        print transactions_geo_column_name, 'all', sum(has_feature)
-        transactions_df[new_feature_name] = pd.Series(has_feature, index=transactions_df.index)
-        print 'new feature %25s is True %6d times' % (
-            new_feature_name, sum(transactions_df[new_feature_name]))
-
-
-def test_derived():
-    'unit test'
-    verbose = False
-
-    def vp(x):
-        if verbose:
-            print x
-
-    parcels_df = pd.DataFrame({'geo': [1, 2, 3]})
-
-    def parcels_mask_function(parcels_df):
-        return parcels_df['geo'] >= 2
-
-    transactions_df = pd.DataFrame({'geo_t': [1, 2, 3, 2, 1]})
-    vp(parcels_df)
-    vp(transactions_df)
-
-    derive(parcels_df, 'geo', parcels_mask_function, transactions_df, 'geo_t', 'new feature')
-    new_column = transactions_df['new feature']
-    vp(new_column)
-    assert new_column.equals(pd.Series([False, True, True, True, False])), new_column
-
-
-def parcels_derived_features(parcels_df, target_df):
-    'return census and zip5 dataframes, identifying special geo areas in target_df'
-    def truncate_zipcode(zip):
-        'convert possible zip9 to zip5'
-        x = zip / 10000.0 if zip > 99999 else zip
-        return int(x if not np.isnan(x) else 0)
-
-    # some zipcodes are 5 digits, others are 9 digits
-    # create new feature that has the first 5 digits of the zip code
-    def add_zip5(df, zip9_column_name, zip5_column_name):
-        df[parcels.zip5] = df[parcels.zip9].apply(truncate_zipcode)
-    add_zip5(parcels_df)
-    add_zip5(target_df)
-
-    def make_geo_ids(geo, mask_function):
-        def make(column_name):
-            print geo, mask_function, column_name
-            parcels_df_subset = parcels_df[mask_function(parcels_df)]
-            items = parcels_df_subset[column_name]
-            r = set(int(item)
-                    for item in items
-                    if not np.isnan(item)
-                    )
-            return r
-        if geo == 'census_tract':
-            return make(parcels.census_tract)
-        else:
-            return make(parcels.zip5)
-
-    name_masks = (
-        ('has_commercial', parcels.mask_commercial),
-        ('has_industry', parcels.mask_industry),
-        ('has_park', parcels.mask_park),
-        ('has_retail', parcels.mask_retail),
-        ('has_school', parcels.mask_school),
-    )
-    geo_names = (parcels.census_tract, parcels.zip5)
-
-    for geo_name in geo_names:
-        for mask_name, mask_function in name_masks:
-            pass
-#           new_feature_name = geo_name + ' ' + mask_name
-#            derive(parcels_df, parcels_column_name, mask_function,
-#                   transactions_df, transactions_column_name, new_feature_name)
-
-
 def just_used(geo, df):
     'return new DataFrame containing just columns we need for further processing'
     r = pd.DataFrame({
@@ -190,41 +85,6 @@ def just_used(geo, df):
         parcels.property_indicator: df[parcels.property_indicator],
     })
     return r
-
-
-def make_indicator(df, indicator_mask_function):
-    'return a Series'
-    pdb.set_trace()
-    d = df[indicator_mask_function(df)].values
-    print d
-    pass
-
-
-def make_zip5(x):
-    pdb.set_trace()
-    xx = np.array(x / 10000.0, dtype='int32')
-    xx[xx < 0] = 0
-    return xx
-
-
-def make_has_indicatorsOLD(df, name_masks):
-    'return new DataFrame'
-    result = pd.DataFrame()
-    pdb.set_trace()
-    for indicator_name, indicator_mask_function in name_masks:
-        mask = indicator_mask_function(df)
-        indicated_geos = df[mask]['geo']
-        geo_ids = set(indicated_geos)
-        all_indicators = []
-        geo_column = df['geo']
-        for n, geo_id in enumerate(geo_ids, start=1):
-            print 'geo_id %d of %d: %d' % (n, len(geo_ids),  geo_id)
-            geo_id_indicators = geo_column == geo_id
-            all_indicators.append(geo_id_indicators)
-        new_column = reduce(lambda a, b: a | b, all_indicators)
-        result[indicator_name] = new_column
-    pdb.set_trace()
-    return result
 
 
 def make_has_indicators(df, name_masks):
@@ -299,7 +159,6 @@ def main(argv):
 
     print 'parcels sfr df shape', parcels_sfr_df.shape
 
-    # indicator_df = parcels_derived_features(geo_column_name, parcels_selected_df)
     name_masks = (
         ('has_commercial', parcels.mask_is_commercial),
         ('has_industry', parcels.mask_is_industry),
