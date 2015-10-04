@@ -7,9 +7,6 @@ import pdb
 import zipfile
 
 
-def is_parcel(df):
-    return df.columns[2] == 'APN UNFORMATTED'
-
 # map feature name to fields
 assessment_improvement = 'IMPROVEMENT VALUE CALCULATED'
 assessment_land = 'LAND VALUE CALCULATED'
@@ -35,17 +32,32 @@ zip5 = 'zip5'
 zip9 = zipcode
 
 
+def dataframe_is_parcel(df):
+    return df.columns[2] == 'APN UNFORMATTED'
+
+
 # select rows with certain properties
 
+def mask_parcel_has_census_tract(df):
+    values = df[census_tract]
+    r = values.notnull()
+    return r
 
-def mask_commercial(df):
+
+def mask_parcel_has_zipcode(df):
+    values = df[zipcode]
+    r = values.notnull()
+    return r
+
+
+def mask_is_commercial(df):
     values = df[property_indicator]
     r1 = values == 30  # commercial
     r2 = values == 24  # commercial (condominium)
     return r1 | r2
 
 
-def mask_industry(df):
+def mask_is_industry(df):
     values = df[property_indicator]
     r1 = values == 50  # industry
     r2 = values == 51  # industry light
@@ -53,25 +65,25 @@ def mask_industry(df):
     return r1 | r2 | r3
 
 
-def mask_park(df):
+def mask_is_park(df):
     values = df[land_use]
     r1 = values == 757  # park
     return r1
 
 
-def mask_sfr(df):
+def mask_is_sfr(df):
     values = df[land_use]
     r1 = values == 163  # single family residential
     return r1
 
 
-def mask_retail(df):
+def mask_is_retail(df):
     values = df[property_indicator]
     r1 = values == 25  # retail
     return r1
 
 
-def mask_school(df):
+def mask_is_school(df):
     values = df[land_use]
     r1 = values == 650  # school
     r2 = values == 652  # nursery school
