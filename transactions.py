@@ -4,6 +4,8 @@ INPUT FILES
  INPUT/corelogic-deeds-090402_07/CAC06037F1.zip ...
  INPUT/corelogic-deeds-090402_09/CAC06037F1.zip ...
  INPUT/corelogic-taxrolls-090402_05/CAC06037F1.zip ...
+ WORKING/parcels-features-census_tract.csv
+ WORKING/parcels-features-zip5.csv
 
 OUTPUT FILES
  WORKING/transactions-al-g-sfr.csv
@@ -25,9 +27,10 @@ NOTES:
        X_has_retail
        X_has_school, for X in {census_tract, zip5}
        best_apn
+       zip5
 '''
 
-import collections
+
 import numpy as np
 import pandas as pd
 import pdb
@@ -49,7 +52,7 @@ from Path import Path
 def usage(msg=None):
     if msg is not None:
         print msg
-    print 'usage  : python transactions_subset3.py [--test]'
+    print 'usage  : python transactions.py [--test]'
     print ' --test: run in test mode'
     sys.exit(1)
 
@@ -62,6 +65,8 @@ def make_control(argv):
         usage('invalid number of arguments')
 
     pcl = ParseCommandLine(argv)
+    if pcl.has_arg('--help'):
+        usage()
     arg = Bunch(
         base_name=argv[0].split('.')[0],
         test=pcl.has_arg('--test'),
@@ -79,10 +84,17 @@ def make_control(argv):
         debug=debug,
         max_sale_price=85e6,  # according to Wall Street Journal
         path=path,
+        path_in_census_tract=path.dir_working() + 'parcels-features-census_tract.csv',
+        path_in_zip5=path.dir_working() + 'parcels-features-zip5.csv',
         path_out_transactions=path.dir_working() + arg.base_name + '-al-g-sfr.csv',
         random_seed=random_seed,
         test=arg.test,
     )
+
+
+def features(name, df):
+    'return features that contain name'
+    return [x for x in df.columns if name.lower() in x.lower()]
 
 
 def best_apn(df, feature_formatted, feature_unformatted):
@@ -126,129 +138,32 @@ def columns_contain(x, df):
     print [column_name for column_name in df.columns if x.lower() in column_name.lower()]
 
 
-def derive(parcels_df, parcels_geo_column_name, parcels_mask_function,
-           transactions_df, transactions_geo_column_name, new_feature_name):
-    'add new_feature_name to transactions_df'
+def parcels_derived_features(control, transactions_df):
+    'return new df by merging df and the geo features'
 
-    # get the unique geo ids
-    mask = parcels_mask_function(parcels_df)
-    parcels_df_subset = parcels_df[mask]
-    geo_ids_all = parcels_df_subset[parcels_geo_column_name]
-    geo_ids = set(int(geo_id)
-                  for geo_id in geo_ids_all
-                  if not np.isnan(geo_id)
-                  )
-    print parcels_geo_column_name, len(geo_ids), parcels_mask_function
-
-    if len(geo_ids) == 0:
-        # this happens turning testing and maybe during production
-        transactions_df[new_feature_name] = pd.Series(data=False, index=transactions_df.index)
-    else:
-        all_indicators = []
-
-        print 'number of indicators for', parcels_geo_column_name, parcels_mask_function
-        for geo_id in geo_ids:
-            indicators = transactions_df[transactions_geo_column_name] == geo_id
-            print transactions_geo_column_name, geo_id, sum(indicators)
-            all_indicators.append(indicators)
-        has_feature = reduce(lambda a, b: a | b, all_indicators)
-        print transactions_geo_column_name, 'all', sum(has_feature)
-        transactions_df[new_feature_name] = pd.Series(has_feature, index=transactions_df.index)
-        print 'new feature %25s is True %6d times' % (
-            new_feature_name, sum(transactions_df[new_feature_name]))
-
-
-def test_derived():
-    'unit test'
-    verbose = False
-
-    def vp(x):
-        if verbose:
-            print x
-
-    parcels_df = pd.DataFrame({'geo': [1, 2, 3]})
-
-    def parcels_mask_function(parcels_df):
-        return parcels_df['geo'] >= 2
-
-    transactions_df = pd.DataFrame({'geo_t': [1, 2, 3, 2, 1]})
-    vp(parcels_df)
-    vp(transactions_df)
-
-    derive(parcels_df, 'geo', parcels_mask_function, transactions_df, 'geo_t', 'new feature')
-    new_column = transactions_df['new feature']
-    vp(new_column)
-    assert new_column.equals(pd.Series([False, True, True, True, False])), new_column
-
-
-def parcels_derived_features(parcels_df, transactions_df):
-    'mutate transactions_df by addinging indicator columns for tract and zip5 code features'
-    def truncate_zipcode(zip):
-        'convert possible zip9 to zip5'
-        x = zip / 10000.0 if zip > 99999 else zip
-        return int(x if not np.isnan(x) else 0)
-
-    # some zipcodes are 5 digits, others are 9 digits
-    # create new feature that has the first 5 digits of the zip code
-    transactions_df[transactions.zip5] = transactions_df[transactions.zip9].apply(truncate_zipcode)
-    parcels_df[parcels.zip5] = parcels_df[parcels.zip9].apply(truncate_zipcode)
-
-    def make_geo_ids(geo, mask_function):
-        def make(column_name):
-            print geo, mask_function, column_name
-            parcels_df_subset = parcels_df[mask_function(parcels_df)]
-            items = parcels_df_subset[column_name]
-            r = set(int(item)
-                    for item in items
-                    if not np.isnan(item)
-                    )
-            return r
-        if geo == 'census_tract':
-            return make(parcels.census_tract)
-        else:
-            return make(parcels.zip5)
-
-    name_masks = (
-        ('has_commercial', parcels.mask_commercial),
-        ('has_industry', parcels.mask_industry),
-        ('has_park', parcels.mask_park),
-        ('has_retail', parcels.mask_retail),
-        ('has_school', parcels.mask_school),
+    # merge in  census tract features
+    census_tract_df = pd.read_csv(control.path_in_census_tract, index_col=0)
+    m1 = transactions_df.merge(
+        census_tract_df,
+        how='inner',
+        left_on=transactions_df[transactions.census_tract],
+        right_on=census_tract_df.geo,
+        suffixes=(None, '_census_tract'),
     )
-    column_names = (
-        (parcels.census_tract, transactions.census_tract),
-        (parcels.zip5, transactions.zip5),
+    print 'm1 shape', m1.shape
+
+    # merge in zip5 features
+    zip5_df = pd.read_csv(control.path_in_zip5, index_col=0)
+    m2 = m1.merge(
+        zip5_df,
+        how='inner',
+        left_on=m1[transactions.zip5],
+        right_on=zip5_df.geo,
+        suffixes=(None, '_zip5'),
     )
+    print 'm2 shape', m2.shape
 
-    for parcels_column_name, transactions_column_name in column_names:
-        for mask_name, mask_function in name_masks:
-            new_feature_name = parcels_column_name + ' ' + mask_name
-            derive(parcels_df, parcels_column_name, mask_function,
-                   transactions_df, transactions_column_name, new_feature_name)
-            continue
-#            new_feature_name = geo + '_' + transactions_column_name_suffix
-#            geo_ids = make_geo_ids(geo_name, mask_function)   # census tract nums or zip5 nums
-#            print geo_name, transactions_column_name_suffix, len(geo_ids)
-#            if len(geo_ids) == 0:
-#                # this happens turning testing and maybe during production
-#                transactions_df[new_feature_name] = pd.Series(data=False, index=transactions_df.index)
-#            else:
-#                all_indicators = []
-#                for geo_id in geo_ids:
-#                    indicators = transactions_df[parcels_column_name_geo] == geo_id
-#                    print geo_name, parcels_column_name_geo, geo_id, sum(indicators)
-#                    all_indicators.append(indicators)
-#                has_feature = reduce(lambda a, b: a | b, all_indicators)
-#                print geo, name, 'all', sum(has_feature)
-#                transactions_df[new_feature_name] = pd.Series(has_feature, index=transactions_df.index)
-#                print 'new feature %25s is True %6d times' % (
-#                    new_feature_name, sum(transactions_df[new_feature_name]))
-#
-
-CensusFeatures = collections.namedtuple('CensusFeatures', (
-    'avg_commute', 'median_hh_income', 'fraction_owner_occupied',
-)
-)
+    return m2
 
 
 def reduce_census(census_df):
@@ -333,13 +248,22 @@ def main(argv):
     # create dataframes
     deeds_g_al_df = deeds.read_g_al(control.path,
                                     10000 if control.test else None)
-    parcels_df = parcels.read(control.path,
-                              10000 if control.test else None)
-    parcels_sfr_df = parcels_df[parcels.mask_sfr(parcels_df)]
-
+    parcels_sfr_df = parcels.read(
+        control.path,
+        10000 if control.test else None,
+        just_sfr=True,
+    )
     print 'len deeds g al', len(deeds_g_al_df)
-    print 'len parcels', len(parcels_df)
     print 'len parcels sfr', len(parcels_sfr_df)
+
+    # augment parcels to include a zip5 field (5-digit zip code)
+    # drop samples without a zipcode
+    # rationale: we use the zip5 to join the features derived from parcels
+    # and zip5 is derived from zipcode
+    pdb.set_trace()
+    zipcode_present = parcels_sfr_df[parcels.zipcode].notnull()
+    parcels_sfr_df = parcels_sfr_df[zipcode_present]
+    parcels.add_zip5(parcels_sfr_df)
 
     # augment parcels and deeds to include a better APN
     print 'adding best apn column for parcels'
@@ -350,30 +274,33 @@ def main(argv):
     new_column_deeds = best_apn(deeds_g_al_df, deeds.apn_formatted, deeds.apn_unformatted)
     deeds_g_al_df.loc[:, deeds.best_apn] = new_column_deeds
 
-    # join the files
-    print 'starting to merge'
-    dp = deeds_g_al_df.merge(parcels_sfr_df, how='inner',
-                             left_on=deeds.best_apn, right_on=parcels.best_apn,
-                             suffixes=('_deed', '_parcel'))
-
-    print 'names of column in dp dataframe'
-    for name in dp.columns:
-        print ' ', name
-
-    print 'merge analysis'
-    print ' input sizes'
-
     def ps(name, value):
         s = value.shape
         print '  %20s shape (%d, %d)' % (name, s[0], s[1])
 
     ps('deeds_g_al_df', deeds_g_al_df)
     ps('parcels_sfr_df', parcels_sfr_df)
-    print ' output sizes'
+
+    # join the deeds and parcels files
+    print 'starting to merge'
+    dp = deeds_g_al_df.merge(parcels_sfr_df, how='inner',
+                             left_on=deeds.best_apn, right_on=parcels.best_apn,
+                             suffixes=('_deed', '_parcel'))
+    del deeds_g_al_df
+    del parcels_sfr_df
     ps('dp', dp)
 
+    print 'names of column in dp dataframe'
+    index = 0
+    for name in dp.columns:
+        print ' ', name,
+        index += (index + 1) % 3
+    print
+
     # add in derived parcels features
-    parcels_derived_features(parcels_df, dp)  # mutate dp
+    pdb.set_trace()
+    dp_parcels_features = parcels_derived_features(control, dp)  # mutate dp
+    ps('dp_parcels_features', dp_parcels_features)
 
     # add in census data
     census_df = make_census_reduced_df(reduce_census(read_census(control)))
@@ -385,10 +312,10 @@ def main(argv):
 
     # add in GPS coordinates
     geocoding_df = read_geocoding(control)
-    dpcg = dpc.merge(geocoding_df,
-                     left_on="best_apn",
-                     right_on="G APN",
-                     )
+    dpcg = dp_parcels_features.merge(geocoding_df,
+                                     left_on="best_apn",
+                                     right_on="G APN",
+                                     )
     print 'dpcg shape', dpcg.shape
 
     final = dpcg
@@ -418,5 +345,4 @@ if __name__ == '__main__':
         pd.DataFrame()
         np.array()
 
-    test_derived()
     main(sys.argv)
