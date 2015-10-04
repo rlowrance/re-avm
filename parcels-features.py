@@ -11,6 +11,7 @@ Each parcels was classified as single family retail.
 
 The fields in the output csv files are
  index: the code for either the census_tract (6 digits) or zip5 (5 digits)
+ geo, same as index
  has_commercial
  has_industry
  has_park
@@ -99,6 +100,7 @@ def make_has_indicators(df, name_masks):
             print name, is_true
             result[name][is_true] = True
     r = pd.DataFrame(data=result)
+    r['geo'] = r.index
     return r
 
 
