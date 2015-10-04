@@ -5,7 +5,6 @@
 import numpy as np
 import pandas as pd
 import pdb
-import sys
 import zipfile
 
 
@@ -39,14 +38,14 @@ def is_type(values, types):
     return isinstance(x, types)
 
 
-def mask_arms_length(df):
+def mask_is_arms_length(df):
     values = df[primary_category]
     assert is_type(values, np.str)
     r1 = values == 'A'
     return r1
 
 
-def mask_full_price(df, field_name=sale_code):
+def mask_is_full_price(df, field_name=sale_code):
     'deed contained the full price'
     values = df[field_name]
     assert is_type(values, str)
@@ -54,14 +53,14 @@ def mask_full_price(df, field_name=sale_code):
     return r1
 
 
-def mask_grant(df):
+def mask_is_grant(df):
     values = df[document_type]
     assert is_type(values, np.str)
     r1 = values == 'G'
     return r1
 
 
-def mask_new_construction(df):
+def mask_is_new_construction(df):
     'others include: resale, refinance, ...'
     values = df[transaction_type]
     assert is_type(values, (float, np.int64, np.float64))
@@ -69,7 +68,7 @@ def mask_new_construction(df):
     return r1
 
 
-def mask_resale(df):
+def mask_is_resale(df):
     'others include: resale, refinance, new contruction, ...'
     values = df[transaction_type]
     assert is_type(values, (float, np.int64, np.float64))
@@ -93,7 +92,7 @@ def read_g_al(path, nrows):
             # line 255719 in one member has an stray " that messes up the csv parser
             skiprows = (255718,) if archive_member_name == 'CAC06037F3.txt' else None
             df = pd.read_csv(f, sep='\t', nrows=nrows,  skiprows=skiprows)
-            mask_keep = mask_arms_length(df) & mask_grant(df)
+            mask_keep = mask_is_arms_length(df) & mask_is_grant(df)
             keep = df[mask_keep]
             return keep, len(df)
 
