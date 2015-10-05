@@ -80,6 +80,8 @@ def make_control(argv):
 
     debug = False
 
+    file_out_transactions = arg.base_name + '-al-g-sfr' + ('-test' if arg.test else '') + '.csv'
+
     return Bunch(
         arg=arg,
         debug=debug,
@@ -88,7 +90,7 @@ def make_control(argv):
         path_in_census_features=path.dir_working() + 'census-features-derived.csv',
         path_in_parcels_features_census_tract=path.dir_working() + 'parcels-features-census_tract.csv',
         path_in_parcels_features_zip5=path.dir_working() + 'parcels-features-zip5.csv',
-        path_out_transactions=path.dir_working() + arg.base_name + '-al-g-sfr.csv',
+        path_out_transactions=path.dir_working() + file_out_transactions,
         random_seed=random_seed,
         test=arg.test,
     )
@@ -224,7 +226,6 @@ def main(argv):
     del m1
 
     # add in census data
-    pdb.set_trace()
     census_features_df = read_census_features(control)
     m3 = m2.merge(census_features_df,
                   left_on=transactions.census_tract,
@@ -249,7 +250,7 @@ def main(argv):
         print c,
     print
 
-    print cc('fraction', final)  # verify that fraction_owner_occupied is in the output
+    cc('fraction', final)  # verify that fraction_owner_occupied is in the output
     print 'final shape', final.shape
 
     # write merged,augmented dataframe
