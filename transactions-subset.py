@@ -1,11 +1,13 @@
 '''create subset of the transactions file version 3; add fields
 
 INPUT FILES
- INPUT/transactions3-al-g-sfr.csv
+ INPUT/transactions-al-g-sfr.csv
 
 OUTPUT FILES
- WORKING/transactions-subset3-test.csv
- WORKING/transactions-subset3-train.csv
+ WORKING/transactions-subset-test.csv
+ WORKING/transactions-subset-train.csv
+ WORKING/transactions-subset-train-validate.csv
+ WORKING/transactions-subset-validate.csv
 '''
 
 import datetime
@@ -18,16 +20,17 @@ from sklearn import cross_validation
 import sys
 
 from Bunch import Bunch
-from directory import directory
+from Features import Features
 from Logger import Logger
-import parse_command_line
-import transactions3_subset_layout as layout
+from ParseCommandLine import ParseCommandLine
+from Path import Path
+import layout_transactions as layout
 
 
 def usage(msg=None):
     if msg is not None:
         print msg
-    print 'usage  : python transactions_subset3.py [--test]'
+    print 'usage  : python transactions_subset.py [--test]'
     print ' --test: run in test mode'
     sys.exit(1)
 
@@ -39,7 +42,7 @@ def make_control(argv):
     if len(argv) not in (1, 2):
         usage('invalid number of arguments')
 
-    pcl = parse_command_line.ParseCommandLine(argv)
+    pcl = ParseCommandLine(argv)
     arg = Bunch(
         base_name=argv[0].split('.')[0],
         test=pcl.has_arg('--test'),
@@ -48,6 +51,8 @@ def make_control(argv):
     random_seed = 123
     random.seed(random_seed)
 
+    dir_working = Path().dir_working()
+
     debug = False
 
     return Bunch(
@@ -55,61 +60,98 @@ def make_control(argv):
         debug=debug,
         fraction_test=0.1,
         max_sale_price=85e6,  # according to Wall Street Journal
-        path_in=directory('working') + 'transactions3-al-g-sfr.csv',
-        path_out_test=directory('working') + arg.base_name + '-test.csv',
-        path_out_train=directory('working') + arg.base_name + '-train.csv',
+        path_in=dir_working + 'transactions-al-g-sfr.csv',
+        path_out_test=dir_working + arg.base_name + '-test.csv',
+        path_out_train=dir_working + arg.base_name + '-train.csv',
+        path_out_train_validate=dir_working + arg.base_name + '-train-validate.csv',
+        path_out_validate=dir_working + arg.base_name + '-validate.csv',
         random_seed=random_seed,
         test=arg.test,
     )
 
 
-def reasonable_feature_values(all_samples, control):
+def report_and_remove(df, keep_masks):
+    print 'impact of individual masks'
+    format = '%30s removed %6d samples (%3d%%)'
+    for name, keep_mask in keep_masks.iteritems():
+        n_removed = len(df) - sum(keep_mask)
+        fraction_removed = n_removed / len(df)
+        print format % (name, n_removed, 100.0 * fraction_removed)
+
+    mm = reduce(lambda a, b: a & b, keep_masks.values())
+    total_removed = len(df) - sum(mm)
+    total_fraction_removed = total_removed / len(df)
+    print format % ('*** in combination', total_removed, 100.0 * total_fraction_removed)
+
+    r = df[mm]
+    return r
+
+
+def always_present_ege_features(df, control):
+    '''return those rows in the df that have no missing values needed for the ege analysis
+
+    ege = estimated generalization error; see program ege_week.py for an example
+    '''
+    pdb.set_trace()
+    m = {}
+    for name, _ in Features().ege():
+        print name
+        if name not in df.columns:
+            # expect age-related feature to be missing
+            # these features are computed when the model is fit
+            # expect has_pool, etc. to be missing
+            # these features are computed in the add_fields function in this module
+            print name, 'not in df'
+            if name in (layout.age, layout.age2, layout.age_effective, layout.age_effective2):
+                # these fields are determined when the model is run
+                # they depend in the sale date being studied
+                pass
+            elif name in (layout.building_has_pool, layout.building_is_new_construction):
+                # these fields are computed in this module in the add_fields function
+                pass
+            elif name not in df.columns:
+                print 'df columns', df.columns
+                print name, 'not in df'
+                pdb.set_trace()
+            else:
+                m[name] = pd.notnull(df[name])
+    pdb.set_trace()
+    print 'effects of always present in ege individually'
+    return report_and_remove(df, m)
+
+
+def reasonable_feature_values(df, control):
     def below(percentile, series):
         quantile_value = series.quantile(percentile / 100.0)
         r = series < quantile_value
         return r
 
-    debug = True
-    a = all_samples
-    if False and debug:
-        for column_name in a.columns:
-            print column_name
-
     # set mask value in m to True to keep the observation
     m = {}
-    m['one building'] = layout.mask_is_one_building(a)
-    m['one APN'] = layout.mask_is_one_parcel(a)
-    m['assessment total > 0'] = a[layout.assessment_total] > 0
-    m['assessment land > 0'] = a[layout.assessment_land] > 0
-    m['assessment improvement > 0'] = a[layout.assessment_improvement] > 0
-    m['effective_year_built > 0'] = a[layout.year_built_effective] > 0
-    m['year_built > 0'] = a[layout.year_built] > 0
-    m['effective year >= year built'] = a[layout.year_built_effective] >= a[layout.year_built]
-    m['latitude known'] = layout.mask_gps_latitude_known(a)
-    m['longitude known'] = layout.mask_gps_longitude_known(a)
-    m['land size'] = below(99, a[layout.land_size])
-    m['living size'] = below(99, a[layout.living_size])
-    # m['recording date present'] = ~a[layout.recording_date + '_deed'].isnull()  # ~ => not
-    m['price > 0'] = a[layout.price] > 0
-    m['price < max'] = a[layout.price] < control.max_sale_price
-    m['full price'] = layout.mask_full_price(a)
-    m['rooms > 0'] = a[layout.n_rooms] > 0
-    m['new or resale'] = layout.mask_new_or_resale(a)
-    m['units == 1'] = a[layout.n_units] == 1
-    m['sale date present'] = layout.mask_sale_date_present(a)
-    m['sale date valid'] = layout.mask_sale_date_valid(a)
+    m['one building'] = layout.mask_is_one_building(df)
+    m['one APN'] = layout.mask_is_one_parcel(df)
+    m['assessment total > 0'] = df[layout.assessment_total] > 0
+    m['assessment land > 0'] = df[layout.assessment_land] > 0
+    m['assessment improvement > 0'] = df[layout.assessment_improvement] > 0
+    m['effective_year_built > 0'] = df[layout.year_built_effective] > 0
+    m['year_built > 0'] = df[layout.year_built] > 0
+    m['effective year >= year built'] = df[layout.year_built_effective] >= df[layout.year_built]
+    m['latitude known'] = layout.mask_gps_latitude_known(df)
+    m['longitude known'] = layout.mask_gps_longitude_known(df)
+    m['land size < 99th percentile'] = below(99, df[layout.lot_land_square_feet])
+    m['living size < 99th percentile'] = below(99, df[layout.building_living_square_feet])
+    # m['recording date present'] = ~df[layout.recording_date + '_deed'].isnull()  # ~ => not
+    m['price > 0'] = df[layout.price] > 0
+    m['price < max'] = df[layout.price] < control.max_sale_price
+    m['full price'] = layout.mask_full_price(df)
+    m['rooms > 0'] = df[layout.building_rooms] > 0
+    m['new or resale'] = layout.mask_new_or_resale(df)
+    m['units == 1'] = df[layout.n_units] == 1
+    m['sale date present'] = layout.mask_sale_date_present(df)
+    m['sale date valid'] = layout.mask_sale_date_valid(df)
 
-    print 'effect of conditions individually'
-    for k, v in m.iteritems():
-        removed = len(a) - sum(v)
-        print '%30s removed %6d samples (%3d%%)' % (k, removed, 100.0 * removed / len(a))
-
-    mm = reduce(lambda a, b: a & b, m.values())
-    total_removed = len(a) - sum(mm)
-    print 'in combination, removed %6d samples (%3d%%)' % (total_removed, 100.0 * total_removed / len(a))
-
-    r = a[mm]
-    return r
+    print 'effects of reasonable values'
+    return report_and_remove(df, m)
 
 
 def add_fields(df, control):
@@ -138,6 +180,8 @@ def add_fields(df, control):
     yyyymm = value.apply(yyyymm)
     df[layout.yyyymm] = pd.Series(yyyymm)
 
+    # TODO: add has_pool
+
 
 def main(argv):
     control = make_control(argv)
@@ -154,7 +198,9 @@ def main(argv):
 
     after_2000_census_known = transactions[layout.mask_sold_after_2002(transactions)]
     print 'after 2000 census known shape', after_2000_census_known.shape
-    subset = reasonable_feature_values(after_2000_census_known, control)
+    reasonable = reasonable_feature_values(after_2000_census_known, control)
+    print 'reasonable shape', reasonable.shape
+    subset = always_present_ege_features(reasonable, control)
     print 'subset shape', subset.shape
 
     # add fields
@@ -208,7 +254,6 @@ if __name__ == '__main__':
         # avoid pyflakes warnings
         pdb.set_trace()
         pprint()
-        parse_command_line()
         pd.DataFrame()
         np.array()
 
