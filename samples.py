@@ -75,6 +75,7 @@ def make_control(argv):
 
 
 def report_and_remove(df, keep_masks):
+    pdb.set_trace()
     print 'impact of individual masks'
     format = '%30s removed %6d samples (%3d%%)'
     for name, keep_mask in keep_masks.iteritems():
@@ -82,6 +83,7 @@ def report_and_remove(df, keep_masks):
         fraction_removed = n_removed / len(df)
         print format % (name, n_removed, 100.0 * fraction_removed)
 
+    pdb.set_trace()
     mm = reduce(lambda a, b: a & b, keep_masks.values())
     total_removed = len(df) - sum(mm)
     total_fraction_removed = total_removed / len(df)
@@ -158,7 +160,7 @@ def reasonable_feature_values(df, control):
     return report_and_remove(df, m)
 
 
-def add_fields(df, control):
+def add_features(df, control):
     'mutate df'
     def split(date):
         year = int(date / 10000)
@@ -195,8 +197,9 @@ def main(argv):
     transactions = pd.read_csv(control.path_in,
                                nrows=100000 if control.arg.test else None,
                                )
-    print 'transactions column names'
+    print 'transactions shape', transactions.shape
 
+    pdb.set_trace()
     after_2000_census_known = transactions[layout.mask_sold_after_2002(transactions)]
     print 'after 2000 census known shape', after_2000_census_known.shape
     reasonable = reasonable_feature_values(after_2000_census_known, control)
@@ -204,8 +207,7 @@ def main(argv):
     subset = always_present_ege_features(reasonable, control)
     print 'subset shape', subset.shape
 
-    # add fields
-    add_fields(subset, control)
+    add_features(subset, control)
 
     # split into test and train
     # stratify by yyyymm (month of sale)
