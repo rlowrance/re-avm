@@ -108,7 +108,6 @@ def add_zip5(df):
     def to_int(x):
         return x if np.isnan(x) else int(x)
 
-    pdb.set_trace()
     zip9_values = df[zipcode]
     zip5_values = (zip9_values / 10000.0).apply(to_int)
     values = np.where(zip9_values <= 99999, zip9_values, zip5_values)
@@ -122,7 +121,6 @@ def add_zip5(df):
 
 
 def test_add_zip5():
-    pdb.set_trace()
     verbose = False
     df = pd.DataFrame({zipcode: (123456790.0, 98765.0, np.nan)})
     add_zip5(df)
