@@ -84,8 +84,9 @@ def make_control(argv):
         debug=debug,
         max_sale_price=85e6,  # according to Wall Street Journal
         path=path,
-        path_in_census_tract=path.dir_working() + 'parcels-features-census_tract.csv',
-        path_in_zip5=path.dir_working() + 'parcels-features-zip5.csv',
+        path_in_census_features=path.dir_working() + 'census-features-derived.csv',
+        path_in_parcels_features_census_tract=path.dir_working() + 'parcels-features-census_tract.csv',
+        path_in_parcels_features_zip5=path.dir_working() + 'parcels-features-zip5.csv',
         path_out_transactions=path.dir_working() + arg.base_name + '-al-g-sfr.csv',
         random_seed=random_seed,
         test=arg.test,
@@ -119,10 +120,10 @@ def best_apn(df, feature_formatted, feature_unformatted):
     pdb.set_trace()
 
 
-def read_census(control):
+def read_census_features(control):
     'return dataframe'
     print 'reading census'
-    df = pd.read_csv(control.path.dir_input('census'), sep='\t')
+    df = pd.read_csv(control.path_in_census_features, index_col=0)
     return df
 
 
@@ -142,7 +143,7 @@ def parcels_derived_features(control, transactions_df):
     'return new df by merging df and the geo features'
 
     # merge in  census tract features
-    census_tract_df = pd.read_csv(control.path_in_census_tract, index_col=0)
+    census_tract_df = pd.read_csv(control.path_in_parcels_features_census_tract, index_col=0)
     m1 = transactions_df.merge(
         census_tract_df,
         how='inner',
@@ -153,7 +154,7 @@ def parcels_derived_features(control, transactions_df):
     print 'm1 shape', m1.shape
 
     # merge in zip5 features
-    zip5_df = pd.read_csv(control.path_in_zip5, index_col=0)
+    zip5_df = pd.read_csv(control.path_in_parcels_features_zip5, index_col=0)
     m2 = m1.merge(
         zip5_df,
         how='inner',
@@ -164,80 +165,6 @@ def parcels_derived_features(control, transactions_df):
     print 'm2 shape', m2.shape
 
     return m2
-
-
-def reduce_census(census_df):
-    'return dictionary[census_tract] --> CensusFeatures'
-
-    def get_census_tract(row):
-        fips_census_tract = float(row[census.fips_census_tract])
-        census_tract = int(fips_census_tract % 1000000)
-        return census_tract
-
-    def get_avg_commute(row):
-        'return weighted average commute time'
-        def mul(factor):
-            return (factor[0] * float(row[census.commute_less_5]) +
-                    factor[1] * float(row[census.commute_5_to_9]) +
-                    factor[2] * float(row[census.commute_10_to_14]) +
-                    factor[3] * float(row[census.commute_15_to_19]) +
-                    factor[4] * float(row[census.commute_20_to_24]) +
-                    factor[5] * float(row[census.commute_25_to_29]) +
-                    factor[6] * float(row[census.commute_30_to_34]) +
-                    factor[7] * float(row[census.commute_35_to_39]) +
-                    factor[8] * float(row[census.commute_40_to_44]) +
-                    factor[9] * float(row[census.commute_45_to_59]) +
-                    factor[10] * float(row[census.commute_60_to_89]) +
-                    factor[11] * float(row[census.commute_90_or_more]))
-        n_samples = mul((1., ) * 12)
-        wsum = mul((2.5, 7.5, 12.5, 17.5, 22.5, 27.5, 32.5, 37.5, 42.5, 52.5, 75.0, 120.0))
-        return None if n_samples == 0 else wsum / n_samples
-
-    def get_median_household_income(row):
-        mhi = float(row[census.median_household_income])
-        return mhi
-
-    def get_fraction_owner_occupied(row):
-        total = float(row[census.occupied_total])
-        owner = float(row[census.occupied_owner])
-        return None if total == 0 else owner / total
-
-    d = {}
-    # first row has explanations for column names
-    labels = census_df.loc[0]
-    if False:
-        print 'labels'
-        for i in xrange(len(labels)):
-            print ' ', labels.index[i], labels[i]
-    for row_index in xrange(1, len(census_df)):
-        if False:
-            print row_index
-        row = census_df.loc[row_index]  # row is a pd.Series
-        if False:
-            print row
-        ct = get_census_tract(row)
-        if ct in d:
-            print 'duplicate census tract', ct
-            pdb.set_trace()
-        ac = get_avg_commute(row)
-        mhi = get_median_household_income(row)
-        foo = get_fraction_owner_occupied(row)
-        if ac is not None and mhi is not None and foo is not None:
-            d[ct] = CensusFeatures(avg_commute=ac,
-                                   median_hh_income=mhi,
-                                   fraction_owner_occupied=foo,
-                                   )
-    return d
-
-
-def make_census_reduced_df(d):
-    'convert d[census_tract]=(avg commute, med hh inc, fraction owner occ) to dataframe'
-    df = pd.DataFrame({'census_tract': [k for k in d.keys()],
-                       'avg_commute': [d[k][0] for k in d.keys()],
-                       'fraction_owner_occupied': [d[k][2] for k in d.keys()],
-                       'median_household_income': [d[k][1] for k in d.keys()]
-                       })
-    return df
 
 
 def main(argv):
@@ -289,29 +216,19 @@ def main(argv):
     del parcels_sfr_df
     ps('dp', dp)
 
-    print 'names of column in dp dataframe'
-    index = 0
-    for name in dp.columns:
-        print ' ', name,
-        index += (index + 1) % 3
-    print
-
     # add in derived parcels features
-    dp_parcels_features = parcels_derived_features(control, dp)  # mutate dp
+    dp_parcels_features = parcels_derived_features(control, dp)
     ps('dp_parcels_features', dp_parcels_features)
-    dppf = dp_parcels_features
+    del dp
 
     # add in census data
-    pdb.set_trace()
-    pdc = census_derived_features(control, dppf)
-    # OLD BELOW ME
-
-    census_df = make_census_reduced_df(reduce_census(read_census(control)))
-    dpc = dp.merge(census_df,
-                   left_on=parcels.census_tract + '_parcel',
-                   right_on="census_tract",
-                   )
-    print 'len dpc', len(dpc)
+    census_features_df = read_census_features(control)
+    dpc = dp_parcels_features.merge(census_features_df,
+                                    left_on=transactions.census_tract,
+                                    right_on="census_tract",
+                                    )
+    del census_features_df
+    ps('dpc', dpc)
 
     # add in GPS coordinates
     geocoding_df = read_geocoding(control)
@@ -319,12 +236,14 @@ def main(argv):
                                      left_on="best_apn",
                                      right_on="G APN",
                                      )
-    print 'dpcg shape', dpcg.shape
+    del geocoding_df
+    ps('dpcg', dpcg)
 
     final = dpcg
     print 'final columns'
     for c in final.columns:
-        print c
+        print c,
+    print
 
     print 'final shape', final.shape
 
