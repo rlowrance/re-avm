@@ -1,13 +1,15 @@
-'''create subset of the transactions file version 3; add fields
+'''create training and test samples from the transactions
+* add certain fields
+* select transactions that contain "reasonable" values
 
 INPUT FILES
  INPUT/transactions-al-g-sfr.csv
 
 OUTPUT FILES
- WORKING/transactions-subset-test.csv
- WORKING/transactions-subset-train.csv
- WORKING/transactions-subset-train-validate.csv
- WORKING/transactions-subset-validate.csv
+ WORKING/samples-test.csv
+ WORKING/samples-train.csv
+ WORKING/samples-train-validate.csv
+ WORKING/samples-validate.csv
 '''
 
 import datetime
@@ -20,11 +22,13 @@ from sklearn import cross_validation
 import sys
 
 from Bunch import Bunch
+from columns_contain import columns_contain
 from Features import Features
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
 from Path import Path
 import layout_transactions as layout
+cc = columns_contain
 
 
 def usage(msg=None):
@@ -192,9 +196,6 @@ def main(argv):
                                nrows=100000 if control.arg.test else None,
                                )
     print 'transactions column names'
-    for c in transactions.columns:
-        print c
-    print 'transactions.shape', transactions.shape
 
     after_2000_census_known = transactions[layout.mask_sold_after_2002(transactions)]
     print 'after 2000 census known shape', after_2000_census_known.shape
