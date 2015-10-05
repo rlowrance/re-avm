@@ -40,13 +40,14 @@ import sys
 
 
 from Bunch import Bunch
-import layout_census as census
+from columns_contain import columns_contain
 import layout_deeds as deeds
 import layout_parcels as parcels
 import layout_transactions as transactions
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
 from Path import Path
+cc = columns_contain
 
 
 def usage(msg=None):
@@ -134,11 +135,6 @@ def read_geocoding(control):
     return df
 
 
-def columns_contain(x, df):
-    'for interactive debugging'
-    print [column_name for column_name in df.columns if x.lower() in column_name.lower()]
-
-
 def parcels_derived_features(control, transactions_df):
     'return new df by merging df and the geo features'
 
@@ -172,74 +168,82 @@ def main(argv):
     sys.stdout = Logger(base_name=control.arg.base_name)
     print control
 
-    # create dataframes
-    deeds_g_al_df = deeds.read_g_al(control.path,
-                                    10000 if control.test else None)
-    parcels_sfr_df = parcels.read(
-        control.path,
-        10000 if control.test else None,
-        just_sfr=True,
-    )
-    print 'len deeds g al', len(deeds_g_al_df)
-    print 'len parcels sfr', len(parcels_sfr_df)
-
-    # augment parcels to include a zip5 field (5-digit zip code)
-    # drop samples without a zipcode
-    # rationale: we use the zip5 to join the features derived from parcels
-    # and zip5 is derived from zipcode
-    zipcode_present = parcels_sfr_df[parcels.zipcode].notnull()
-    parcels_sfr_df = parcels_sfr_df[zipcode_present]
-    parcels.add_zip5(parcels_sfr_df)
-
-    # augment parcels and deeds to include a better APN
-    print 'adding best apn column for parcels'
-    new_column_parcels = best_apn(parcels_sfr_df, parcels.apn_formatted, parcels.apn_unformatted)
-    parcels_sfr_df.loc[:, parcels.best_apn] = new_column_parcels  # generates an ignorable warning
-
-    print 'adding best apn column for deeds'
-    new_column_deeds = best_apn(deeds_g_al_df, deeds.apn_formatted, deeds.apn_unformatted)
-    deeds_g_al_df.loc[:, deeds.best_apn] = new_column_deeds
+    # NOTE: Organize the computation to minimize memory usage
+    # so that this code can run on smaller-memory systems
 
     def ps(name, value):
         s = value.shape
         print '  %20s shape (%d, %d)' % (name, s[0], s[1])
 
-    ps('deeds_g_al_df', deeds_g_al_df)
-    ps('parcels_sfr_df', parcels_sfr_df)
+    # create dataframes
+    n_read_if_test = 10000
+    deeds_g_al = deeds.read_g_al(
+        control.path,
+        n_read_if_test if control.test else None,
+    )
+    parcels_sfr = parcels.read(
+        control.path,
+        10000 if control.test else None,
+        just_sfr=True,
+    )
+    ps('original deeds g al', deeds_g_al)
+    ps('original parcels sfr', parcels_sfr)
+
+    # augment parcels to include a zip5 field (5-digit zip code)
+    # drop samples without a zipcode
+    # rationale: we use the zip5 to join the features derived from parcels
+    # and zip5 is derived from zipcode
+    zipcode_present = parcels_sfr[parcels.zipcode].notnull()
+    parcels_sfr = parcels_sfr[zipcode_present]
+    parcels.add_zip5(parcels_sfr)
+
+    # augment parcels and deeds to include a better APN
+    print 'adding best apn column for parcels'
+    new_column_parcels = best_apn(parcels_sfr, parcels.apn_formatted, parcels.apn_unformatted)
+    parcels_sfr.loc[:, parcels.best_apn] = new_column_parcels  # generates an ignorable warning
+
+    print 'adding best apn column for deeds'
+    new_column_deeds = best_apn(deeds_g_al, deeds.apn_formatted, deeds.apn_unformatted)
+    deeds_g_al.loc[:, deeds.best_apn] = new_column_deeds
+
+    ps('revised deeds_g_al', deeds_g_al)
+    ps('revised parcels_sfr', parcels_sfr)
 
     # join the deeds and parcels files
     print 'starting to merge'
-    dp = deeds_g_al_df.merge(parcels_sfr_df, how='inner',
-                             left_on=deeds.best_apn, right_on=parcels.best_apn,
-                             suffixes=('_deed', '_parcel'))
-    del deeds_g_al_df
-    del parcels_sfr_df
-    ps('dp', dp)
+    m1 = deeds_g_al.merge(parcels_sfr, how='inner',
+                          left_on=deeds.best_apn, right_on=parcels.best_apn,
+                          suffixes=('_deed', '_parcel'))
+    del deeds_g_al
+    del parcels_sfr
+    ps('m1 merge deed + parcels', m1)
 
     # add in derived parcels features
-    dp_parcels_features = parcels_derived_features(control, dp)
-    ps('dp_parcels_features', dp_parcels_features)
-    del dp
+    m2 = parcels_derived_features(control, m1)
+    ps('ms added parcels_derived', m2)
+    del m1
 
     # add in census data
+    pdb.set_trace()
     census_features_df = read_census_features(control)
-    dpc = dp_parcels_features.merge(census_features_df,
-                                    left_on=transactions.census_tract,
-                                    right_on="census_tract",
-                                    )
-    del census_features_df
-    ps('dpc', dpc)
+    m3 = m2.merge(census_features_df,
+                  left_on=transactions.census_tract,
+                  right_on="census_tract",
+                  )
+    del m2
+    ps('m3 merged census features', m3)
 
     # add in GPS coordinates
     geocoding_df = read_geocoding(control)
-    dpcg = dp_parcels_features.merge(geocoding_df,
-                                     left_on="best_apn",
-                                     right_on="G APN",
-                                     )
+    m4 = m3.merge(geocoding_df,
+                  left_on="best_apn",
+                  right_on="G APN",
+                  )
     del geocoding_df
-    ps('dpcg', dpcg)
+    del m3
+    ps('m4 merged geocoding', m4)
 
-    final = dpcg
+    final = m4
     print 'final columns'
     for c in final.columns:
         print c,
@@ -266,5 +270,6 @@ if __name__ == '__main__':
         pprint()
         pd.DataFrame()
         np.array()
+        columns_contain('s', pd.DataFrame())
 
     main(sys.argv)
