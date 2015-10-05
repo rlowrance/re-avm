@@ -12,6 +12,8 @@ OUTPUT FILES
  WORKING/samples-validate.csv
 '''
 
+from __future__ import division
+
 import datetime
 import numpy as np
 import pandas as pd
@@ -75,7 +77,6 @@ def make_control(argv):
 
 
 def report_and_remove(df, keep_masks):
-    pdb.set_trace()
     print 'impact of individual masks'
     format = '%30s removed %6d samples (%3d%%)'
     for name, keep_mask in keep_masks.iteritems():
@@ -83,7 +84,6 @@ def report_and_remove(df, keep_masks):
         fraction_removed = n_removed / len(df)
         print format % (name, n_removed, 100.0 * fraction_removed)
 
-    pdb.set_trace()
     mm = reduce(lambda a, b: a & b, keep_masks.values())
     total_removed = len(df) - sum(mm)
     total_fraction_removed = total_removed / len(df)
@@ -94,10 +94,7 @@ def report_and_remove(df, keep_masks):
 
 
 def always_present_ege_features(df, control):
-    '''return those rows in the df that have no missing values needed for the ege analysis
-
-    ege = estimated generalization error; see program ege_week.py for an example
-    '''
+    'return new DataFrame containing samples in df with features never missing for the ege analysis'
     pdb.set_trace()
     m = {}
     for name, _ in Features().ege():
@@ -111,22 +108,27 @@ def always_present_ege_features(df, control):
             if name in (layout.age, layout.age2, layout.age_effective, layout.age_effective2):
                 # these fields are determined when the model is run
                 # they depend in the sale date being studied
+                print 'age field missing as expected', name
                 pass
             elif name in (layout.building_has_pool, layout.building_is_new_construction):
                 # these fields are computed in this module in the add_fields function
+                print 'added field missing as expected', name
                 pass
-            elif name not in df.columns:
+            else:
                 print 'df columns', df.columns
+                pprint(cc(name, df))
                 print name, 'not in df'
                 pdb.set_trace()
-            else:
-                m[name] = pd.notnull(df[name])
+        else:
+            print 'built mask for', name
+            m[name] = pd.notnull(df[name])
     pdb.set_trace()
     print 'effects of always present in ege individually'
     return report_and_remove(df, m)
 
 
 def reasonable_feature_values(df, control):
+    'return new DataFrame containing sample in df that have "reasonable" values'
     def below(percentile, series):
         quantile_value = series.quantile(percentile / 100.0)
         r = series < quantile_value
@@ -178,6 +180,7 @@ def add_features(df, control):
         year, month, day = split(date)
         return year * 100 + month
 
+    pdb.set_trace()
     value = df[layout.sale_date]
 
     sale_date_python = value.apply(python_date)
@@ -199,7 +202,6 @@ def main(argv):
                                )
     print 'transactions shape', transactions.shape
 
-    pdb.set_trace()
     after_2000_census_known = transactions[layout.mask_sold_after_2002(transactions)]
     print 'after 2000 census known shape', after_2000_census_known.shape
     reasonable = reasonable_feature_values(after_2000_census_known, control)
