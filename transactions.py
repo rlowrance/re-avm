@@ -249,6 +249,7 @@ def main(argv):
         print c,
     print
 
+    print cc('fraction', final)  # verify that fraction_owner_occupied is in the output
     print 'final shape', final.shape
 
     # write merged,augmented dataframe
