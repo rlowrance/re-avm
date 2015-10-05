@@ -61,16 +61,18 @@ def make_control(argv):
 
     debug = False
 
+    out_file_name_base = arg.base_name + ('-testing' if arg.test else '')
+
     return Bunch(
         arg=arg,
         debug=debug,
         fraction_test=0.1,
         max_sale_price=85e6,  # according to Wall Street Journal
         path_in=dir_working + 'transactions-al-g-sfr.csv',
-        path_out_test=dir_working + arg.base_name + '-test.csv',
-        path_out_train=dir_working + arg.base_name + '-train.csv',
-        path_out_train_validate=dir_working + arg.base_name + '-train-validate.csv',
-        path_out_validate=dir_working + arg.base_name + '-validate.csv',
+        path_out_test=dir_working + out_file_name_base + '-test.csv',
+        path_out_train=dir_working + out_file_name_base + '-train.csv',
+        path_out_train_validate=dir_working + out_file_name_base + '-train-validate.csv',
+        path_out_validate=dir_working + out_file_name_base + '-validate.csv',
         random_seed=random_seed,
         test=arg.test,
     )
