@@ -38,7 +38,7 @@ census2000_avg_commute = 'avg_commute'                          # created in tra
 
 census_tract = 'CENSUS TRACT_parcel'
 
-census_tract_has_commercial = 'census_tract_has_commerical'  # created in transactions.py
+census_tract_has_commercial = 'census_tract_has_commercial'  # created in transactions.py
 census_tract_has_industry = 'census_tract_has_industry'      # created in transactions.py
 census_tract_has_park = 'census_tract_has_park'              # created in transactions.py
 census_tract_has_retail = 'census_tract_has_retail'          # created in transactions.py
