@@ -20,13 +20,13 @@ all: $(ALL)
 .PHONY : parcels-features
 parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcels-features-zip5.csv
 
-$(WORKING)/census-features-derived.csv: census-features.py
+$(WORKING)/census-features-derived.csv: census-features.py layout_census.py
 	$(PYTHON) census-features.py
 
-$(WORKING)/parcels-features-census_tract.csv: parcels-features.py
+$(WORKING)/parcels-features-census_tract.csv: parcels-features.py layout_parcels.py
 	$(PYTHON) parcels-features.py --geo census_tract
 
-$(WORKING)/parcels-features-zip5.csv: parcels-features.py
+$(WORKING)/parcels-features-zip5.csv: parcels-features.py layout_parcels.py
 	$(PYTHON) parcels-features.py --geo zip5
 
 $(WORKING)/transactions-al-g-sfr.csv: transactions.py \
