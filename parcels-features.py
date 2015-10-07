@@ -4,7 +4,8 @@ INPUT FILES
  INPUT/corelogic-deeds-*/CAC*.txt
 
 OUTPUT FILES
- WORKING/parcels-features-census-tract.csv
+ WORKING/parcels-features-GEO.csv
+ WORKING/parcels-features-GEO-occurs.pickle  how often each feature occurs in the GEO partitioning
  WORKING/parcels-features-zip5.csv
 
 Each parcels was classified as single family retail.
@@ -12,13 +13,10 @@ Each parcels was classified as single family retail.
 The fields in the output csv files are
  index: the code for either the census_tract (6 digits) or zip5 (5 digits)
  geo, same as index
- has_commercial
- has_industry
- has_park
- has_retail
- has_school
+ has_X where X is in layout_parcels.propn.keys()
 '''
 
+import cPickle as pickle
 import numpy as np
 import pandas as pd
 import pdb
@@ -72,7 +70,8 @@ def make_control(argv):
         debug=debug,
         max_sale_price=85e6,  # according to Wall Street Journal
         path=path,
-        path_out=path.dir_working() + arg.base_name + '-' + arg.geo + '.csv',
+        path_out_csv=path.dir_working() + arg.base_name + '-' + arg.geo + '.csv',
+        path_out_occurs=path.dir_working() + arg.base_name + '-' + arg.geo + '-occurs.pickle',
         random_seed=random_seed,
         test=arg.test,
     )
@@ -88,7 +87,7 @@ def just_used(geo, df):
     return r
 
 
-def make_has_indicators(df, name_masks):
+def make_has_indicatorsOLD(df, name_masks):
     'return new df with an index for each geo value'
     result_index = set(df.index)
     result = {}
@@ -104,30 +103,34 @@ def make_has_indicators(df, name_masks):
     return r
 
 
-def test_make_has_indicators():
-    df = pd.DataFrame({'geo': (1, 2, 3, 2, 1),
-                       'x': (11, 12, 13, 13, 15),  # yes, 2 x 13
-                       })
-    df = pd.DataFrame(data={'x': (11, 12, 13, 13, 15),  # yes, 2 x 13
-                            },
-                      index=(1, 2, 3, 2, 1),
-                      )
+def make_has_indicators(df):
+    'return new df with an index for each property indicator value'
+    verbose = False
+    result_index = set(df.index)
+    d = {}       # built up to be the data frame
+    occurs = {}  # used for reporting
+    format = '%30s occurs in %7d geos'
+    for property_indicator_description in parcels.propn.keys():
+        feature_name = 'has_' + property_indicator_description
+        mask = parcels.mask_property_indicator_is(property_indicator_description, df)
+        occurs[feature_name] = sum(mask)
+        print format % (feature_name, occurs[feature_name])
+        is_feature = df[mask]
+        d[feature_name] = pd.Series(data=[False] * len(result_index),
+                                    index=result_index)
+        for is_true in set(is_feature.index):
+            if verbose:
+                print feature_name, is_true
+            d[feature_name][is_true] = True
+    total_occurs = reduce(lambda x, y: x + y, occurs.values(), 0)
+    print format % ('** any feature **', total_occurs)
+    if total_occurs != len(df):
+        print total_occurs, len(df)
+        pdb.set_trace()  # error detected
 
-    def mask_is_even(df):
-        r = df['x'] % 2 == 0
-        return r
-
-    def mask_is_odd(df):
-        return ~mask_is_even(df)
-
-    name_masks = (('has_even', mask_is_even),
-                  ('has_odd', mask_is_odd),
-                  )
-    r = make_has_indicators(df, name_masks)
-    print r
-    assert len(r) == 3
-    assert (r.has_even == [False, True, False]).all()
-    assert (r.has_odd == [True, True, True]).all()
+    result = pd.DataFrame(data=d)
+    result['geo'] = result.index
+    return result, occurs
 
 
 def main(argv):
@@ -161,22 +164,21 @@ def main(argv):
 
     print 'parcels sfr df shape', parcels_sfr_df.shape
 
-    name_masks = (
-        ('has_commercial', parcels.mask_is_commercial),
-        ('has_industry', parcels.mask_is_industry),
-        ('has_park', parcels.mask_is_park),
-        ('has_retail', parcels.mask_is_retail),
-        ('has_school', parcels.mask_is_school),
-    )
     parcels_df.index = parcels_df.geo  # the index must be the geo field
     n_unique_indices = parcels_df.index.nunique()
-    has_indicators = make_has_indicators(parcels_df, name_masks)
+    has_indicators, occurs = make_has_indicators(parcels_df)
+
     print 'has_indicators shape', has_indicators.shape
     print '# of unique geo codes', n_unique_indices
     assert has_indicators.shape[0] == n_unique_indices
     if control.test:
         print has_indicators
-    has_indicators.to_csv(control.path_out)
+
+    # write the results
+    has_indicators.to_csv(control.path_out_csv)
+    f = open(control.path_out_occurs, 'wb')
+    pickle.dump((occurs, control), f)
+    f.close()
 
     print control
     if control.test:
@@ -194,5 +196,4 @@ if __name__ == '__main__':
         pd.DataFrame()
         np.array()
 
-    test_make_has_indicators()
     main(sys.argv)
