@@ -42,7 +42,6 @@ def usage(msg=None):
 def make_control(argv):
     # return a Bunch
 
-    pdb.set_trace()
     print argv
     if len(argv) not in (1, 2):
         usage('invalid number of arguments')
