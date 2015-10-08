@@ -60,7 +60,7 @@ propn = {
     'duplex': 21,  # duplex, triplex, quadplex
     'apartment': 22,
     'hotel': 23,  # hotel, motel
-    'commercial_condomium': 24,
+    'commercial_condominium': 24,
     'retail': 25,
     'service': 26,  # general public
     'office_building': 27,
@@ -84,7 +84,7 @@ propn = {
 def mask_property_indicator_is(name, df):
     propn_value = propn.get(name, None)
     if propn_value is None:
-        print 'bad name passed to mask_property_indicator_is', propn_value
+        print 'bad name passed to mask_property_indicator_is', name
         pdb.set_trace()
     r1 = df[property_indicator] == propn_value
     return r1
@@ -94,54 +94,6 @@ def mask_is_sfr(df):
     'NOTE: earlier versions checked land use for value 163'
     return mask_property_indicator_is('single_family_residence', df)
 
-
-# def mask_is_commercial(df):
-#     values = df[property_indicator]
-#     r1 = values == 30  # commercial
-#     r2 = values == 24  # commercial (condominium)
-#     return r1 | r2
-#
-#
-# def mask_is_industry(df):
-#     values = df[property_indicator]
-#     r1 = values == 50  # industry
-#     r2 = values == 51  # industry light
-#     r3 = values == 52  # industry heavy
-#     return r1 | r2 | r3
-#
-#
-# def mask_is_park(df):
-#     values = df[land_use]
-#     r1 = values == 757  # park
-#     return r1
-#
-#
-# def mask_is_sfr(df):
-#     values = df[land_use]
-#     r1 = values == 163  # single family residential
-#     return r1
-#
-#
-# def mask_is_retail(df):
-#     values = df[property_indicator]
-#     r1 = values == 25  # retail
-#     return r1
-#
-#
-# def mask_is_school(df):
-#     values = df[land_use]
-#     r1 = values == 650  # school
-#     r2 = values == 652  # nursery school
-#     r3 = values == 654  # high school
-#     r4 = values == 655  # private school
-#     # not included:
-#     #  656 vocational/trade school
-#     #  660 education service
-#     #  680 university
-#     r5 = values == 664  # secondary educational school
-#     r6 = values == 665  # public school
-#     return r1 | r2 | r3 | r4 | r5 | r6
-#
 
 def add_zip5(df):
     '''mutate df by appending column with zip5 values
