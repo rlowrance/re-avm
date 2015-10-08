@@ -146,10 +146,9 @@ def parcels_derived_features(control, transactions_df):
         census_tract_df,
         how='inner',
         left_on=transactions_df[transactions.census_tract],
-        right_on=census_tract_df.geo,
+        right_on=census_tract_df.census_tract,
     )
     print 'm1 shape', m1.shape
-    pdb.set_trace()  # is there a field has_commercial_census_tract
     cc('commercial', m1)
 
     # merge in zip5 features
@@ -158,8 +157,7 @@ def parcels_derived_features(control, transactions_df):
         zip5_df,
         how='inner',
         left_on=m1[transactions.zip5],
-        right_on=zip5_df.geo,
-        suffixes=('_census_tract', '_zip5'),
+        right_on=zip5_df.zip5,
     )
     print 'm2 shape', m2.shape
 
