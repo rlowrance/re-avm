@@ -4,6 +4,7 @@
 import datetime
 import numpy as np
 import pdb
+import sys
 
 import layout_parcels as parcels
 
@@ -26,7 +27,8 @@ building_basement_square_feet = 'BASEMENT SQUARE FEET'
 building_baths = 'TOTAL BATHS CALCULATED'
 building_bedrooms = 'BEDROOMS'
 building_fireplace_number = 'FIREPLACE NUMBER'
-building_has_pool = 'has_pool'
+building_has_basement = 'has_basement'
+building_has_fireplace = 'has_fireplace'
 building_is_new_construction = 'is_new_construction'
 building_living_square_feet = 'LIVING SQUARE FEET'
 building_rooms = 'TOTAL ROOMS'
@@ -38,14 +40,60 @@ census2000_avg_commute = 'avg_commute'                          # created in tra
 
 census_tract = 'CENSUS TRACT_parcel'
 
-census_tract_has_commercial = 'census_tract_has_commercial'  # created in transactions.py
-census_tract_has_industry = 'census_tract_has_industry'      # created in transactions.py
-census_tract_has_park = 'census_tract_has_park'              # created in transactions.py
-census_tract_has_retail = 'census_tract_has_retail'          # created in transactions.py
-census_tract_has_school = 'census_tract_has_school'          # created in transactions.py
-
 gps_latitude = 'G LATITUDE'
 gps_longitude = 'G LONGITUDE'
+
+has_parking = 'has_parking'
+has_pool = 'has_pool'
+
+# features of parcels, create in parcels-features.py
+# feature names are in this form: X_has_FEATURE, where
+# X is oneof census_tract, zip5
+
+
+def has(name):
+    this_module = sys.modules[__name__]
+
+    def has2(prefix):
+        attribute_name = prefix + '_has_' + name
+        setattr(this_module, attribute_name, attribute_name)
+
+    has2('census_tract')
+    has2('zip5')
+
+has('agriculture')
+has('amusement')
+has('apartment')
+has('commercial')
+has('commercial_condominium')
+has('duplex')
+has('exempt')
+has('financial_institution')
+has('hotel')
+has('industrial')
+has('industrial_heavy')
+has('industrial_light')
+has('medical')
+has('not_available')
+has('office_building')
+has('parking')
+has('residential_condominium')
+has('retail')
+has('service')
+has('single_family_residential')
+has('transport')
+has('utilities')
+has('vacant')
+has('warehouse')
+
+# features derived from the above parcel features
+has('any_business')
+has('any_commercial')
+has('any_industrial')
+
+
+is_new_construction = 'is_new_construction'
+is_resale = 'is_resale'
 
 lot_land_square_feet = 'LAND SQUARE FOOTAGE'
 lot_parking_spaces = 'PARKING SPACES'
@@ -54,7 +102,12 @@ municipality_name = 'MUNICIPALITY NAME'
 multi_apn_flag_code = 'MULTI APN FLAG CODE_deed'
 n_buildings = 'NUMBER OF BUILDINGS'
 n_units = 'UNITS NUMBER'
+resale_new_construction_code = 'RESALE NEW CONSTRUCTION CODE'
+
+parking_spaces = 'PARKING SPACES'
+pool_flag = 'POOL FLAG'
 price = 'SALE AMOUNT_deed'
+
 recording_date = 'RECORDING DATE_deed'
 sale_code = 'SALE CODE_deed'
 
@@ -63,6 +116,7 @@ sale_date_python = 'sale_date_python'
 
 township = 'TOWNSHIP'
 transaction_type_code = 'TRANSACTION TYPE CODE'
+
 
 year_built = 'YEAR BUILT'
 year_built_effective = 'EFFECTIVE YEAR BUILT'
@@ -129,6 +183,31 @@ def mask_census_tract_retail(df):
 
 def mask_census_tract_school(df):
     return parcels.mask_census_tract_school(df)   # may need a new field name
+
+
+trntp = {  # description: code_value
+    'resale': 1,
+    'refinance': 2,
+    'new': 3,  # also subsdivision / new construction
+    'timeshare': 4,
+    'construction loan': 6,
+    'seller carryback': 7,
+    'nominal': 9,
+}
+
+
+def mask_trntp(code_value, df):
+    value = df[transaction_type_code]
+    r = value == code_value
+    return r
+
+
+def mask_is_resale(df):
+    return mask_trntp(trntp['resale'], df)
+
+
+def mask_is_new_construction(df):
+    return mask_trntp(trntp['new'], df)
 
 
 def mask_is_one_building(df):
