@@ -103,7 +103,7 @@ def make_has_indicatorsOLD(df, name_masks):
     return r
 
 
-def make_has_indicators(df):
+def make_has_indicators(df, geo_name):
     'return new df with an index for each property indicator value'
     verbose = False
     result_index = set(df.index)
@@ -111,7 +111,7 @@ def make_has_indicators(df):
     occurs = {}  # used for reporting
     format = '%30s occurs in %7d geos'
     for property_indicator_description in parcels.propn.keys():
-        feature_name = 'has_' + property_indicator_description
+        feature_name = geo_name + '_has_' + property_indicator_description
         mask = parcels.mask_property_indicator_is(property_indicator_description, df)
         occurs[feature_name] = sum(mask)
         print format % (feature_name, occurs[feature_name])
@@ -129,7 +129,7 @@ def make_has_indicators(df):
         pdb.set_trace()  # error detected
 
     result = pd.DataFrame(data=d)
-    result['geo'] = result.index
+    result[geo_name] = result.index
     return result, occurs
 
 
@@ -166,7 +166,7 @@ def main(argv):
 
     parcels_df.index = parcels_df.geo  # the index must be the geo field
     n_unique_indices = parcels_df.index.nunique()
-    has_indicators, occurs = make_has_indicators(parcels_df)
+    has_indicators, occurs = make_has_indicators(parcels_df, control.arg.geo)
 
     print 'has_indicators shape', has_indicators.shape
     print '# of unique geo codes', n_unique_indices
