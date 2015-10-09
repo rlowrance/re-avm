@@ -260,7 +260,6 @@ def main(argv):
                   left_on=transactions.census_tract,
                   right_on="census_tract",
                   )
-    pdb.set_trace()
     assert 'census_tract_x' in m3.columns
     assert 'census_tract_y' in m3.columns
     assert (m3.census_tract_x == m3.census_tract_y).all()
