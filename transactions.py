@@ -45,6 +45,7 @@ import layout_deeds as deeds
 import layout_parcels as parcels
 import layout_transactions as transactions
 from Logger import Logger
+import pandas_utilities as pu
 from ParseCommandLine import ParseCommandLine
 from Path import Path
 cc = columns_contain
@@ -142,26 +143,51 @@ def parcels_derived_features(control, transactions_df):
 
     # merge in  census tract features
     census_tract_df = pd.read_csv(control.path_in_parcels_features_census_tract, index_col=0)
+    check_feature_names(transactions_df)
+    check_feature_names(census_tract_df)
     m1 = transactions_df.merge(
         census_tract_df,
         how='inner',
         left_on=transactions_df[transactions.census_tract],
         right_on=census_tract_df.census_tract,
     )
+    check_feature_names(m1)
     print 'm1 shape', m1.shape
     cc('commercial', m1)
 
     # merge in zip5 features
     zip5_df = pd.read_csv(control.path_in_parcels_features_zip5, index_col=0)
+    check_feature_names(m1)
+    check_feature_names(zip5_df)
     m2 = m1.merge(
         zip5_df,
         how='inner',
         left_on=m1[transactions.zip5],
         right_on=zip5_df.zip5,
     )
+
+    # remove duplicated field zip5_x, zip5_y
+    assert 'zip5_x' in m2.columns
+    assert 'zip5_y' in m2.columns
+    assert (m2.zip5_x == m2.zip5_y).all()
+    assert 'zip5' not in m2.columns
+    pu.remove(m2, 'zip5_x')
+    pu.rename(m2, 'zip5_y', 'zip5')
+    check_feature_names(m2)
+
     print 'm2 shape', m2.shape
 
     return m2
+
+
+def check_feature_names(df):
+    'stop if an unexpected feature name appears'
+    # was used for debugging, but left in the production version
+    # in case this type of checking needs to be done again later
+    for name in df.columns:
+        if name.endswith('_x') or name.endswith('_y'):
+            print 'check_feature_names; bad name:', name
+            pdb.set_trace()
 
 
 def main(argv):
@@ -212,15 +238,19 @@ def main(argv):
 
     # join the deeds and parcels files
     print 'starting to merge'
+    check_feature_names(deeds_g_al)
+    check_feature_names(parcels_sfr)
     m1 = deeds_g_al.merge(parcels_sfr, how='inner',
                           left_on=deeds.best_apn, right_on=parcels.best_apn,
                           suffixes=('_deed', '_parcel'))
+    check_feature_names(m1)
     del deeds_g_al
     del parcels_sfr
     ps('m1 merge deed + parcels', m1)
 
     # add in derived parcels features
     m2 = parcels_derived_features(control, m1)
+    check_feature_names(m2)
     ps('ms added parcels_derived', m2)
     del m1
 
@@ -230,6 +260,14 @@ def main(argv):
                   left_on=transactions.census_tract,
                   right_on="census_tract",
                   )
+    pdb.set_trace()
+    assert 'census_tract_x' in m3.columns
+    assert 'census_tract_y' in m3.columns
+    assert (m3.census_tract_x == m3.census_tract_y).all()
+    assert 'census_tract' not in m3.columns
+    pu.remove(m3, 'census_tract_x')
+    pu.rename(m3, 'census_tract_y', 'census_tract')
+    check_feature_names(m3)
     del m2
     ps('m3 merged census features', m3)
 
@@ -255,6 +293,14 @@ def main(argv):
     # write merged,augmented dataframe
     print 'writing final dataframe to csv file'
     final.to_csv(control.path_out_transactions)
+
+    # write out all the column names
+    print 'all column names in final dataframe'
+    for name in final.columns:
+        print name
+        if '_y' in name:
+            print 'found strange suffix'
+            pdb.set_trace()
 
     print control
     if control.test:
