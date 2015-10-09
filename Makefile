@@ -12,7 +12,9 @@ ALL += $(WORKING)/census-features-derived.csv
 ALL += $(WORKING)/parcels-features-census_tract.csv
 ALL += $(WORKING)/parcels-features-zip5.csv
 ALL += $(WORKING)/transactions-al-g-sfr.csv
-ALL += $(WORKING)/samples-test.csv   # proxy for -train -validate -train+validate
+ALL += $(WORKING)/samples-test.csv   # proxy for -train -train-test -train-train
+ALL += $(WORKING)/summarize-df-samples-train.csv
+
 
 .PHONY : all
 all: $(ALL)
@@ -36,3 +38,6 @@ $(WORKING)/transactions-al-g-sfr.csv: transactions.py \
 
 $(WORKING)/samples-test.csv: samples.py
 	$(PYTHON) samples.py
+
+$(WORKING)/summarize-samples-train.csv: summarize-df.py summarize.py
+	$(PYTHON) summarize-df.py --in samples-train.csv 
