@@ -62,7 +62,7 @@ def make_control(argv):
 
     debug = False
 
-    out_file_name_base = ('-testing-' if arg.test else '') + arg.base_name
+    out_file_name_base = ('testing-' if arg.test else '') + arg.base_name
 
     return Bunch(
         arg=arg,
@@ -73,8 +73,8 @@ def make_control(argv):
         path_out_info_reasonable=dir_working + out_file_name_base + '-info-reasonable.pickle',
         path_out_test=dir_working + out_file_name_base + '-test.csv',
         path_out_train=dir_working + out_file_name_base + '-train.csv',
-        path_out_train_test=dir_working + out_file_name_base + '-train-validate.csv',
-        path_out_train_train=dir_working + out_file_name_base + '-train-train.csv',
+        path_out_train_validate=dir_working + out_file_name_base + '-train-validate.csv',
+        path_out_validate=dir_working + out_file_name_base + '-validate.csv',
         random_seed=random_seed,
         test=arg.test,
     )
@@ -307,8 +307,8 @@ def main(argv):
     # write the csv files
     test.to_csv(control.path_out_test)
     train.to_csv(control.path_out_train)
-    train_test.to_csv(control.path_out_train_test)
-    train_train.to_csv(control.path_out_train_train)
+    train_test.to_csv(control.path_out_train_validate)
+    train_train.to_csv(control.path_out_validate)
 
     # count samples in each strata (= month)
     yyyymms = sorted(set(subset[layout.yyyymm]))
