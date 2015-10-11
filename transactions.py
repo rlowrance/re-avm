@@ -81,7 +81,10 @@ def make_control(argv):
 
     debug = False
 
-    file_out_transactions = arg.base_name + '-al-g-sfr' + ('-test' if arg.test else '') + '.csv'
+    file_out_transactions = (
+        ('testing-' if arg.test else '') +
+        arg.base_name + '-al-g-sfr' + '.csv'
+    )
 
     return Bunch(
         arg=arg,
