@@ -2,7 +2,7 @@ import pandas as pd
 import pdb
 
 
-def insert(df, new_column_name, new_column_series):
+def df_append_column(df, new_column_name, new_column_series):  # DEPRECATED
     'mutate df by inserting a new column without a warning'
     df.insert(
         loc=len(df.columns),  # the new column is last
@@ -11,12 +11,19 @@ def insert(df, new_column_name, new_column_series):
     )
 
 
-def remove(df, column_name):
-    'mutate df by removing and return a column'
+def df_iterate_over_rows(df):
+    'iterate over index items and rows (as pd.Series)'
+    # NOTE: or just call df.iterrows() directly
+    for index, row in df.iterrows():
+        yield index, row
+
+
+def df_remove_column(df, column_name):
+    'mutate df by removing and returning a column'
     df.pop(column_name)
 
 
-def rename(df, old_column_name, new_column_name):
+def df_rename_column(df, old_column_name, new_column_name):
     'mutate df by renaming iterables of column names'
     # assert len(old_column_names) == len(new_column_names)
     df.rename(
