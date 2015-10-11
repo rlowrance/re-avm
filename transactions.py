@@ -174,8 +174,8 @@ def parcels_derived_features(control, transactions_df):
     assert 'zip5_y' in m2.columns
     assert (m2.zip5_x == m2.zip5_y).all()
     assert 'zip5' not in m2.columns
-    pu.remove(m2, 'zip5_x')
-    pu.rename(m2, 'zip5_y', 'zip5')
+    pu.df_remove_column(m2, 'zip5_x')
+    pu.df_rename_column(m2, 'zip5_y', 'zip5')
     check_feature_names(m2)
 
     print 'm2 shape', m2.shape
@@ -267,8 +267,8 @@ def main(argv):
     assert 'census_tract_y' in m3.columns
     assert (m3.census_tract_x == m3.census_tract_y).all()
     assert 'census_tract' not in m3.columns
-    pu.remove(m3, 'census_tract_x')
-    pu.rename(m3, 'census_tract_y', 'census_tract')
+    pu.df_remove_column(m3, 'census_tract_x')
+    pu.df_rename_column(m3, 'census_tract_y', 'census_tract')
     check_feature_names(m3)
     del m2
     ps('m3 merged census features', m3)
