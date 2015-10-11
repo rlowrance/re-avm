@@ -37,7 +37,7 @@ cc = columns_contain
 def usage(msg=None):
     if msg is not None:
         print msg
-    print 'usage  : python transactions_subset.py [--test]'
+    print 'usage  : python samples.py [--test]'
     print ' --test: run in test mode'
     sys.exit(1)
 
@@ -62,7 +62,7 @@ def make_control(argv):
 
     debug = False
 
-    out_file_name_base = arg.base_name + ('-testing' if arg.test else '')
+    out_file_name_base = ('-testing-' if arg.test else '') + arg.base_name
 
     return Bunch(
         arg=arg,
