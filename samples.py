@@ -194,13 +194,6 @@ def reasonable_feature_values(df, control):
 
 
 def add_features(df, control):
-    '''mutate df
-
-    NOTE: adding features from the 2009 taxroll leaks the future into the transaction
-    set. However, the damage is perhaps small because most properties do not change
-    their character: a single family house in 2009 was very likely a single family
-    house in 2003
-    '''
     def split(date):
         year = int(date / 10000)
         md = date - year * 10000
@@ -212,6 +205,11 @@ def add_features(df, control):
         'yyyymmdd --> datetime.date(year, month, day)'
         year, month, day = split(date)
         return datetime.date(int(year), int(month), int(day))
+
+    def year(date):
+        'yyyymmdd --> datetime.date(year, 7, 1); mid point of year'
+        year, month, day = split(date)
+        return year
 
     def yyyymm(date):
         year, month, day = split(date)
@@ -225,10 +223,23 @@ def add_features(df, control):
                   )
 
     sale_date = df[layout.sale_date]
-    append_column(layout.sale_date_python, sale_date.apply(python_date))
+    sale_date_python = sale_date.apply(python_date)
+    append_column(layout.sale_date_python, sale_date_python)
     append_column(layout.yyyymm, sale_date.apply(yyyymm))
 
-    # create indicator features:w
+    # create age and similar fields
+    # NOTE: these are ages at the sale date
+    sale_year = sale_date.apply(year)
+    year_built = df[layout.year_built]
+    effective_year_built = df[layout.year_built_effective]
+    age = sale_year - year_built
+    effective_age = sale_year - effective_year_built
+    append_column(layout.age, age)
+    append_column(layout.age2, age * age)
+    append_column(layout.age_effective, effective_age)
+    append_column(layout.age_effective2, effective_age * effective_age)
+
+    # create indicator features
     append_column(layout.is_new_construction, layout.mask_is_new_construction(df))
     append_column(layout.is_resale, layout.mask_is_resale(df))
     append_column(layout.building_has_basement, df[layout.building_basement_square_feet] > 0)
