@@ -14,7 +14,7 @@ import layout_parcels as parcels
 # features in the source files are in upper case
 apn = 'best_apn'  # added in transactions.py
 
-age = 'age'
+age = 'age'   # ages at sale date in years and fractions of a year
 age2 = 'age2'
 age_effective = 'effective age'
 age_effective2 = 'effective age2'
@@ -45,6 +45,9 @@ gps_longitude = 'G LONGITUDE'
 
 has_parking = 'has_parking'
 has_pool = 'has_pool'
+
+year_built = 'YEAR BUILT'
+year_built_effective = 'EFFECTIVE YEAR BUILT'
 
 # features of parcels, create in parcels-features.py
 # feature names are in this form: X_has_FEATURE, where
