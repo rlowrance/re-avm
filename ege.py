@@ -64,6 +64,7 @@ def make_control(argv):
     return Bunch(
         arg=arg,
         debug=debug,
+        n_cv_folds=2,
         path_in=dir_working + 'samples-train-validate.csv',
         path_out=dir_working + out_file_name_base + '.pickle',
         random_seed=random_seed,
@@ -71,18 +72,30 @@ def make_control(argv):
     )
 
 
-def make_training_indices(df, time_periods, t):
-    'return vector of training indices in df for time_periods[0 .. t + 1]'
-    mask = df[transactions.yyyymm].isin(time_periods[:(t + 1)])
-    result = df.index[mask]
-    return result
+def make_time_series_cv_folds(samples, time_periods):
+    'return folds needed if we are doing time-series cross validation'
 
+    def make_training_indices(df, time_periods, t):
+        'return vector of training indices in df for time_periods[0 .. t + 1]'
+        mask = df[transactions.yyyymm].isin(time_periods[:(t + 1)])
+        result = df.index[mask]
+        return result
 
-def make_testing_indices(df, time_periods, t):
-    'return vector of testing indices in df for time_period[t + 1]'
-    mask = df[transactions.yyyymm].isin((time_periods[t + 1],))
-    result = df.index[mask]
-    return result
+    def make_testing_indices(df, time_periods, t):
+        'return vector of testing indices in df for time_period[t + 1]'
+        mask = df[transactions.yyyymm].isin((time_periods[t + 1],))
+        result = df.index[mask]
+        return result
+#     AM's version of logic below
+#     cv = [df[df.yyyymm.isin(time_periods[:t+1])].index,
+#           df[df.yyyymm.isin(time_periods[t+1])].index)
+#           for t in len(time_periods)]
+    folds = [(make_training_indices(samples, time_periods, t),
+              make_testing_indices(samples, time_periods, t),
+              )
+             for t in xrange(len(time_periods) - 1)
+             ]
+    return folds
 
 
 def avm_scoring(estimator, df):
@@ -166,21 +179,10 @@ def main(argv):
         200901, 200902, 200903,
     )
 
-    cv = [(make_training_indices(samples, time_periods, t),
-           make_testing_indices(samples, time_periods, t),
-           )
-          for t in xrange(len(time_periods) - 1)
-          ]
+    if False:
+        time_series_cv_folds = make_time_series_cv_folds(samples, time_periods)
+        pprint(time_series_cv_folds)
 
-#     AM's version of logic just above
-#     cv = [df[df.yyyymm.isin(time_periods[:t+1])].index,
-#           df[df.yyyymm.isin(time_periods[t+1])].index)
-#           for t in len(time_periods)]
-    # AM: INSTEAD
-    # call GridSearchCV, specify cv object as
-    # ((train_indices, test_indices), ...) for each slice of the time period
-    # call fit(df)
-    # implement AMV.score(test_part_of_df): run fitted model (self) and determine error (e.g. - L2)
     pdb.set_trace()
     # TODO: Review params with AM
     gscv = sklearn.grid_search.GridSearchCV(
@@ -188,7 +190,7 @@ def main(argv):
         param_grid=param_grid,
         scoring=avm_scoring,
         n_jobs=1 if control.test else -1,
-        cv=cv,
+        cv=control.n_cv_folds,
         verbose=2 if control.test else 0,
     )
     # TODO AM: Can we first just validate and then run cross validation on the N best hyperparameter
@@ -197,6 +199,7 @@ def main(argv):
     pprint(gscv)
 
     gscv.fit(samples)
+    # TODO: pull out the results; e.g., which model is best
 
     with open(control.path_out, 'wb') as f:
         pickle.dump((gscv, control), f)
