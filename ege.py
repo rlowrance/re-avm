@@ -199,7 +199,29 @@ def main(argv):
     pprint(gscv)
 
     gscv.fit(samples)
-    # TODO: pull out the results; e.g., which model is best
+    print
+    print 'result from GridSearchCV'
+
+    def print_params(params):
+        for k, v in params.iteritems():
+            print ' parameter %15s: %s' % (k, v)
+
+    def print_grid_score(gs):
+        print ' mean: %.0f std: %0.f' % (gs.mean_validation_score, np.std(gs.cv_validation_scores))
+        for cv_vs in gs.cv_validation_scores:
+            print ' validation score: %0.6f' % cv_vs
+        print_params(gs.parameters)
+
+    for i, grid_score in enumerate(gscv.grid_scores_):
+        print 'grid index', i
+        print_grid_score(grid_score)
+    print 'best score', gscv.best_score_
+    print 'best estimator', gscv.best_estimator_
+    print 'best params'
+    pdb.set_trace()
+    print_params(gscv.best_params_)
+    print 'scorer', gscv.scorer
+    pdb.set_trace()
 
     with open(control.path_out, 'wb') as f:
         pickle.dump((gscv, control), f)
