@@ -3,82 +3,77 @@
 import pdb
 from pprint import pprint
 import sklearn
+import sklearn.ensemble
+import sklearn.linear_model
+
+
+from columns_contain import columns_contain
+from Features import Features
+import layout_transactions
+cc = columns_contain
 
 
 class AVM(sklearn.base.BaseEstimator):
     'one estimator for two underlying models: ElasticNet and RandomForestRegressor'
     def __init__(self,
-                 alpha=1.0,
-                 l1_ratio=0.5,                # for ElasticNet
-                 n_estimators=10,             # for RandomForestRegressor
-                 max_depth=10,                # for RandomForestRegressor
-                 model_family='elastic net',   # for all
-                 column_dict={},  # key = feature name, value = column index in X
-                 last_training_yyyymm=200902,
-                 n_months_back=1,
+                 model_name=None,          # parameters for all models
+                 n_months_back=None,
                  random_state=None,
-                 units_X='natural',
-                 units_y='natural',
-                 time_periods_test=(200902,),
-                 time_periods_train=(200901,),
-                 transformer=None,
+                 alpha=None,               # for ElasticNet
+                 l1_ratio=None,
+                 units_X=None,
+                 units_y=None,
+                 n_estimators=None,        # for RandomForestRegressor
+                 max_depth=None,
                  ):
         # NOTE: just capture the parameters (to conform to the sklearn protocol)
         # hyperparameters for linear models
-        self.alpha = alpha
-        self.l1_ratio = l1_ratio
-        # hyperparameters for tree models
-        self.n_estimators = n_estimators
-        self.max_depth = max_depth
-        # hyperparameters for all models
-        self.model_family = model_family  # 'linear' or 'tree'
-        self.column_dict = column_dict
-        self.n_months_back = n_months_back  # number of months back to look with fitting data
-        self.random_state = random_state
-        self.last_training_yyyymm = last_training_yyyymm
+        self.model_name = model_name
+        self.n_months_back = n_months_back
         self.units_X = units_X
         self.units_y = units_y
-        self.time_periods_train = time_periods_train
-        self.time_periods_test = time_periods_test
-        self.transformer = transformer
+        self.alpha = alpha
+        self.l1_ratio = l1_ratio
+        self.n_estimators = n_estimators
+        self.max_depth = max_depth
 
-    def _fit_elastic_net(self, X_train, y_train):
-        assert self.l1_ratio > 0.01, self.l1_ratio  # otherwise, not reliable
-        self.model = sklearn.linear_model.ElasticNet(
-            alpha=self.alpha,
-            l1_ratio=self.l1_ratio,
-            fit_intercept=True,
-            normalize=True,
-            random_state=self.random_state,
-        )
-        self.model.fit(X_train, y_train)
-        return self
-
-    def setattr(self, parameter, value):
-        setattr(self, parameter, value)
-        return self
-
-    def _fit_random_forest(self, X_train, y_train):
-        self.model = sklearn.ensemble.RandomForestRegressor(
-            n_estimators=self.n_estimators,
-            max_depth=self.max_depth,
-            random_state=self.random_state,
-        )
-        self.model.fit(X_train, y_train)
-        return self
-
-    def fit(self, arg):
+    def fit(self, df):
         'construct and fit df that contains X and y'
-        pprint(arg, self)
-        pdb.set_trace()
-        df, time_period = arg
-        X_train, y_train = self.make_X_y(df, time_period)
-        if self.model_family == 'elastic net':
-            return self._fit_elastic_net(X_train, y_train)
-        elif self.model_family == 'random forest':
-            return self._fit_random_forest(X_train, y_train)
-        else:
-            print 'bad model_family:', self.model_family
+        def fit_elastic_net(df):
+            print 'fit elastic net: %s~%s alpha: %f l1_ratio: %f' % (
+                self.units_X, self.units_y, self.alpha, self.l1_ratio)
+
+            assert self.l1_ratio > 0.01, self.l1_ratio  # otherwise, not reliable
+            self.model = sklearn.linear_model.ElasticNet(
+                alpha=self.alpha,
+                l1_ratio=self.l1_ratio,
+                fit_intercept=True,
+                normalize=True,
+                selection='random',
+                random_state=self.random_state,
+            )
+            # TODO: handle fewer observations than features (see AM)
+            X_train, y_train = self.extract_and_transform(df)
+            self.model.fit(X_train, y_train)
+            # TODO: save the attributes that the above statement generated
+            return self
+
+        def fit_random_forest_regressor(df):
+            print 'fit random forest regressor: n_estimators: %d max_depth: %d' % (
+                self.n_estimators, self.max_depth)
+            self.model = sklearn.ensemble.RandomForestRegressor(
+                n_estimators=self.n_estimators,
+                max_depth=self.max_depth,
+                random_state=self.random_state,
+            )
+            X_train, y_train = self.extract_and_transform(df)
+            self.model.fit(X_train, y_train)
+            return self
+
+        return {
+            'ElasticNet': fit_elastic_net,
+            'RandomForestRegressor': fit_random_forest_regressor,
+        }[self.model_name](df)
 
     def get_attributes(self):
         'return both sets of attributes, with None if not used by that model'
@@ -89,11 +84,56 @@ class AVM(sklearn.base.BaseEstimator):
         )
         return {name: getattr(self.model, name, None) for name in attribute_names}
 
-    def predict(self, X):
-        return self.model.predict(X)
+    # Rely on the parent class to implement get_params and set_params
+    # However, we may need a get_params method to support cloning; TODO: ask AM
 
-    def set_params(self, **parameters):
-        pdb.set_trace()
-        for parameter, value in parameters.iteritems():
-            self.setattr(parameter, value)
+    def extract_and_transform(self, df):
+        'return X and y'
+        def extract_and_transform_elastic_net(df):
+            f = Features()
+            return f.extract_and_transform_X_y(
+                df,
+                f.ege(),
+                layout_transactions.price,
+                self.units_X,
+                self.units_y,
+            )
+
+        def extract_and_transform_random_forest_regressor(df):
+            f = Features()
+            return f.extract_and_transform_X_y(
+                df,
+                f.ege(),
+                layout_transactions.price,
+                'natural',
+                'natural',
+            )
+
+        return {
+            'ElasticNet': extract_and_transform_elastic_net,
+            'RandomForestRegressor': extract_and_transform_random_forest_regressor,
+        }[self.model_name](df)
+
+    def predict(self, df):
+        def predict_elastic_net(df):
+            X_test, y_test = self.extract_and_transform(df)
+            return self.model.predict(X_test)
+
+        def predict_random_forest_regressor(df):
+            print 'predict_random_forest_regressor'
+            X_test, y_test = self.extract_and_transform(df)
+            return self.model.predict(X_test)
+
+        return {
+            'ElasticNet': predict_elastic_net,
+            'RandomForestRegressor': predict_random_forest_regressor,
+        }[self.model_name](df)
+
+    def setattr(self, parameter, value):
+        setattr(self, parameter, value)
         return self
+
+
+if False:
+    pprint()
+    Features()
