@@ -1,3 +1,8 @@
+import math
+import numpy as np
+from pprint import pprint
+import pdb
+
 import layout_parcels as parcels
 import layout_transactions as t
 
@@ -51,31 +56,46 @@ class Features(object):
                        census_tract_aggregated +
                        zip5_aggregated)
         return result
-        return (  # 26 features in OLD version
-            ('fraction.owner.occupied', None),
-            ('FIREPLACE.NUMBER', 'log1p'),
-            ('BEDROOMS', 'log1p'),
-            ('BASEMENT.SQUARE.FEET', 'log1p'),
-            ('LAND.SQUARE.FOOTAGE', 'log'),
-            ('zip5.has.industry', None),
-            ('census.tract.has.industry', None),
-            ('census.tract.has.park', None),
-            ('STORIES.NUMBER', 'log1p'),
-            ('census.tract.has.school', None),
-            ('TOTAL.BATHS.CALCULATED', 'log1p'),
-            ('median.household.income', 'log'),  # not log feature in earlier version
-            ('LIVING.SQUARE.FEET', 'log'),
-            ('has.pool', None),
-            ('zip5.has.retail', None),
-            ('census.tract.has.retail', None),
-            ('is.new.construction', None),
-            ('avg.commute', None),
-            ('zip5.has.park', None),
-            ('PARKING.SPACES', 'log1p'),
-            ('zip5.has.school', None),
-            ('TOTAL.ROOMS', 'log1p'),
-            ('age', None),
-            ('age2', None),
-            ('effective.age', None),
-            ('effective.age2', None),
-        )
+
+    def extract_and_transform_X_y(self,
+                                  df, features_transforms, target_feature_name,
+                                  units_X, units_y):
+        'return X and y'
+        def transform_series(value, how_to_transform=None):
+            if how_to_transform is None:
+                return value
+            elif how_to_transform == 'log':
+                return math.log(value)
+            elif how_to_transform == 'log1p':
+                return math.log1p(value)
+            else:
+                print 'bad how_to_transform:', how_to_transform
+                pdb.set_trace()
+
+        def transform_column(feature_name, how_to_transform, units):
+            series = df[feature_name]
+            transformed = (
+                series if units == 'natural' else
+                series.apply(transform_series, how_to_transform=how_to_transform)
+            )
+            return transformed.values
+
+        X_transposed = np.empty((len(features_transforms), len(df),),
+                                dtype='float64',
+                                )
+        for i, feature_transform in enumerate(features_transforms):
+            feature_name, how_to_transform = feature_transform
+            X_transposed[i] = transform_column(feature_name, how_to_transform, units_X)
+
+        y = np.empty(len(df),
+                     dtype='float64',
+                     )
+        y = transform_column(target_feature_name, 'log', units_y)
+
+        return X_transposed.T, y
+
+
+if __name__ == '__main__':
+    ege = Features().ege()
+    print 'len(ege features)', len(ege)
+    pprint(sorted(ege))
