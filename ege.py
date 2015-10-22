@@ -24,7 +24,6 @@ from Bunch import Bunch
 from columns_contain import columns_contain
 import layout_transactions as transactions
 from Logger import Logger
-from MonthSelector import MonthSelector
 from ParseCommandLine import ParseCommandLine
 from Path import Path
 # from TimeSeriesCV import TimeSeriesCV
@@ -291,7 +290,6 @@ if __name__ == '__main__':
     if False:
         # avoid pyflakes warnings
         AVM()
-        MonthSelector()
         pdb.set_trace()
         pprint()
         pd.DataFrame()
