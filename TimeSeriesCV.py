@@ -54,8 +54,16 @@ class TimeSeriesCV(object):
             )
             pdb.set_trace()  # step into this call
             # NOTE: args to fit must be X and y; not something convenient
-            train_X, train_y = ege.Make_X_y_function(df_train, test_time_period)
+            # NOTE: X and y depend on the test_time_period and on the units in
+            # self.param_grid_model_search
+            # could use age when sold, which can be precomputed without knowing
+            # do the units transformation in the AVM.fit method
+            # Just pass the data frame
+            # then do feature selection the AVM.fit
+            # BETTER: just call GridSearchCV, not this class
+            train_X, train_y = ege.Make_X_y_function(df_train, test_time_period)  # not possible
             estimator.fit(train_X, train_y)
+            test_X, test_y = ege.Make_X_y_function(df_test, test_time_period)
             estimator.score(test_X, test_y)
 
             estimator.score((df_test, test_time_period))  # may require 2 args
