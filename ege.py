@@ -34,7 +34,8 @@ cc = columns_contain
 def usage(msg=None):
     if msg is not None:
         print msg
-    print 'usage  : python ege.py [--test]'
+    print 'usage  : python ege.py [--rfbound] [--test]'
+    print ' --rfbound: only determine bounds on RF hyperparameters'
     print ' --test: run in test mode'
     sys.exit(1)
 
@@ -43,13 +44,14 @@ def make_control(argv):
     # return a Bunch
 
     print argv
-    if len(argv) not in (1, 2):
+    if len(argv) not in (1, 2, 3):
         usage('invalid number of arguments')
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
         base_name=argv[0].split('.')[0],
         test=pcl.has_arg('--test'),
+        rfbound=pcl.has_arg('--rfbound'),
     )
 
     random_seed = 123
@@ -64,7 +66,7 @@ def make_control(argv):
     return Bunch(
         arg=arg,
         debug=debug,
-        n_cv_folds=2,
+        n_cv_folds=10,
         path_in=dir_working + 'samples-train-validate.csv',
         path_out=dir_working + out_file_name_base + '.pickle',
         random_seed=random_seed,
@@ -100,6 +102,7 @@ def make_time_series_cv_folds(samples, time_periods):
 
 def avm_scoring(estimator, df):
     'return error from using fitted estimator with test data in the dataframe'
+    # TODO: make a static method of class AVM
     assert isinstance(estimator, AVM)
     X, y = estimator.extract_and_transform(df)
     assert len(y) > 0
@@ -109,19 +112,34 @@ def avm_scoring(estimator, df):
     return -median_abs_error  # because GridSearchCV chooses the model with the score
 
 
-def main(argv):
-    control = make_control(argv)
-    if False:
-        # avoid error in sklearn that requires flush to have no arguments
-        sys.stdout = Logger(base_name=control.arg.base_name)
-    print control
+def print_gscv(gscv, tag=None, only_best=False):
+    print 'result from GridSearchCV'
+    if tag is not None:
+        print 'for', str(tag)
 
-    samples = pd.read_csv(
-        control.path_in,
-        nrows=1000 if control.test else None,
-    )
-    print 'samples.shape', samples.shape
+    def print_params(params):
+        for k, v in params.iteritems():
+            print ' parameter %15s: %s' % (k, v)
 
+    def print_grid_score(gs):
+        print ' mean: %.0f std: %0.f' % (gs.mean_validation_score, np.std(gs.cv_validation_scores))
+        for cv_vs in gs.cv_validation_scores:
+            print ' validation score: %0.6f' % cv_vs
+        print_params(gs.parameters)
+
+    if not only_best:
+        for i, grid_score in enumerate(gscv.grid_scores_):
+            print 'grid index', i
+            print_grid_score(grid_score)
+    print 'best score', gscv.best_score_
+    print 'best estimator', gscv.best_estimator_
+    print 'best params'
+    print_params(gscv.best_params_)
+    print 'scorer', gscv.scorer_
+
+
+def do_normal_run(control, samples):
+    'cross validate to find the best model'
     # hyperparameter search grid (across both linear and tree model forms)
     seq_alpha = (0.1, 0.3, 1.0, 3.0, 10.0)
     seq_l1_ratio = (0.0, 0.2, 0.4, 0.8, 1.0)
@@ -195,36 +213,71 @@ def main(argv):
     )
     # TODO AM: Can we first just validate and then run cross validation on the N best hyperparameter
     # settings
-    print 'gscv'
+    # OR run with cv=2, then run with cv=10 on best ~10 models
+    print 'gscv before fitting'
     pprint(gscv)
 
     gscv.fit(samples)
     print
-    print 'result from GridSearchCV'
+    print_gscv(gscv)
 
-    def print_params(params):
-        for k, v in params.iteritems():
-            print ' parameter %15s: %s' % (k, v)
+    return gscv
 
-    def print_grid_score(gs):
-        print ' mean: %.0f std: %0.f' % (gs.mean_validation_score, np.std(gs.cv_validation_scores))
-        for cv_vs in gs.cv_validation_scores:
-            print ' validation score: %0.6f' % cv_vs
-        print_params(gs.parameters)
 
-    for i, grid_score in enumerate(gscv.grid_scores_):
-        print 'grid index', i
-        print_grid_score(grid_score)
-    print 'best score', gscv.best_score_
-    print 'best estimator', gscv.best_estimator_
-    print 'best params'
-    pdb.set_trace()
-    print_params(gscv.best_params_)
-    print 'scorer', gscv.scorer
-    pdb.set_trace()
+def do_rfbound(control, samples):
+    'determine reasonable bounds on Random Forests HPs n_estimators, n_trees'
+
+    # HP settings to test
+    model_name_seq = ('RandomForestRegressor',)
+    n_months_back_seq = (1, 2, 3, 4, 5, 6)
+    forecast_time_period_seq = (200901, 200902, 200903)
+    n_estimators_seq = (10, 30, 100, 300, 1000)
+    max_depth_seq = (1, 3, 10, 30, 100, 300)
+
+    results = {}
+    for forecast_time_period in forecast_time_period_seq:
+        gscv = sklearn.grid_search.GridSearchCV(
+            estimator=AVM(),
+            param_grid=dict(
+                model_name=model_name_seq,
+                n_months_back=n_months_back_seq,
+                forecast_time_period=[forecast_time_period],
+                n_estimators=n_estimators_seq,
+                max_depth=max_depth_seq,
+                random_state=[control.random_seed],
+            ),
+            scoring=avm_scoring,
+            n_jobs=1 if control.test else -1,
+            cv=2 if control.test else control.n_cv_folds,
+            verbose=0 if control.test else 0,
+        )
+        gscv.fit(samples)
+        print
+        print_gscv(gscv, tag=str(forecast_time_period), only_best=True)
+        results[forecast_time_period] = gscv
+    return results
+
+
+def main(argv):
+    control = make_control(argv)
+    if False:
+        # avoid error in sklearn that requires flush to have no arguments
+        sys.stdout = Logger(base_name=control.arg.base_name)
+    print control
+
+    samples = pd.read_csv(
+        control.path_in,
+        nrows=1000 if control.test else None,
+    )
+    print 'samples.shape', samples.shape
+
+    if control.arg.rfbound:
+        result = do_rfbound(control, samples)
+    else:
+        result = do_normal_run(control, samples)
 
     with open(control.path_out, 'wb') as f:
-        pickle.dump((gscv, control), f)
+        pickle.dump((result, control), f)
 
     print control
     if control.test:
