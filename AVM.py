@@ -14,20 +14,20 @@ import layout_transactions
 cc = columns_contain
 
 
+def avm_scoring(estimator, df):
+    'return error from using fitted estimator with test data in the dataframe'
+    # TODO: make a static method of class AVM
+    assert isinstance(estimator, AVM)
+    X, y = estimator.extract_and_transform(df)
+    assert len(y) > 0
+    y_hat = estimator.predict(df)
+    errors = y_hat - y
+    median_abs_error = np.median(np.abs(errors))
+    return -median_abs_error  # because GridSearchCV chooses the model with the score
+
+
 class AVM(sklearn.base.BaseEstimator):
     'one estimator for two underlying models: ElasticNet and RandomForestRegressor'
-    @staticmethod
-    def avm_scoring(estimator, df):
-        'return error from using fitted estimator with test data in the dataframe'
-        # TODO: make a static method of class AVM
-        assert isinstance(estimator, AVM)
-        X, y = estimator.extract_and_transform(df)
-        assert len(y) > 0
-        y_hat = estimator.predict(df)
-        errors = y_hat - y
-        median_abs_error = np.median(np.abs(errors))
-        return -median_abs_error  # because GridSearchCV chooses the model with the score
-
     def __init__(self,
                  model_name=None,          # parameters for all models
                  forecast_time_period=None,
