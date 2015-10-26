@@ -2,8 +2,9 @@
 
 INPUT FILE:
     WORKING/samples-train-validate.csv
-OUTPUT FILE:
-    WORKING/ege.pickle
+OUTPUT FILE: one of
+    WORKING/ege.pickle         determining best HPs overall (TODO: fix this)
+    WORKING/ege-yyyymm.pickle  determining best HPs for the random forests method
 '''
 
 from __future__ import division
@@ -19,7 +20,7 @@ import sklearn.grid_search
 import sklearn.metrics
 import sys
 
-from AVM import AVM
+import AVM
 from Bunch import Bunch
 from columns_contain import columns_contain
 import layout_transactions as transactions
@@ -31,11 +32,13 @@ cc = columns_contain
 
 
 def usage(msg=None):
+    print __doc__
     if msg is not None:
         print msg
-    print 'usage  : python ege.py [--rfbound] [--test]'
-    print ' --rfbound: only determine bounds on RF hyperparameters'
-    print ' --test: run in test mode'
+    print 'usage  : python ege.py --folds INT [--rfbound yyyymm] [--test]'
+    print ' --foldsk INT: number of folds to use when cross validating',
+    print ' --rfbound   : only determine bounds on RF hyperparameters for period yyyymm'
+    print ' --test      : run in test mode (on a small sample of the entire data)',
     sys.exit(1)
 
 
@@ -43,15 +46,21 @@ def make_control(argv):
     # return a Bunch
 
     print argv
-    if len(argv) not in (1, 2, 3):
+    if not(4 <= len(argv) <= 7):
         usage('invalid number of arguments')
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
         base_name=argv[0].split('.')[0],
+        folds=pcl.get_arg('--folds'),
+        rfbound=pcl.get_arg('--rfbound'),   # arg.rbound is None or a string
         test=pcl.has_arg('--test'),
-        rfbound=pcl.has_arg('--rfbound'),
     )
+
+    if arg.folds is None:
+        usage('--folds is required')
+    else:
+        arg.folds = int(arg.folds)
 
     random_seed = 123
     random.seed(random_seed)
@@ -60,7 +69,12 @@ def make_control(argv):
 
     debug = False
 
-    out_file_name_base = ('testing-' if arg.test else '') + arg.base_name
+    out_file_name_base = (
+        ('test-' if arg.test else '') +
+        arg.base_name +
+        ('' if arg.rfbound is None else '-rfbound-%s' % arg.rfbound) +
+        ('-folds-%02d' % arg.folds)
+    )
 
     return Bunch(
         arg=arg,
@@ -99,10 +113,9 @@ def make_time_series_cv_folds(samples, time_periods):
     return folds
 
 
-def avm_scoring(estimator, df):
+def avm_scoringOLD(estimator, df):
     'return error from using fitted estimator with test data in the dataframe'
-    # TODO: make a static method of class AVM
-    assert isinstance(estimator, AVM)
+    assert isinstance(estimator, AVM.AVM)
     X, y = estimator.extract_and_transform(df)
     assert len(y) > 0
     y_hat = estimator.predict(df)
@@ -203,9 +216,9 @@ def do_normal_run(control, samples):
     pdb.set_trace()
     # TODO: Review params with AM
     gscv = sklearn.grid_search.GridSearchCV(
-        estimator=AVM(),
+        estimator=AVM.AVM(),
         param_grid=param_grid,
-        scoring=avm_scoring,
+        scoring=AVM.avm_scoring,
         n_jobs=1 if control.test else -1,
         cv=control.n_cv_folds,
         verbose=2 if control.test else 0,
@@ -229,14 +242,12 @@ def do_rfbound(control, samples):
     # HP settings to test
     model_name_seq = ('RandomForestRegressor',)
     n_months_back_seq = (1, 2, 3, 4, 5, 6)
-    forecast_time_period_seq = (200901, 200902, 200903)
     n_estimators_seq = (10, 30, 100, 300, 1000)
     max_depth_seq = (1, 3, 10, 30, 100, 300)
 
-    results = {}
-    for forecast_time_period in forecast_time_period_seq:
+    def best_hps(forecast_time_period):
         gscv = sklearn.grid_search.GridSearchCV(
-            estimator=AVM(),
+            estimator=AVM.AVM(),
             param_grid=dict(
                 model_name=model_name_seq,
                 n_months_back=n_months_back_seq,
@@ -245,16 +256,19 @@ def do_rfbound(control, samples):
                 max_depth=max_depth_seq,
                 random_state=[control.random_seed],
             ),
-            scoring=avm_scoring,
+            scoring=AVM.avm_scoring,
             n_jobs=1 if control.test else -1,
-            cv=2 if control.test else control.n_cv_folds,
+            cv=control.arg.folds,
             verbose=0 if control.test else 0,
         )
         gscv.fit(samples)
-        print
-        print_gscv(gscv, tag=str(forecast_time_period), only_best=True)
-        results[forecast_time_period] = gscv
-    return results
+        return gscv
+
+    gscv = best_hps(int(control.arg.rfbound))
+    print_gscv(gscv, tag=control.arg.rfbound, only_best=True)
+    with open(control.path_out, 'wb') as f:
+        pickle.dump(gscv, f)
+    return gscv
 
 
 def main(argv):
@@ -270,7 +284,7 @@ def main(argv):
     )
     print 'samples.shape', samples.shape
 
-    if control.arg.rfbound:
+    if isinstance(control.arg.rfbound, str):
         result = do_rfbound(control, samples)
     else:
         result = do_normal_run(control, samples)
@@ -289,7 +303,6 @@ def main(argv):
 if __name__ == '__main__':
     if False:
         # avoid pyflakes warnings
-        AVM()
         pdb.set_trace()
         pprint()
         pd.DataFrame()
