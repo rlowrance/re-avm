@@ -36,7 +36,7 @@ def usage(msg=None):
     if msg is not None:
         print msg
     print 'usage  : python ege.py --folds INT [--rfbound yyyymm] [--test]'
-    print ' --foldsk INT: number of folds to use when cross validating',
+    print ' --folds  INT: number of folds to use when cross validating',
     print ' --rfbound   : only determine bounds on RF hyperparameters for period yyyymm'
     print ' --test      : run in test mode (on a small sample of the entire data)',
     sys.exit(1)
