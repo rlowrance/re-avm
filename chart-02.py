@@ -220,13 +220,13 @@ def make_data(control):
             print 'best params'
             print_params(gscv.best_params_)
             print 'scorer', gscv.scorer_
+        return ege_control
 
     rows_list = []
     for file in glob.glob(control.path_in_ege):
-        process_file(file, rows_list)
-    pdb.set_trace()
+        ege_control = process_file(file, rows_list)
     df = pd.DataFrame(rows_list)
-    return df
+    return df, ege_control  # return last ege_control, not all
 
 
 def main(argv):
@@ -235,7 +235,6 @@ def main(argv):
     print control
 
     if control.arg.data:
-        pdb.set_trace()
         df = make_data(control)
         with open(control.path_data, 'wb') as f:
             pickle.dump((df, control), f)
