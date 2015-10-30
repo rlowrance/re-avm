@@ -11,8 +11,7 @@ OUTPUT FILES
 from __future__ import division
 
 import cPickle as pickle
-# import matplotlib
-# matplotlib.use('pdf')
+import glob
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -50,7 +49,7 @@ def make_control(argv):
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
-        base_name=argv[0].split('.')[0],
+        base_name='chart-02',
         data=pcl.has_arg('--data'),
         test=pcl.has_arg('--test'),
     )
@@ -63,17 +62,15 @@ def make_control(argv):
     debug = False
 
     out_file_name_base = ('test-' if arg.test else '') + arg.base_name
-    yyyymm = 200903  # FIXME: should read all files, not just one
 
     return Bunch(
         arg=arg,
         debug=debug,
-        path_in_ege=dir_working + 'ege-rfbound-200903-folds-02.pickle',  # FIXME
+        path_in_ege=dir_working + 'ege-rfbound-*-folds-10.pickle',
         path_out_txt_base=dir_working + out_file_name_base,
         path_data=dir_working + out_file_name_base + '.data.pickle',
         random_seed=random_seed,
         test=arg.test,
-        yyyymm=yyyymm,
     )
 
 
@@ -183,42 +180,53 @@ def make_data(control):
             print ' validation score: %0.6f' % cv_vs
         print_params(gs.parameters)
 
-    with open(control.path_in_ege, 'rb') as f:  # TODO: read all the YYYYMM files
-        gscv, ege_control = pickle.load(f)
-    # for now, just navigate the gscv object and print it
-    # the gscv object is the result of running sklearn GridSearchCV
-    rows_list = []  # each element of the list will be a dictionary
-    print 'headings: index, max_depth, n_estimators, n_months_back, mean score, std scores'
-    for i, grid_score in enumerate(gscv.grid_scores_):
-        # a grid_score is an instance of _CVScoreTuple, which has these fields:
-        # parameters, mean_validation_score, cv_validation_scores
-        print '%3d %4d %4d %2d %7.0f %6.0f' % (
-            i,
-            grid_score.parameters['max_depth'],
-            grid_score.parameters['n_estimators'],
-            grid_score.parameters['n_months_back'],
-            grid_score.mean_validation_score,
-            np.std(grid_score.cv_validation_scores),
-        )
-        rows_list.append(
-            {
-                'max_depth': grid_score.parameters['max_depth'],
-                'n_estimators': grid_score.parameters['n_estimators'],
-                'n_months_back': grid_score.parameters['n_months_back'],
-                'mean_validation_score': grid_score.mean_validation_score,
-            }
-        )
+    def process_file(path, rows_list):
+        'mutate rows_list to include gscv object info at path'
+        verbose = False
+        test_period = path.split('.')[2].split('/')[3].split('-')[2]
+        print 'reducing test_period', test_period
+        with open(path, 'rb') as f:
+            gscv, ege_control = pickle.load(f)
+        # for now, just navigate the gscv object and print it
+        # the gscv object is the result of running sklearn GridSearchCV
+        if verbose:
+            print 'headings: index, max_depth, n_estimators, n_months_back, mean score, std scores'
+        for i, grid_score in enumerate(gscv.grid_scores_):
+            # a grid_score is an instance of _CVScoreTuple, which has these fields:
+            # parameters, mean_validation_score, cv_validation_scores
+            if verbose:
+                print '%3d %4d %4d %2d %7.0f %6.0f' % (
+                    i,
+                    grid_score.parameters['max_depth'],
+                    grid_score.parameters['n_estimators'],
+                    grid_score.parameters['n_months_back'],
+                    grid_score.mean_validation_score,
+                    np.std(grid_score.cv_validation_scores),
+                )
+            rows_list.append(
+                {
+                    'test_period': test_period,
+                    'max_depth': grid_score.parameters['max_depth'],
+                    'n_estimators': grid_score.parameters['n_estimators'],
+                    'n_months_back': grid_score.parameters['n_months_back'],
+                    'loss': grid_score.mean_validation_score,
+                    'std': np.std(grid_score.cv_validation_scores),
+                }
+            )
+        if verbose:
+            print 'number of grid search cells', len(gscv.grid_scores_)
+            print 'best score', gscv.best_score_
+            print 'best estimator', gscv.best_estimator_
+            print 'best params'
+            print_params(gscv.best_params_)
+            print 'scorer', gscv.scorer_
 
+    rows_list = []
+    for file in glob.glob(control.path_in_ege):
+        process_file(file, rows_list)
+    pdb.set_trace()
     df = pd.DataFrame(rows_list)
-
-    print 'number of grid search cells', len(gscv.grid_scores_)
-    print 'best score', gscv.best_score_
-    print 'best estimator', gscv.best_estimator_
-    print 'best params'
-    print_params(gscv.best_params_)
-    print 'scorer', gscv.scorer_
-
-    return df, ege_control
+    return df
 
 
 def main(argv):
@@ -228,13 +236,13 @@ def main(argv):
 
     if control.arg.data:
         pdb.set_trace()
-        df, ege_control = make_data(control)
+        df = make_data(control)
         with open(control.path_data, 'wb') as f:
-            pickle.dump((df, ege_control, control), f)
+            pickle.dump((df, control), f)
     else:
         with open(control.path_data, 'rb') as f:
-            df, ege_control, data_control = pickle.load(f)
-        make_chart(df, control, ege_control)
+            df, data_control = pickle.load(f)
+        make_chart(df, control)
 
     print control
     if control.test:
