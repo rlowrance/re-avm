@@ -149,6 +149,7 @@ def make_chart(df, control, ege_control):
             ('-%d' % control.yyyymm) +
             ('-n_months_back-%02d' % n_months_back))
 
+    pdb.set_trace()
     for n_months_back in sorted(set(df.n_months_back)):
         r = Report()
         r.append('CHART 02')
@@ -168,7 +169,7 @@ def make_chart(df, control, ege_control):
 
 
 def make_data(control):
-    'return data frame with columns: n_estimators, max_depth, n_months_back, loss'
+    'return data frame, ege_control'
     # FIXME: read all the files [test-]ege-rbound-YYYYMM-folds-NN.pickle'
     def print_params(params):
         for k, v in params.iteritems():
@@ -235,13 +236,13 @@ def main(argv):
     print control
 
     if control.arg.data:
-        df = make_data(control)
+        df, ege_control = make_data(control)
         with open(control.path_data, 'wb') as f:
-            pickle.dump((df, control), f)
+            pickle.dump((df, ege_control, control), f)
     else:
         with open(control.path_data, 'rb') as f:
-            df, data_control = pickle.load(f)
-        make_chart(df, control)
+            df, ege_control, data_control = pickle.load(f)
+        make_chart(df, control, ege_control)
 
     print control
     if control.test:
