@@ -33,7 +33,8 @@ def usage(msg=None):
     print __doc__
     if msg is not None:
         print msg
-    print 'usage  : python chart-01.py [--data] [--test]'
+    print 'usage  : python chart-01.py HP [--data] [--test]'
+    print ' HP in {max_depth | max_features}'
     print ' --data: produce reduction of the input file, not the actual charts'
     print ' --test: run in test mode'
     sys.exit(1)
@@ -46,9 +47,13 @@ def make_control(argv):
     if len(argv) not in (1, 2, 3):
         usage('invalid number of arguments')
 
+    if len(argv) == 1:
+        usage()
+
     pcl = ParseCommandLine(argv)
     arg = Bunch(
         base_name='chart-02',
+        hp=argv[1],
         data=pcl.has_arg('--data'),
         test=pcl.has_arg('--test'),
     )
@@ -60,14 +65,14 @@ def make_control(argv):
 
     debug = False
 
-    out_file_name_base = ('test-' if arg.test else '') + arg.base_name + '-max_depth'
+    out_file_name_base = ('test-' if arg.test else '') + arg.base_name + '-' + arg.hp
 
     return Bunch(
         arg=arg,
         debug=debug,
-        path_in_ege=dir_working + 'ege-rfbound-*-folds-10.pickle',
+        path_in_ege=dir_working + 'ege-rfbound-%s-*-folds-10.pickle' % arg.hp,
         path_out_base=dir_working + out_file_name_base,
-        path_data=dir_working + arg.base_name + '.data.pickle',
+        path_data=dir_working + arg.base_name + '-' + arg.hp + '.data.pickle',
         random_seed=random_seed,
         test=arg.test,
     )
@@ -159,8 +164,8 @@ def make_data(control):
     def process_file(path, rows_list):
         'mutate rows_list to include gscv object info at path'
         verbose = False
-        test_period = path.split('.')[2].split('/')[3].split('-')[2]
-        print 'reducing test_period', test_period
+        test_period = path.split('.')[2].split('/')[3].split('-')[3]
+        print 'reducing', path
         with open(path, 'rb') as f:
             gscv, ege_control = pickle.load(f)
         # for now, just navigate the gscv object and print it
