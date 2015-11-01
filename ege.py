@@ -35,9 +35,14 @@ def usage(msg=None):
     print __doc__
     if msg is not None:
         print msg
-    print 'usage  : python ege.py --folds INT [--rfbound yyyymm] [--test]'
-    print ' --folds  INT: number of folds to use when cross validating',
-    print ' --rfbound   : only determine bounds on RF hyperparameters for period yyyymm'
+    print 'usage  : python ege.py --folds INT [--rfbound HP YYYYMM] [--test]'
+    print ' --folds  INT: number of folds to use when cross validating'
+    print ' --rfbound   : only determine bounds on RF hyperparameter HP in {"max_depth", "max_features"}'
+    print '   default values for RF hyperparameters in this code (if not set via --rfbound):'
+    print '     n_estimators in {10, 30, 100, 300, 1000}'
+    print '     max_features=n_features'
+    print '     max_depth=None, so that nodes are expanded until they are pure of have min_samples_split'
+    print '     min_samples_split=2'
     print ' --test      : run in test mode (on a small sample of the entire data)',
     sys.exit(1)
 
@@ -51,11 +56,20 @@ def make_control(argv):
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
-        base_name=argv[0].split('.')[0],
+        base_name='ege',
         folds=pcl.get_arg('--folds'),
-        rfbound=pcl.get_arg('--rfbound'),   # arg.rbound is None or a string
+        rfbound=pcl.get_arg('--rfbound'),   # arg.rbound is None or a string or a list of strings
         test=pcl.has_arg('--test'),
     )
+
+    if arg.rfbound is not None:
+        if not len(arg.rfbound) == 2:
+            usage('corret is --rfbound HP YYYYMM')
+        arg.hp = arg.rfbound[0]
+        arg.yyyymm = arg.rfbound[1]
+        if not(arg.hp in ('max_depth', 'max_features')):
+               usage('--rfbound {max_depth|max_features} YYYYMM')
+
 
     if arg.folds is None:
         usage('--folds is required')
@@ -72,7 +86,7 @@ def make_control(argv):
     out_file_name_base = (
         ('test-' if arg.test else '') +
         arg.base_name +
-        ('' if arg.rfbound is None else '-rfbound-%s' % arg.rfbound) +
+        ('' if arg.rfbound is None else '-rfbound-%s-%s' % (arg.hp, arg.yyyymm)) +
         ('-folds-%02d' % arg.folds)
     )
 
@@ -237,12 +251,15 @@ def do_normal_run(control, samples):
 
 
 def do_rfbound(control, samples):
-    'determine reasonable bounds on Random Forests HPs n_estimators, n_trees'
+    'determine reasonable bounds on certain Random Forests HPs'
 
     # HP settings to test
+    # common across --rfbound options
     model_name_seq = ('RandomForestRegressor',)
     n_months_back_seq = (1, 2, 3, 4, 5, 6)
     n_estimators_seq = (10, 30, 100, 300, 1000)
+    # not common across --rfbound options
+    max_features_seq = (1, 'log2', 'sqrt', .1, .3, 'auto')
     max_depth_seq = (1, 3, 10, 30, 100, 300)
 
     def best_hps(forecast_time_period):
@@ -253,7 +270,8 @@ def do_rfbound(control, samples):
                 n_months_back=n_months_back_seq,
                 forecast_time_period=[forecast_time_period],
                 n_estimators=n_estimators_seq,
-                max_depth=max_depth_seq,
+                max_depth=max_depth_seq if control.arg.hp == 'max_depth' else [None],
+                max_features=max_features_seq if control.arg.hp == 'max_features' else [None],
                 random_state=[control.random_seed],
             ),
             scoring=AVM.avm_scoring,
@@ -264,7 +282,7 @@ def do_rfbound(control, samples):
         gscv.fit(samples)
         return gscv
 
-    gscv = best_hps(int(control.arg.rfbound))
+    gscv = best_hps(int(control.arg.yyyymm))
     print_gscv(gscv, tag=control.arg.rfbound, only_best=True)
     with open(control.path_out, 'wb') as f:
         pickle.dump(gscv, f)
@@ -284,10 +302,8 @@ def main(argv):
     )
     print 'samples.shape', samples.shape
 
-    if isinstance(control.arg.rfbound, str):
-        result = do_rfbound(control, samples)
-    else:
-        result = do_normal_run(control, samples)
+    runner = do_normal_run if control.arg.rfbound is None else do_rfbound
+    result = runner(control, samples)
 
     with open(control.path_out, 'wb') as f:
         pickle.dump((result, control), f)
