@@ -39,6 +39,7 @@ class AVM(sklearn.base.BaseEstimator):
                  units_y=None,
                  n_estimators=None,        # for RandomForestRegressor
                  max_depth=None,
+                 max_features=None,
                  ):
         # NOTE: just capture the parameters (to conform to the sklearn protocol)
         # hyperparameters for linear models
@@ -51,6 +52,7 @@ class AVM(sklearn.base.BaseEstimator):
         self.l1_ratio = l1_ratio
         self.n_estimators = n_estimators
         self.max_depth = max_depth
+        self.max_features = max_features
 
     def fit(self, df):
         'construct and fit df that contains X and y'
@@ -71,12 +73,19 @@ class AVM(sklearn.base.BaseEstimator):
             return self
 
         def fit_random_forest_regressor(X_train, y_train):
-            print 'fit random forest regressor: n_estimators: %d max_depth: %d' % (
-                self.n_estimators, self.max_depth)
+            print (
+                'fit random forest regressor',
+                self.forecast_time_period,
+                self.n_estimators,
+                self.max_depth,
+                self.max_features,
+            )
+            # print self
             self.model = sklearn.ensemble.RandomForestRegressor(
                 n_estimators=self.n_estimators,
                 max_depth=self.max_depth,
                 random_state=self.random_state,
+                max_features=self.max_features,
             )
             self.model.fit(X_train, y_train)
             return self
