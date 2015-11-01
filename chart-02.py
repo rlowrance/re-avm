@@ -4,8 +4,8 @@ INPUT FILES
  INPUT/[test-'ege-rfbound-YYYYMM-folds-NN.pickle
 
 OUTPUT FILES
- WORKING/chart-02-YYYYMM-n_months_back-NN.data.pickle
- WORKING/chart-02-YYYYMM.txt
+ WORKING/[test-]chart-02-YYYYMM-n_months_back-NN.data.pickle
+ WORKING/[test-]chart-02-YYYY.pdf
 '''
 
 from __future__ import division
@@ -26,7 +26,6 @@ from columns_contain import columns_contain
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
 from Path import Path
-from Report import Report
 cc = columns_contain
 
 
@@ -61,13 +60,13 @@ def make_control(argv):
 
     debug = False
 
-    out_file_name_base = ('test-' if arg.test else '') + arg.base_name
+    out_file_name_base = ('test-' if arg.test else '') + arg.base_name + '-max_depth'
 
     return Bunch(
         arg=arg,
         debug=debug,
         path_in_ege=dir_working + 'ege-rfbound-*-folds-10.pickle',
-        path_out_txt_base=dir_working + out_file_name_base,
+        path_out_base=dir_working + out_file_name_base,
         path_data=dir_working + arg.base_name + '.data.pickle',
         random_seed=random_seed,
         test=arg.test,
@@ -76,61 +75,6 @@ def make_control(argv):
 
 def make_chart(df, control, ege_control):
     'write one txt file for each n_months_back'
-    format_header = '%12s %12s %12s'
-    format_detail = '%12d %12d %12.0f'
-
-    def make_mean_loss(test_period, n_months_back, n_estimators, max_depth):
-        mask = (
-            (df.test_period == test_period) &
-            (df.n_months_back == n_months_back) &
-            (df.n_estimators == n_estimators) &
-            (df.max_depth == max_depth)
-        )
-        selected = df.loc[mask]
-        if len(selected) != 1:
-            pdb.set_trace()
-        assert len(selected) == 1, len(selected)
-        mean_loss = - selected.mean_loss
-        return mean_loss
-
-    def n_estimators(r, test_period, n_months_back):
-        r.append(format_header % ('n_estimators', 'max_depth', 'mean_loss'))
-        # rely on the fact that the grid search was a grid
-        for n_estimators in sorted(set(df.n_estimators)):
-            for max_depth in sorted(set(df.max_depth)):
-                mean_loss = make_mean_loss(
-                    test_period=test_period,
-                    n_months_back=n_months_back,
-                    n_estimators=n_estimators,
-                    max_depth=max_depth,
-                )
-                r.append(format_detail % (n_estimators, max_depth, mean_loss))
-
-    def make_report(test_period, n_months_back):
-        r = Report()
-        r.append('CHART 02')
-        r.append('MEAN LOSS FROM %d-FOLD CROSS VALIDATION' % ege_control.n_cv_folds)
-        r.append('TEST PERIOD: %s' % test_period)
-        r.append('NUMBER OF MONTHS OF TRAINING DATA: %d' % n_months_back)
-        r.append('')
-        n_estimators(r, test_period, n_months_back)
-        r.append('')
-        max_depth(r, test_period, n_months_back)
-        r.write(out_file_base(test_period, n_months_back) + '.txt')
-
-    def max_depth(r, test_period, n_months_back):
-        r.append(format_header % ('max_depth', 'n_estimators', 'mean_loss'))
-        # rely on the fact that the grid search was a grid
-        for max_depth in sorted(set(df.max_depth)):
-            for n_estimators in sorted(set(df.n_estimators)):
-                mean_loss = make_mean_loss(
-                    test_period=test_period,
-                    n_months_back=n_months_back,
-                    max_depth=max_depth,
-                    n_estimators=n_estimators,
-                )
-                r.append(format_detail % (max_depth, n_estimators, mean_loss))
-
     def make_subplot(test_period, n_months_back):
         'mutate the default axes'
         for i, n_estimators in enumerate(sorted(set(df.n_estimators))):
@@ -148,62 +92,55 @@ def make_chart(df, control, ege_control):
                      linestyle=[':', '-.', '--', '-'][i % 4],
                      color='bgrcmykw'[i % 8],
                      )
-        print df.max_depth.max()
         # plt.axis([0, len(y), 0, df.mean_loss.max() + 20000])
         plt.xticks(range(len(y)), x.values, size='xx-small', rotation='vertical')
         plt.yticks(size='xx-small')
-        plt.title('%s %d' % (test_period, n_months_back))
+        plt.title('yr-mo %s-%s bk %d' % (test_period[:4], test_period[4:], n_months_back),
+                  loc='left',
+                  fontdict={'fontsize': 'xx-small', 'style': 'italic'},
+                  )
         # plt.legend(loc='best')
         return
 
-    def out_file_base(test_period, n_months_back):
-        return (
-            control.path_out_txt_base +
-            ('-%s' % test_period) +
-            ('-n_months_back-%02d' % n_months_back))
+    def make_figure(year, months):
+        print 'make_figure', year, months
+        test_periods_typical = [str(year * 100 + month)
+                                for month in months
+                                ]
+        test_periods = ('200902',) if year == 2009 else test_periods_typical
 
-    produce_report = False
-    test_periods = [str(year * 100 + month)
-                    for year in (2004, 2005, 2006, 2007, 2008)
-                    for month in (2, 5, 8, 11)
-                    ]
-    test_periods.append('200902')
-    n_months_backs = sorted(set(df.n_months_back))
-    if control.test:
-        test_periods = test_periods[:4]
-        n_months_backs = n_months_backs[:6]
+        plt.figure()  # new figure
+        # plt.suptitle('Loss by Test Period, Tree Max Depth, N Trees')  # overlays the subplots
+        axes_number = 0
+        n_months_backs = range(1, 7, 1)
+        last_test_period_index = len(test_periods) - 1
+        last_n_months_back_index = len(n_months_backs) - 1
+        for test_period_index, test_period in enumerate(test_periods):
+            for n_months_back_index, n_months_back in enumerate(n_months_backs):
+                axes_number += 1  # count across rows
+                plt.subplot(len(test_periods), len(n_months_backs), axes_number)
+                make_subplot(test_period, n_months_back)
+                if test_period_index == last_test_period_index:
+                    # annotate the bottom row only
+                    if n_months_back_index == 0:
+                        plt.xlabel('max_depth')
+                        plt.ylabel('loss x $1000')
+                    if n_months_back_index == last_n_months_back_index:
+                        plt.legend(loc='best', fontsize=5)
+                        # plt.legend(loc='best', fontsize='xx-small')
 
-    pdb.set_trace()
-    plt.figure()  # new figure
-    axes_number = 0
-    last_test_period_index = len(test_periods) - 1
-    last_n_months_back_index = len(n_months_backs) - 1
-    for test_period_index, test_period in enumerate(test_periods):
-        for n_months_back_index, n_months_back in enumerate(n_months_backs):
-            axes_number += 1
-            if produce_report:
-                make_report(test_period, n_months_back)
-
-            # create a subplot
-            # axes_number counts across rows
-            plt.subplot(len(test_periods), len(n_months_backs), axes_number)
-            make_subplot(test_period, n_months_back)
-            if test_period_index == last_test_period_index:
-                # annotate the bottom row only
-                if n_months_back_index == 0:
-                    plt.xlabel('max_depth')
-                    plt.ylabel('loss x $1000')
-                if n_months_back_index == last_n_months_back_index:
-                    plt.legend(loc='best', fontsize='xx-small')
-
-    if len(test_periods) == 4 and len(n_months_back == 6):
-        # testing
         plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-    else:
-        plt.tight_layout(pad=0.1, w_pad=0.1, h_pad=0.1)
+        out_suffix = '-%02d' % months if len(months) == 1 else ''
+        plt.savefig(control.path_out_base + '-' + str(year) + out_suffix + '.pdf')
+        plt.close()
 
-    plt.savefig(out_file_base(test_period, n_months_back) + '.pdf')
-    plt.close()
+    for year in (2004, 2005, 2006, 2007, 2008, 2009):
+        months = (2,) if year == 2009 else (2, 5, 8, 11)
+        for month in months:
+            make_figure(year, (month,))
+        make_figure(year, months)
+        if control.test:
+            break
 
 
 def make_data(control):
