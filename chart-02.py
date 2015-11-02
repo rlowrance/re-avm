@@ -4,8 +4,10 @@ INPUT FILES
  INPUT/[test-'ege-rfbound-YYYYMM-folds-NN.pickle
 
 OUTPUT FILES
- WORKING/[test-]chart-02-YYYYMM-n_months_back-NN.data.pickle
- WORKING/[test-]chart-02-YYYY.pdf
+ WORKING/[test-]chart-02-VAR.data.pickle
+ WORKING/[test-]chart-02-VAR-YYYY[-MM].pdf
+where
+ VAR in {max_depth | max_features}
 '''
 
 from __future__ import division
