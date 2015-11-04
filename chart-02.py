@@ -91,8 +91,8 @@ def make_chart(df, control, ege_control):
                 (df.n_estimators == n_estimators)
             )
             subset = df.loc[mask]
-            x = subset.max_depth
-            y = subset.mean_loss
+            x = subset[control.arg.hp]
+            y = subset['mean_loss']
             plt.plot(y / 1000.0,
                      label=('n_estimators: %d' % n_estimators),
                      # linestyle='.,ov^<>'[i],
@@ -110,6 +110,7 @@ def make_chart(df, control, ege_control):
         return
 
     def make_figure(year, months):
+
         print 'make_figure', year, months
         test_periods_typical = [str(year * 100 + month)
                                 for month in months
@@ -130,7 +131,7 @@ def make_chart(df, control, ege_control):
                 if test_period_index == last_test_period_index:
                     # annotate the bottom row only
                     if n_months_back_index == 0:
-                        plt.xlabel('max_depth')
+                        plt.xlabel(control.arg.hp)
                         plt.ylabel('loss x $1000')
                     if n_months_back_index == last_n_months_back_index:
                         plt.legend(loc='best', fontsize=5)
@@ -165,7 +166,7 @@ def make_data(control):
 
     def process_file(path, rows_list):
         'mutate rows_list to include gscv object info at path'
-        verbose = False
+        verbose = True
         test_period = path.split('.')[2].split('/')[3].split('-')[3]
         print 'reducing', path
         with open(path, 'rb') as f:
@@ -173,13 +174,14 @@ def make_data(control):
         # for now, just navigate the gscv object and print it
         # the gscv object is the result of running sklearn GridSearchCV
         if verbose:
-            print 'headings: index, max_depth, n_estimators, n_months_back, mean score, std scores'
+            print 'headings: index, test_period, max_depth, n_estimators, n_months_back, mean score, std scores'
         for i, grid_score in enumerate(gscv.grid_scores_):
             # a grid_score is an instance of _CVScoreTuple, which has these fields:
             # parameters, mean_validation_score, cv_validation_scores
             if verbose:
-                print '%3d %4d %4d %2d %7.0f %6.0f' % (
+                print '%3d %6s %4d %4d %2d %7.0f %6.0f' % (
                     i,
+                    test_period,
                     grid_score.parameters['max_depth'],
                     grid_score.parameters['n_estimators'],
                     grid_score.parameters['n_months_back'],
@@ -190,12 +192,14 @@ def make_data(control):
                 {
                     'test_period': test_period,
                     'max_depth': grid_score.parameters['max_depth'],
+                    'max_features': grid_score.parameters['max_features'],
                     'n_estimators': grid_score.parameters['n_estimators'],
                     'n_months_back': grid_score.parameters['n_months_back'],
                     'mean_loss': -grid_score.mean_validation_score,
                     'std_loss': np.std(grid_score.cv_validation_scores),
                 }
             )
+            pdb.set_trace()
         if verbose:
             print 'number of grid search cells', len(gscv.grid_scores_)
             print 'best score', gscv.best_score_
@@ -203,6 +207,7 @@ def make_data(control):
             print 'best params'
             print_params(gscv.best_params_)
             print 'scorer', gscv.scorer_
+
         return ege_control
 
     rows_list = []
