@@ -199,7 +199,6 @@ def make_data(control):
                     'std_loss': np.std(grid_score.cv_validation_scores),
                 }
             )
-            pdb.set_trace()
         if verbose:
             print 'number of grid search cells', len(gscv.grid_scores_)
             print 'best score', gscv.best_score_
