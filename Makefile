@@ -12,33 +12,34 @@ ALL += $(WORKING)/census-features-derived.csv
 ALL += $(WORKING)/chart-01.txt
 
 ALL += $(WORKING)/chart-02-max_depth-2004.pdf  # representative of many 
+ALL += $(WORKING)/chart-02-max_features-2004.pdf  # representative of many 
 
-ALL += $(WORKING)/ege-rfbound-max_depth-200903-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200902-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200811-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200808-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200805-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200802-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200711-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200708-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200705-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200702-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200611-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200608-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200605-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200602-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200611-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200608-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200605-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200602-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200511-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200508-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200505-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200502-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200411-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200408-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200405-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_depth-200402-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200902-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200811-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200808-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200805-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200802-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200711-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200708-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200705-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200702-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200611-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200608-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200605-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200602-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200611-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200608-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200605-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200602-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200511-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200508-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200505-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200502-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200411-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200408-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200405-folds-10.pickle
+MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200402-folds-10.pickle
+ALL += $(MAX_DEPTH)
 
 ALL += $(WORKING)/ege-rfbound-max_features-200402-folds-10.pickle
 ALL += $(WORKING)/ege-rfbound-max_features-200405-folds-10.pickle
@@ -92,15 +93,80 @@ $(WORKING)/chart-01.data.pickle: chart-01.py $(WORKING)/samples-train-validate.c
 $(WORKING)/chart-02-max_depth-2004.pdf: chart-02.py $(WORKING)/chart-02-max_depth.data.pickle
 	$(PYTHON) chart-02.py max_depth
 
-$(WORKING)/chart-02-max_depth.data.pickle: chart-02.py # $(WORKING)/ege-rfbound-max_depth-200402-folds-10.pickle'
+$(WORKING)/chart-02-max_depth.data.pickle: chart-02.py  $(MAX_DEPTH)
 	$(PYTHON) chart-02.py max_depth --data
 
-$(WORKING)/ege-rfbound-max_depth-%-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) ege.py --rfbound max_depth $* --folds 10
+$(WORKING)/chart-02-max_features-2004.pdf: chart-02.py $(WORKING)/chart-02-max_depth.data.pickle
+	$(PYTHON) chart-02.py max_features
 
-$(WORKING)/ege-rfbound-max_features-%-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) ege.py --rfbound max_features $* --folds 10
+$(WORKING)/chart-02-max_features.data.pickle: chart-02.py # $(WORKING)/ege-rfbound-max_features-200402-folds-10.pickle'
+	$(PYTHON) chart-02.py max_features --data
 
+# ege-rbbound-max_depth-*-folds-10.pickle
+$(WORKING)/ege-rfbound-max_depth-200402-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200402 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200405-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200405 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200408-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200408 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200411-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200411 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200502-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200502 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200505-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200505 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200508-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200508 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200511-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200511 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200602-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200602 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200605-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200605 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200608-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200608 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200611-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200611 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200702-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200k02 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200705-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200k05 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200708-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200k08 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200711-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200711 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200802-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200802 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200805-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200805 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200808-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200808 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200811-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200811 --folds 10
+
+$(WORKING)/ege-rfbound-max_depth-200902-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_depth 200902 --folds 10
+
+# parcels-*
 $(WORKING)/parcels-features-census_tract.csv: parcels-features.py layout_parcels.py
 	$(PYTHON) parcels-features.py --geo census_tract
 
