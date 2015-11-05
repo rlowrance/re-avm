@@ -41,27 +41,28 @@ MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200405-folds-10.pickle
 MAX_DEPTH += $(WORKING)/ege-rfbound-max_depth-200402-folds-10.pickle
 ALL += $(MAX_DEPTH)
 
-ALL += $(WORKING)/ege-rfbound-max_features-200402-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200405-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200408-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200411-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200502-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200505-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200508-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200511-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200602-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200605-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200608-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200611-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200702-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200705-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200708-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200711-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200802-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200805-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200808-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200811-folds-10.pickle
-ALL += $(WORKING)/ege-rfbound-max_features-200902-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200402-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200405-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200408-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200411-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200502-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200505-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200508-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200511-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200602-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200605-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200608-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200611-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200702-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200705-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200708-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200711-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200802-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200805-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200808-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200811-folds-10.pickle
+MAX_FEATURES += $(WORKING)/ege-rfbound-max_features-200902-folds-10.pickle
+ALL += $(MAX_FEATURES)
 
 ALL += $(WORKING)/parcels-features-census_tract.csv
 ALL += $(WORKING)/parcels-features-zip5.csv
@@ -84,6 +85,7 @@ parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcel
 $(WORKING)/census-features-derived.csv: census-features.py layout_census.py
 	$(PYTHON) census-features.py
 
+# chart-NN
 $(WORKING)/chart-01.txt: chart-01.py $(WORKING)/chart-01.data.pickle
 	$(PYTHON) chart-01.py
 	
@@ -96,10 +98,10 @@ $(WORKING)/chart-02-max_depth-2004.pdf: chart-02.py $(WORKING)/chart-02-max_dept
 $(WORKING)/chart-02-max_depth.data.pickle: chart-02.py  $(MAX_DEPTH)
 	$(PYTHON) chart-02.py max_depth --data
 
-$(WORKING)/chart-02-max_features-2004.pdf: chart-02.py $(WORKING)/chart-02-max_depth.data.pickle
+$(WORKING)/chart-02-max_features-2004.pdf: chart-02.py $(WORKING)/chart-02-max_features.data.pickle
 	$(PYTHON) chart-02.py max_features
 
-$(WORKING)/chart-02-max_features.data.pickle: chart-02.py # $(WORKING)/ege-rfbound-max_features-200402-folds-10.pickle'
+$(WORKING)/chart-02-max_features.data.pickle: chart-02.py $(MAX_FEATURES)
 	$(PYTHON) chart-02.py max_features --data
 
 # ege-rbbound-max_depth-*-folds-10.pickle
@@ -140,13 +142,13 @@ $(WORKING)/ege-rfbound-max_depth-200611-folds-10.pickle: ege.py $(WORKING)/sampl
 	$(PYTHON) ege.py --rfbound max_depth 200611 --folds 10
 
 $(WORKING)/ege-rfbound-max_depth-200702-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) ege.py --rfbound max_depth 200k02 --folds 10
+	$(PYTHON) ege.py --rfbound max_depth 200702 --folds 10
 
 $(WORKING)/ege-rfbound-max_depth-200705-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) ege.py --rfbound max_depth 200k05 --folds 10
+	$(PYTHON) ege.py --rfbound max_depth 200705 --folds 10
 
 $(WORKING)/ege-rfbound-max_depth-200708-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) ege.py --rfbound max_depth 200k08 --folds 10
+	$(PYTHON) ege.py --rfbound max_depth 200708 --folds 10
 
 $(WORKING)/ege-rfbound-max_depth-200711-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) ege.py --rfbound max_depth 200711 --folds 10
@@ -165,6 +167,70 @@ $(WORKING)/ege-rfbound-max_depth-200811-folds-10.pickle: ege.py $(WORKING)/sampl
 
 $(WORKING)/ege-rfbound-max_depth-200902-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) ege.py --rfbound max_depth 200902 --folds 10
+
+# ege-rbbound-max_features-*-folds-10.pickle
+$(WORKING)/ege-rfbound-max_features-200402-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200402 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200405-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200405 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200408-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200408 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200411-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200411 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200502-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200502 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200505-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200505 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200508-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200508 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200511-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200511 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200602-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200602 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200605-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200605 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200608-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200608 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200611-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200611 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200702-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200702 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200705-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200705 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200708-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200708 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200711-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200711 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200802-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200802 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200805-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200805 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200808-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200808 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200811-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200811 --folds 10
+
+$(WORKING)/ege-rfbound-max_features-200902-folds-10.pickle: ege.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) ege.py --rfbound max_features 200902 --folds 10
 
 # parcels-*
 $(WORKING)/parcels-features-census_tract.csv: parcels-features.py layout_parcels.py
