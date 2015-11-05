@@ -68,8 +68,7 @@ def make_control(argv):
         arg.hp = arg.rfbound[0]
         arg.yyyymm = arg.rfbound[1]
         if not(arg.hp in ('max_depth', 'max_features')):
-               usage('--rfbound {max_depth|max_features} YYYYMM')
-
+            usage('--rfbound {max_depth|max_features} YYYYMM')
 
     if arg.folds is None:
         usage('--folds is required')
@@ -93,7 +92,6 @@ def make_control(argv):
     return Bunch(
         arg=arg,
         debug=debug,
-        n_cv_folds=10,
         path_in=dir_working + 'samples-train-validate.csv',
         path_out=dir_working + out_file_name_base + '.pickle',
         random_seed=random_seed,
@@ -234,7 +232,7 @@ def do_normal_run(control, samples):
         param_grid=param_grid,
         scoring=AVM.avm_scoring,
         n_jobs=1 if control.test else -1,
-        cv=control.n_cv_folds,
+        cv=control.arg.folds,
         verbose=2 if control.test else 0,
     )
     # TODO AM: Can we first just validate and then run cross validation on the N best hyperparameter
