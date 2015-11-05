@@ -2,6 +2,7 @@
 
 import pdb
 import numpy as np
+import pandas as pd
 from pprint import pprint
 import sklearn
 import sklearn.ensemble
@@ -79,8 +80,8 @@ class AVM(sklearn.base.BaseEstimator):
                 self.n_estimators,
                 self.max_depth,
                 self.max_features,
+                self.n_months_back,
             )
-            # print self
             self.model = sklearn.ensemble.RandomForestRegressor(
                 n_estimators=self.n_estimators,
                 max_depth=self.max_depth,
@@ -99,6 +100,7 @@ class AVM(sklearn.base.BaseEstimator):
                 # ex: found 200900; need to convert to 200812
                 last_kept_yyyymm += - 100 + 12  # adjust year and month
             kept_yyyymm.append(last_kept_yyyymm)
+            last_kept_yyyymm -= 1
         mask_kept = df_period[layout_transactions.yyyymm].isin(kept_yyyymm)
         df_kept = df_period[mask_kept]
         X_train, y_train = self.extract_and_transform(df_kept)
@@ -167,5 +169,6 @@ class AVM(sklearn.base.BaseEstimator):
 
 
 if False:
+    pd()
     pprint()
     Features()
