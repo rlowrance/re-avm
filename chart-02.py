@@ -178,7 +178,8 @@ def make_data(control):
         for i, grid_score in enumerate(gscv.grid_scores_):
             # a grid_score is an instance of _CVScoreTuple, which has these fields:
             # parameters, mean_validation_score, cv_validation_scores
-            if verbose:
+            if verbose and False:
+                # NOTE: n_estimators or max_depth might be None
                 print '%3d %6s %4d %4d %2d %7.0f %6.0f' % (
                     i,
                     test_period,
