@@ -85,13 +85,14 @@ parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcel
 $(WORKING)/census-features-derived.csv: census-features.py layout_census.py
 	$(PYTHON) census-features.py
 
-# chart-NN
+# chart-01
 $(WORKING)/chart-01.txt: chart-01.py $(WORKING)/chart-01.data.pickle
 	$(PYTHON) chart-01.py
 	
 $(WORKING)/chart-01.data.pickle: chart-01.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) chart-01.py --data
 
+# chart-02
 $(WORKING)/chart-02-max_depth-2004.pdf: chart-02.py $(WORKING)/chart-02-max_depth.data.pickle
 	$(PYTHON) chart-02.py max_depth
 
