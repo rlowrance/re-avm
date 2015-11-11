@@ -141,7 +141,9 @@ def do_rfbound(control, samples):
         verbose=1 if control.test else 0,
     )
     gscv.fit(samples)
-    print_gscv(gscv, tag=control.arg.rfbound, only_best=True)
+    print 'gscv'
+    pprint(gscv)
+    # print_gscv(gscv, tag=control.arg.rfbound, only_best=True)
     return gscv
 
 
