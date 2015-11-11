@@ -34,6 +34,7 @@ class AVM(sklearn.base.BaseEstimator):
                  forecast_time_period=None,
                  n_months_back=None,
                  random_state=None,
+                 verbose=0,
                  alpha=None,               # for ElasticNet
                  l1_ratio=None,
                  units_X=None,
@@ -43,14 +44,17 @@ class AVM(sklearn.base.BaseEstimator):
                  max_features=None,
                  ):
         # NOTE: just capture the parameters (to conform to the sklearn protocol)
-        # hyperparameters for linear models
         self.model_name = model_name
         self.forecast_time_period = forecast_time_period
         self.n_months_back = n_months_back
-        self.units_X = units_X
-        self.units_y = units_y
+        self.random_state = random_state
+        self.verbose = verbose
+
         self.alpha = alpha
         self.l1_ratio = l1_ratio
+        self.units_X = units_X
+        self.units_y = units_y
+
         self.n_estimators = n_estimators
         self.max_depth = max_depth
         self.max_features = max_features
@@ -58,8 +62,9 @@ class AVM(sklearn.base.BaseEstimator):
     def fit(self, df):
         'construct and fit df that contains X and y'
         def fit_elastic_net(X_train, y_train):
-            print 'fit elastic net: %s~%s alpha: %f l1_ratio: %f' % (
-                self.units_X, self.units_y, self.alpha, self.l1_ratio)
+            if self.verbose > 0:
+                print 'fit elastic net: %s~%s alpha: %f l1_ratio: %f' % (
+                    self.units_X, self.units_y, self.alpha, self.l1_ratio)
 
             assert self.l1_ratio > 0.01, self.l1_ratio  # otherwise, not reliable
             self.model = sklearn.linear_model.ElasticNet(
@@ -74,14 +79,15 @@ class AVM(sklearn.base.BaseEstimator):
             return self
 
         def fit_random_forest_regressor(X_train, y_train):
-            print (
-                'fit random forest regressor',
-                self.forecast_time_period,
-                self.n_estimators,
-                self.max_depth,
-                self.max_features,
-                self.n_months_back,
-            )
+            if self.verbose > 0:
+                print (
+                    'fit random forest regressor',
+                    self.forecast_time_period,
+                    self.n_estimators,
+                    self.max_depth,
+                    self.max_features,
+                    self.n_months_back,
+                )
             self.model = sklearn.ensemble.RandomForestRegressor(
                 n_estimators=self.n_estimators,
                 max_depth=self.max_depth,
@@ -150,11 +156,14 @@ class AVM(sklearn.base.BaseEstimator):
 
     def predict(self, df):
         def predict_elastic_net(df):
+            if self.verbose > 0:
+                print 'predict_elastic_net'
             X_test, y_test = self.extract_and_transform(df)
             return self.model.predict(X_test)
 
         def predict_random_forest_regressor(df):
-            print 'predict_random_forest_regressor'
+            if self.verbose > 0:
+                print 'predict_random_forest_regressor'
             X_test, y_test = self.extract_and_transform(df)
             return self.model.predict(X_test)
 
