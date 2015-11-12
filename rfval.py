@@ -18,9 +18,6 @@ import pandas as pd
 import pdb
 from pprint import pprint
 import random
-import sklearn
-import sklearn.grid_search
-import sklearn.metrics
 import sys
 
 import AVM
@@ -94,12 +91,11 @@ ResultValue = collections.namedtuple('ResultValue',
                                      )
 
 
-def do_rfbound(control, samples):
+def do_rfval(control, samples):
     'run grid search on random forest model; return grid search object'
 
     # HP settings to test
     # common across --rfbound options
-    model_name_seq = ('RandomForestRegressor',)
     n_months_back_seq = (1, 2, 3, 4, 5, 6)
     n_estimators_seq = (10, 30, 100, 300, 1000)
     hp_seq = ('max_depth', 'max_features')
@@ -108,59 +104,43 @@ def do_rfbound(control, samples):
     max_depth_seq = (1, 3, 10, 30, 100, 300)
 
     result = {}
+
+    def run(n_months_back, n_estimators, max_depth, max_features):
+        assert (max_depth is not None) or (max_features is not None)
+        avm = AVM.AVM(
+            model_name='RandomForestRegressor',
+            forecast_time_period=control.arg.yyyymm,
+            n_months_back=n_months_back,
+            random_state=control.random_seed,
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            max_features=max_features,
+        )
+        avm.fit(samples)
+        mask = samples[layout_transactions.yyyymm] == control.arg.yyyymm
+        samples_yyyymm = samples[mask]
+        predictions = avm.predict(samples_yyyymm)
+        actuals = samples_yyyymm[layout_transactions.price]
+        errors = actuals - predictions
+        mse = np.sum(errors * errors) / len(actuals)
+        rmse = np.sqrt(mse)
+        result_key = ResultKey(n_months_back, n_estimators, max_depth, max_features, hp,
+                               control.arg.yyyymm)
+        print result_key, rmse
+        result[result_key] = ResultValue(avm, actuals, predictions, rmse)
+
     for n_months_back in n_months_back_seq:
         for n_estimators in n_estimators_seq:
-            for max_depth in max_depth_seq:
-                for max_features in max_features_seq:
-                    for hp in hp_seq:
-                        if hp == 'max_depth':
-                            max_features = None
-                        elif hp == 'max_features':
-                            max_depth = None
-                        avm = AVM.AVM(
-                            model_name='RandomForestRegressor',
-                            forecast_time_period=control.arg.yyyymm,
-                            n_months_back=n_months_back,
-                            random_state=control.random_seed,
-                            n_estimators=n_estimators,
-                            max_depth=max_depth,
-                            max_features=max_features,
-                        )
-                        avm.fit(samples)
-                        mask = samples[layout_transactions.yyyymm] == control.arg.yyyymm
-                        samples_yyyymm = samples[mask]
-                        predictions = avm.predict(samples_yyyymm)
-                        actuals = samples_yyyymm[layout_transactions.price]
-                        errors = actuals - predictions
-                        mse = np.sum(errors * errors) / len(actuals)
-                        rmse = np.sqrt(mse)
-                        result_key = ResultKey(n_months_back, n_estimators, max_depth, max_features, hp,
-                                               control.arg.yyyymm)
-                        print result_key, rmse
-                        result[result_key] = ResultValue(avm, actuals, predictions, rmse)
+            for hp in hp_seq:
+                if hp == 'max_depth':
+                    max_features = None
+                    for max_depth in max_depth_seq:
+                        run(n_months_back, n_estimators, max_depth, max_features)
+                elif hp == 'max_features':
+                    max_depth = None
+                    for max_features in max_features_seq:
+                        run(n_months_back, n_estimators, max_depth, max_features)
     return result
-
-    gscv = sklearn.grid_search.GridSearchCV(
-        estimator=AVM.AVM(),
-        param_grid=dict(
-            model_name=model_name_seq,
-            n_months_back=n_months_back_seq,
-            forecast_time_period=[int(control.arg.yyyymm)],
-            n_estimators=n_estimators_seq,
-            max_depth=max_depth_seq if control.arg.hp == 'max_depth' else [None],
-            max_features=max_features_seq if control.arg.hp == 'max_features' else [None],
-            random_state=[control.random_seed],
-        ),
-        scoring=AVM.avm_scoring,
-        n_jobs=1 if control.test else -1,
-        cv=control.arg.folds,
-        verbose=1 if control.test else 0,
-    )
-    gscv.fit(samples)
-    print 'gscv'
-    pprint(gscv)
-    # print_gscv(gscv, tag=control.arg.rfbound, only_best=True)
-    return gscv
 
 
 def main(argv):
@@ -176,7 +156,7 @@ def main(argv):
     )
     print 'samples.shape', samples.shape
 
-    result = do_rfbound(control, samples)
+    result = do_rfval(control, samples)
 
     with open(control.path_out, 'wb') as f:
         pickle.dump((result, control), f)
