@@ -52,7 +52,7 @@ def make_control(argv):
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
-        base_name='rfbound',
+        base_name='rfval',
         yyyymm=argv[1],
         test=pcl.has_arg('--test'),
     )
@@ -87,7 +87,7 @@ ResultKey = collections.namedtuple('ResultKey',
                                    'n_months_back n_estimators max_depth max_features hp yyyymm',
                                    )
 ResultValue = collections.namedtuple('ResultValue',
-                                     'avm actuals predictions rmse',
+                                     'actuals predictions rmse',
                                      )
 
 
@@ -127,7 +127,7 @@ def do_rfval(control, samples):
         result_key = ResultKey(n_months_back, n_estimators, max_depth, max_features, hp,
                                control.arg.yyyymm)
         print result_key, rmse
-        result[result_key] = ResultValue(avm, actuals, predictions, rmse)
+        result[result_key] = ResultValue(actuals, predictions, rmse)
 
     for n_months_back in n_months_back_seq:
         for n_estimators in n_estimators_seq:
