@@ -3,13 +3,14 @@
 INPUT FILE:
     WORKING/samples-train-validate.csv
 OUTPUT FILE:
-    WORKING/rfbound-HP-YYYYMM-folds-NN.pickle
+    WORKING/rfbound/[test-]HP-YYYYMM-NN.pickle
 '''
 
 from __future__ import division
 
 import cPickle as pickle
 import numpy as np
+import os
 import pandas as pd
 import pdb
 from pprint import pprint
@@ -34,11 +35,11 @@ def usage(msg=None):
     print __doc__
     if msg is not None:
         print msg
-    print 'usage  : python rfbound.py HP YYYYMM INT [--test]'
-    print ' HP  {max_depth | max_features}'
+    print 'usage : python rfbound.py HP YYYYMM NN [--test]'
+    print ' HP      {max_depth | max_features}'
     print ' YYYYMM  year + month; ex: 200402'
-    print ' INT     number of folds to use for the cross validating'
-    print ' --test      : run in test mode (on a small sample of the entire data)',
+    print ' NN      number of folds to use for the cross validating'
+    print ' --test  run in test mode (on a small sample of the entire data)',
     sys.exit(1)
 
 
@@ -70,10 +71,21 @@ def make_control(argv):
 
     debug = False
 
+    pdb.set_trace()
     out_file_name = (
-        ('test-' if arg.test else '') +
-        '%s-%s-%s-folds-%02d.pickle' % (arg.base_name, arg.hp, arg.yyyymm, arg.folds)
+        '%s/%s%s-%s-folds-%02d.pickle' % (
+            arg.base_name,
+            ('test-' if arg.test else ''),
+            arg.hp,
+            arg.yyyymm,
+            arg.folds)
     )
+
+    # assure the output directory exists
+    pdb.set_trace()
+    dir_path = dir_working + arg.base_name
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
 
     return Bunch(
         arg=arg,
