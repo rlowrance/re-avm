@@ -39,7 +39,6 @@ MAX_DEPTH += $(WORKING)/rfbound/max_depth-200411-10.pickle
 MAX_DEPTH += $(WORKING)/rfbound/max_depth-200408-10.pickle
 MAX_DEPTH += $(WORKING)/rfbound/max_depth-200405-10.pickle
 MAX_DEPTH += $(WORKING)/rfbound/max_depth-200402-10.pickle
-ALL += $(MAX_DEPTH)
 
 MAX_FEATURES += $(WORKING)/rfbound/max_features-200402-10.pickle
 MAX_FEATURES += $(WORKING)/rfbound/max_features-200405-10.pickle
@@ -62,28 +61,30 @@ MAX_FEATURES += $(WORKING)/rfbound/max_features-200805-10.pickle
 MAX_FEATURES += $(WORKING)/rfbound/max_features-200808-10.pickle
 MAX_FEATURES += $(WORKING)/rfbound/max_features-200811-10.pickle
 MAX_FEATURES += $(WORKING)/rfbound/max_features-200902-10.pickle
-ALL += $(MAX_FEATURES)
 
-RFVAL += $(WORKING)/rfval-200402.pickle
-RFVAL += $(WORKING)/rfval-200405.pickle
-RFVAL += $(WORKING)/rfval-200408.pickle
-RFVAL += $(WORKING)/rfval-200411.pickle
-RFVAL += $(WORKING)/rfval-200502.pickle
-RFVAL += $(WORKING)/rfval-200505.pickle
-RFVAL += $(WORKING)/rfval-200508.pickle
-RFVAL += $(WORKING)/rfval-200511.pickle
-RFVAL += $(WORKING)/rfval-200602.pickle
-RFVAL += $(WORKING)/rfval-200605.pickle
-RFVAL += $(WORKING)/rfval-200608.pickle
-RFVAL += $(WORKING)/rfval-200611.pickle
-RFVAL += $(WORKING)/rfval-200702.pickle
-RFVAL += $(WORKING)/rfval-200705.pickle
-RFVAL += $(WORKING)/rfval-200708.pickle
-RFVAL += $(WORKING)/rfval-200711.pickle
-RFVAL += $(WORKING)/rfval-200802.pickle
-RFVAL += $(WORKING)/rfval-200805.pickle
-RFVAL += $(WORKING)/rfval-200808.pickle
-RFVAL += $(WORKING)/rfval-200811.pickle
+RFBOUND += $(MAX_DEPTH) $(MAX_FEATURES)
+#ALL += $(RFBOUND)
+
+RFVAL += $(WORKING)/rfval/200402.pickle
+RFVAL += $(WORKING)/rfval/200405.pickle
+RFVAL += $(WORKING)/rfval/200408.pickle
+RFVAL += $(WORKING)/rfval/200411.pickle
+RFVAL += $(WORKING)/rfval/200502.pickle
+RFVAL += $(WORKING)/rfval/200505.pickle
+RFVAL += $(WORKING)/rfval/200508.pickle
+RFVAL += $(WORKING)/rfval/200511.pickle
+RFVAL += $(WORKING)/rfval/200602.pickle
+RFVAL += $(WORKING)/rfval/200605.pickle
+RFVAL += $(WORKING)/rfval/200608.pickle
+RFVAL += $(WORKING)/rfval/200611.pickle
+RFVAL += $(WORKING)/rfval/200702.pickle
+RFVAL += $(WORKING)/rfval/200705.pickle
+RFVAL += $(WORKING)/rfval/200708.pickle
+RFVAL += $(WORKING)/rfval/200711.pickle
+RFVAL += $(WORKING)/rfval/200802.pickle
+RFVAL += $(WORKING)/rfval/200805.pickle
+RFVAL += $(WORKING)/rfval/200808.pickle
+RFVAL += $(WORKING)/rfval/200811.pickle
 ALL += $(RFVAL)
 
 ALL += $(WORKING)/parcels-features-census_tract.csv
@@ -263,64 +264,64 @@ $(WORKING)/rfbound/max_features-200902-10.pickle: rfbound.py $(WORKING)/samples-
 	$(PYTHON) rfbound.py max_features  200902  10
 
 # rfval
-$(WORKING)/rfval-200402.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200402.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200402
 
-$(WORKING)/rfval-200405.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200405.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200405
 
-$(WORKING)/rfval-200408.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200408.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200408
 
-$(WORKING)/rfval-200411.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200411.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200411
 
-$(WORKING)/rfval-200502.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200502.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200502
 
-$(WORKING)/rfval-200505.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200505.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200505
 
-$(WORKING)/rfval-200508.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200508.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200508
 
-$(WORKING)/rfval-200511.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200511.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200511
 
-$(WORKING)/rfval-200602.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200602.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200602
 
-$(WORKING)/rfval-200605.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200605.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200605
 
-$(WORKING)/rfval-200608.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200608.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200608
 
-$(WORKING)/rfval-200611.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200611.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200611
 
-$(WORKING)/rfval-200702.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200702.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200702
 
-$(WORKING)/rfval-200705.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200705.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200705
 
-$(WORKING)/rfval-200708.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200708.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200708
 
-$(WORKING)/rfval-200711.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200711.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200711
 
-$(WORKING)/rfval-200802.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200802.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200802
 
-$(WORKING)/rfval-200805.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200805.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200805
 
-$(WORKING)/rfval-200808.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200808.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200808
 
-$(WORKING)/rfval-200811.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200811.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200811
 
 # parcels-*
