@@ -63,7 +63,7 @@ MAX_FEATURES += $(WORKING)/rfbound/max_features-200811-10.pickle
 MAX_FEATURES += $(WORKING)/rfbound/max_features-200902-10.pickle
 
 RFBOUND += $(MAX_DEPTH) $(MAX_FEATURES)
-#ALL += $(RFBOUND)
+ALL += $(RFBOUND)
 
 RFVAL += $(WORKING)/rfval/200402.pickle
 RFVAL += $(WORKING)/rfval/200405.pickle
@@ -85,6 +85,7 @@ RFVAL += $(WORKING)/rfval/200802.pickle
 RFVAL += $(WORKING)/rfval/200805.pickle
 RFVAL += $(WORKING)/rfval/200808.pickle
 RFVAL += $(WORKING)/rfval/200811.pickle
+RFVAL += $(WORKING)/rfval/200902.pickle
 ALL += $(RFVAL)
 
 ALL += $(WORKING)/parcels-features-census_tract.csv
@@ -323,6 +324,9 @@ $(WORKING)/rfval/200808.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 
 $(WORKING)/rfval/200811.pickle: rfval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200811
+
+$(WORKING)/rfval/200902.pickle: rfval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) rfval.py 200902
 
 # parcels-*
 $(WORKING)/parcels-features-census_tract.csv: parcels-features.py layout_parcels.py
