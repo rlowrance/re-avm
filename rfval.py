@@ -6,7 +6,7 @@ for a random forests model.
 INPUT FILE:
     WORKING/samples-train-validate.csv
 OUTPUT FILE:
-    WORKING/rfval-YYYYMM.pickle
+    WORKING/rfval/YYYYMM.pickle
 '''
 
 from __future__ import division
@@ -14,6 +14,7 @@ from __future__ import division
 import collections
 import cPickle as pickle
 import numpy as np
+import os
 import pandas as pd
 import pdb
 from pprint import pprint
@@ -36,9 +37,7 @@ def usage(msg=None):
     if msg is not None:
         print msg
     print 'usage  : python rfval.py YYYYMM [--test]'
-    print ' HP  {max_depth | max_features}'
     print ' YYYYMM  year + month; ex: 200402'
-    print ' INT     number of folds to use for the cross validating'
     print ' --test      : run in test mode (on a small sample of the entire data)',
     sys.exit(1)
 
@@ -71,14 +70,19 @@ def make_control(argv):
 
     out_file_name = (
         ('test-' if arg.test else '') +
-        '%s-%s.pickle' % (arg.base_name, arg.yyyymm)
+        '%s.pickle' % arg.yyyymm
     )
+
+    # assure output directory exists
+    dir_path = dir_working + arg.base_name + '/'
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
 
     return Bunch(
         arg=arg,
         debug=debug,
         path_in=dir_working + 'samples-train-validate.csv',
-        path_out=dir_working + out_file_name,
+        path_out=dir_path + out_file_name,
         random_seed=random_seed,
         test=arg.test,
     )
