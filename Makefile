@@ -63,7 +63,8 @@ MAX_FEATURES += $(WORKING)/rfbound/max_features-200811-10.pickle
 MAX_FEATURES += $(WORKING)/rfbound/max_features-200902-10.pickle
 
 RFBOUND += $(MAX_DEPTH) $(MAX_FEATURES)
-ALL += $(RFBOUND)
+# We hope to make rfbound obsolete by getting rfval to work
+#ALL += $(RFBOUND)
 
 RFVAL += $(WORKING)/rfval/200402.pickle
 RFVAL += $(WORKING)/rfval/200405.pickle
@@ -87,6 +88,11 @@ RFVAL += $(WORKING)/rfval/200808.pickle
 RFVAL += $(WORKING)/rfval/200811.pickle
 RFVAL += $(WORKING)/rfval/200902.pickle
 ALL += $(RFVAL)
+
+# use max_depth as a proxy for both max_depth and max_features
+# use 2004-02 as a proxy for all years YYYY and months MM
+CHART03 += $(WORKING)/chart-03/max_depth-2004-02.pdf
+ALL += $(CHART03)
 
 ALL += $(WORKING)/parcels-features-census_tract.csv
 ALL += $(WORKING)/parcels-features-zip5.csv
@@ -130,10 +136,14 @@ $(WORKING)/chart-02-max_features.data.pickle: chart-02.py $(MAX_FEATURES)
 	$(PYTHON) chart-02.py max_features --data
 
 # chart-03
-$(WORKING)/chart-03-data.pickle: chart-03.py $(RFVAL)
+#    max_depth is a proxy for both max_depth and max_features
+#    2004-02 is a proxy for all years YYYY and all months MM
+CHART03REDUCTION = $(WORKING)/chart-03/data.pickle
+
+$(CHART03REDUCTION): chart-03.py $(RFVAL)
 	$(PYTHON) chart-03.py --data
 
-$(WORKING)/chart-03-2004-max_depth.pdf: chart-03.py $(WORKING)/chart-03-data.pickle
+$(WORKING)/chart-03/max_depth-2004-02.pdf: chart-03.py $(CHART03REDUCTION)
 	$(PYTHON) chart-03.py 
 
 # rbbound-max_depth-*-folds-10.pickle
