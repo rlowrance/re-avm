@@ -71,7 +71,6 @@ def make_control(argv):
 
     debug = False
 
-    pdb.set_trace()
     out_file_name = (
         '%s/%s%s-%s-folds-%02d.pickle' % (
             arg.base_name,
@@ -82,7 +81,6 @@ def make_control(argv):
     )
 
     # assure the output directory exists
-    pdb.set_trace()
     dir_path = dir_working + arg.base_name
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
