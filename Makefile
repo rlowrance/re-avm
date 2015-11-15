@@ -11,60 +11,8 @@ WORKING = ../data/working
 ALL += $(WORKING)/census-features-derived.csv
 ALL += $(WORKING)/chart-01.txt
 
-CHART02 += $(WORKING)/chart-02-max_depth-2004.pdf  # representative of many 
-CHART02 += $(WORKING)/chart-02-max_features-2004.pdf  # representative of many 
-
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200902-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200811-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200808-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200805-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200802-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200711-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200708-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200705-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200702-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200611-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200608-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200605-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200602-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200611-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200608-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200605-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200602-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200511-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200508-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200505-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200502-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200411-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200408-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200405-10.pickle
-MAX_DEPTH += $(WORKING)/rfbound/max_depth-200402-10.pickle
-
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200402-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200405-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200408-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200411-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200502-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200505-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200508-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200511-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200602-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200605-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200608-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200611-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200702-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200705-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200708-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200711-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200802-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200805-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200808-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200811-10.pickle
-MAX_FEATURES += $(WORKING)/rfbound/max_features-200902-10.pickle
-
-RFBOUND += $(MAX_DEPTH) $(MAX_FEATURES)
-# We hope to make rfbound obsolete by getting rfval to work
-#ALL += $(RFBOUND)
+# CHART02 and RFBOUND are obsoleted by RFVAL
+# their rules and recipes are in rfbound.mk
 
 RFVAL += $(WORKING)/rfval/200402.pickle
 RFVAL += $(WORKING)/rfval/200405.pickle
@@ -122,19 +70,6 @@ $(WORKING)/chart-01.txt: chart-01.py $(WORKING)/chart-01.data.pickle
 $(WORKING)/chart-01.data.pickle: chart-01.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) chart-01.py --data
 
-# chart-02
-$(WORKING)/chart-02-max_depth-2004.pdf: chart-02.py $(WORKING)/chart-02-max_depth.data.pickle
-	$(PYTHON) chart-02.py max_depth
-
-$(WORKING)/chart-02-max_depth.data.pickle: chart-02.py  $(MAX_DEPTH)
-	$(PYTHON) chart-02.py max_depth --data
-
-$(WORKING)/chart-02-max_features-2004.pdf: chart-02.py $(WORKING)/chart-02-max_features.data.pickle
-	$(PYTHON) chart-02.py max_features
-
-$(WORKING)/chart-02-max_features.data.pickle: chart-02.py $(MAX_FEATURES)
-	$(PYTHON) chart-02.py max_features --data
-
 # chart-03
 #    max_depth is a proxy for both max_depth and max_features
 #    2004-02 is a proxy for all years YYYY and all months MM
@@ -145,134 +80,6 @@ $(CHART03REDUCTION): chart-03.py $(RFVAL)
 
 $(WORKING)/chart-03/max_depth-2004-02.pdf: chart-03.py $(CHART03REDUCTION)
 	$(PYTHON) chart-03.py 
-
-# rbbound-max_depth-*-folds-10.pickle
-$(WORKING)/rfbound/max_depth-200402-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200402 10
-
-$(WORKING)/rfbound/max_depth-200405-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200405  10
-
-$(WORKING)/rfbound/max_depth-200408-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200408  10
-
-$(WORKING)/rfbound/max_depth-200411-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200411  10
-
-$(WORKING)/rfbound/max_depth-200502-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200502  10
-
-$(WORKING)/rfbound/max_depth-200505-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200505  10
-
-$(WORKING)/rfbound/max_depth-200508-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200508  10
-
-$(WORKING)/rfbound/max_depth-200511-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200511  10
-
-$(WORKING)/rfbound/max_depth-200602-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200602  10
-
-$(WORKING)/rfbound/max_depth-200605-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200605  10
-
-$(WORKING)/rfbound/max_depth-200608-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200608  10
-
-$(WORKING)/rfbound/max_depth-200611-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200611  10
-
-$(WORKING)/rfbound/max_depth-200702-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200702  10
-
-$(WORKING)/rfbound/max_depth-200705-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200705  10
-
-$(WORKING)/rfbound/max_depth-200708-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200708  10
-
-$(WORKING)/rfbound/max_depth-200711-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200711  10
-
-$(WORKING)/rfbound/max_depth-200802-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200802  10
-
-$(WORKING)/rfbound/max_depth-200805-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200805  10
-
-$(WORKING)/rfbound/max_depth-200808-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200808  10
-
-$(WORKING)/rfbound/max_depth-200811-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200811  10
-
-$(WORKING)/rfbound/max_depth-200902-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_depth  200902  10
-
-# rfbound-max_features-*-10.pickle
-$(WORKING)/rfbound/max_features-200402-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200402  10
-
-$(WORKING)/rfbound/max_features-200405-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200405  10
-
-$(WORKING)/rfbound/max_features-200408-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200408  10
-
-$(WORKING)/rfbound/max_features-200411-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200411  10
-
-$(WORKING)/rfbound/max_features-200502-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200502  10
-
-$(WORKING)/rfbound/max_features-200505-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200505  10
-
-$(WORKING)/rfbound/max_features-200508-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200508  10
-
-$(WORKING)/rfbound/max_features-200511-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200511  10
-
-$(WORKING)/rfbound/max_features-200602-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200602  10
-
-$(WORKING)/rfbound/max_features-200605-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200605  10
-
-$(WORKING)/rfbound/max_features-200608-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200608  10
-
-$(WORKING)/rfbound/max_features-200611-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200611  10
-
-$(WORKING)/rfbound/max_features-200702-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200702  10
-
-$(WORKING)/rfbound/max_features-200705-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200705  10
-
-$(WORKING)/rfbound/max_features-200708-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200708  10
-
-$(WORKING)/rfbound/max_features-200711-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200711  10
-
-$(WORKING)/rfbound/max_features-200802-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200802  10
-
-$(WORKING)/rfbound/max_features-200805-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200805  10
-
-$(WORKING)/rfbound/max_features-200808-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200808  10
-
-$(WORKING)/rfbound/max_features-200811-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200811  10
-
-$(WORKING)/rfbound/max_features-200902-10.pickle: rfbound.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfbound.py max_features  200902  10
 
 # rfval
 $(WORKING)/rfval/200402.pickle: rfval.py $(WORKING)/samples-train-validate.csv
