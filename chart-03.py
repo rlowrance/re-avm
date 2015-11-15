@@ -1,13 +1,18 @@
 '''create charts showing results of rfval.py
 
+INVOCATION
+  python chart-03.py [--data] [--test]
+
 INPUT FILES
  INPUT/rfval/YYYYMM.pickle
 
 OUTPUT FILES
- WORKING/chart-03/[test-]VAR.data.pickle
+ WORKING/chart-03/[test-]data.pickle
  WORKING/chart-03/[test-]VAR-YYYY[-MM].pdf
 where
- VAR in {max_depth | max_features}
+ VAR  in {max_depth | max_features}
+ YYYY in {2004 | 2005 | 2006 | 2007 | 2008 | 2009}
+ MM   in {02 | 05 | 08 | 11}
 '''
 
 from __future__ import division
@@ -37,9 +42,6 @@ def usage(msg=None):
     print __doc__
     if msg is not None:
         print msg
-    print 'usage  : python chart-03.py [--data] [--test]'
-    print ' --data: produce reduction of the input file, not the actual charts'
-    print ' --test: run in test mode'
     sys.exit(1)
 
 
@@ -64,7 +66,7 @@ def make_control(argv):
 
     debug = False
 
-    reduced_file_name = ('test-' if arg.test else '') + arg.base_name + '.data.pickle'
+    reduced_file_name = ('test-' if arg.test else '') + 'data.pickle'
 
     # assure output directory exists
     dir_path = dir_working + arg.base_name + '/'
@@ -76,7 +78,7 @@ def make_control(argv):
         debug=debug,
         path_in_ege=dir_working + 'rfval/*.pickle',
         path_reduction=dir_path + reduced_file_name,
-        path_chart_base=dir_path + arg.base_name,
+        path_chart_base=dir_path,
         random_seed=random_seed,
         test=arg.test,
     )
@@ -110,6 +112,8 @@ def make_chart(df, hp, control, ege_control):
             else:
                 assert hp == 'max_features'
                 x_values = (1, 'sqrt', 'log2', 0.1, 0.3, 'auto')
+                if len(x_values) != len(subset):
+                    pdb.set_trace()
                 assert len(x_values) == len(subset)
                 x = np.empty(len(x_values), dtype=object)
                 y = np.empty(len(x_values), dtype=float)
@@ -169,17 +173,14 @@ def make_chart(df, hp, control, ege_control):
 
         plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
         out_suffix = '-%02d' % months if len(months) == 1 else ''
-        plt.savefig(control.path_chart_base + '-' + hp + '-' + str(year) + out_suffix + '.pdf')
+        plt.savefig(control.path_chart_base + hp + '-' + str(year) + out_suffix + '.pdf')
         plt.close()
 
     for year in (2004, 2005, 2006, 2007, 2008, 2009):
         months = (2,) if year == 2009 else (2, 5, 8, 11)
         for month in months:
             make_figure(year, (month,))
-            break
-        break
         make_figure(year, months)
-        pdb.set_trace()
         if control.test:
             break
 
