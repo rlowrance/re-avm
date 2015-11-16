@@ -66,7 +66,7 @@ class AVM(sklearn.base.BaseEstimator):
                 print 'fit elastic net: %s~%s alpha: %f l1_ratio: %f' % (
                     self.units_X, self.units_y, self.alpha, self.l1_ratio)
 
-            assert self.l1_ratio > 0.01, self.l1_ratio  # otherwise, not reliable
+            assert self.alpha > 0.0, self.l1_ratio  # otherwise, not reliable
             self.model = sklearn.linear_model.ElasticNet(
                 alpha=self.alpha,
                 l1_ratio=self.l1_ratio,
@@ -109,6 +109,9 @@ class AVM(sklearn.base.BaseEstimator):
             last_kept_yyyymm -= 1
         mask_kept = df_period[layout_transactions.yyyymm].isin(kept_yyyymm)
         df_kept = df_period[mask_kept]
+        if self.verbose > 0:
+            print 'AVM.fit %s %s %s' % (
+                self.model_name, self.forecast_time_period, str(df_kept.shape))
         X_train, y_train = self.extract_and_transform(df_kept)
         return {
             'ElasticNet': fit_elastic_net,
