@@ -125,10 +125,6 @@ def make_chart(df, hp, control, ege_control):
                     row = subset2.iloc[0]
                     x[ii] = row['max_features']
                     y[ii] = row[loss_metric]
-            print hp, test_period, n_months_back, n_estimators
-            print x
-            print y
-            print
             plt.plot(y / 1000.0,
                      label=('n_estimators: %d' % n_estimators),
                      linestyle=[':', '-.', '--', '-'][i % 4],
