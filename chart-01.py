@@ -1,18 +1,24 @@
 '''create charts showing median and mean prices each month
 
+INVOCATION
+  python chart-01.py [--data] [--test]
+
 INPUT FILES
  INPUT/samples-train-validate.csv
 
 OUTPUT FILES
- WORKING/chart-01.data.pickle
- WORKING/chart-01.txt
+ WORKING/chart-01/data.pickle
+ WORKING/chart-01/txt
+ WORKING/chart-01/pdf
 '''
 
 from __future__ import division
 
 import collections
 import cPickle as pickle
+import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import pdb
 from pprint import pprint
@@ -30,11 +36,9 @@ cc = columns_contain
 
 
 def usage(msg=None):
+    print __doc__
     if msg is not None:
         print msg
-    print 'usage  : python chart-01.py [--data] [--test]'
-    print ' --data: produce reduction of the input file, not the actual charts'
-    print ' --test: run in test mode'
     sys.exit(1)
 
 
@@ -47,7 +51,7 @@ def make_control(argv):
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
-        base_name=argv[0].split('.')[0],
+        base_name='chart-01',
         data=pcl.has_arg('--data'),
         test=pcl.has_arg('--test'),
     )
@@ -59,22 +63,62 @@ def make_control(argv):
 
     debug = False
 
-    out_file_name_base = ('testing-' if arg.test else '') + arg.base_name
+    reduced_file_name = ('test-' if arg.test else '') + 'data.pickle'
+
+    # assure output directory exists
+    dir_path = dir_working + arg.base_name + '/'
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
 
     return Bunch(
         arg=arg,
         debug=debug,
-        fraction_test=0.2,
-        max_sale_price=85e6,  # according to Wall Street Journal
         path_in_samples=dir_working + 'samples-train-validate.csv',
-        path_out_txt=dir_working + out_file_name_base + '.txt',
-        path_data=dir_working + out_file_name_base + '.data.pickle',
+        path_out_pdf=dir_path + 'median-price.pdf',
+        path_out_txt=dir_path + 'median-price.txt',
+        path_reduction=dir_path + reduced_file_name,
         random_seed=random_seed,
         test=arg.test,
     )
 
 
 DataKey = collections.namedtuple('DataKey', 'year month')
+
+
+def make_chart_pdf(data, control):
+    counts, means, medians, prices = data
+    years = (2003, 2004, 2005, 2006, 2007, 2008, 2009)
+    months = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+    months_2009 = (1, 2, 3)
+    year_month = ['%s-%02d' % (year, month)
+                  for year in years
+                  for month in (months_2009 if year == 2009 else months)
+                  ]
+    x = range(len(year_month))
+    y = []
+    for year in years:
+        for month in (months_2009 if year == 2009 else months):
+            key = DataKey(year=year, month=month)
+            y.append(medians[key])
+    pdb.set_trace()
+    plt.plot(x, y)
+    x_ticks = [year_month[i] if i % 12 == 0 else ' '
+               for i in xrange(len(year_month))
+               ]
+    plt.xticks(range(len(year_month)),
+               x_ticks,
+               # pad=8,
+               size='xx-small',
+               rotation=-30,
+               # rotation='vertical',
+               )
+    plt.yticks(size='xx-small')
+    plt.xlabel('year-month')
+    plt.ylabel('median price ($)')
+    plt.ylim([0, 700000])
+    plt.savefig(control.path_out_pdf)
+
+    plt.close()
 
 
 def make_chart_txt(data, control):
@@ -96,7 +140,7 @@ def make_chart_txt(data, control):
                 medians[key],
                 counts[key],
             ))
-    return r
+    r.write(control.path_out_txt)
 
 
 def make_data(control):
@@ -127,14 +171,13 @@ def main(argv):
 
     if control.arg.data:
         data = make_data(control)
-        with open(control.path_data, 'wb') as f:
+        with open(control.path_reduction, 'wb') as f:
             pickle.dump((data, control), f)
     else:
-        with open(control.path_data, 'rb') as f:
-            data, control = pickle.load(f)
-
-    r = make_chart_txt(data, control)
-    r.write(control.path_out_txt)
+        with open(control.path_reduction, 'rb') as f:
+            data, reduction_control = pickle.load(f)
+        make_chart_txt(data, control)
+        make_chart_pdf(data, control)
 
     print control
     if control.test:
