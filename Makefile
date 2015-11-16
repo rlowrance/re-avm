@@ -9,10 +9,32 @@ PYTHON = ~/anaconda/bin/python
 WORKING = ../data/working
 
 ALL += $(WORKING)/census-features-derived.csv
-ALL += $(WORKING)/chart-01.txt
 
 # CHART02 and RFBOUND are obsoleted by RFVAL
 # their rules and recipes are in rfbound.mk
+
+LINVAL += $(WORKING)/linval/200402.pickle
+LINVAL += $(WORKING)/linval/200405.pickle
+LINVAL += $(WORKING)/linval/200408.pickle
+LINVAL += $(WORKING)/linval/200411.pickle
+LINVAL += $(WORKING)/linval/200502.pickle
+LINVAL += $(WORKING)/linval/200505.pickle
+LINVAL += $(WORKING)/linval/200508.pickle
+LINVAL += $(WORKING)/linval/200511.pickle
+LINVAL += $(WORKING)/linval/200602.pickle
+LINVAL += $(WORKING)/linval/200605.pickle
+LINVAL += $(WORKING)/linval/200608.pickle
+LINVAL += $(WORKING)/linval/200611.pickle
+LINVAL += $(WORKING)/linval/200702.pickle
+LINVAL += $(WORKING)/linval/200705.pickle
+LINVAL += $(WORKING)/linval/200708.pickle
+LINVAL += $(WORKING)/linval/200711.pickle
+LINVAL += $(WORKING)/linval/200802.pickle
+LINVAL += $(WORKING)/linval/200805.pickle
+LINVAL += $(WORKING)/linval/200808.pickle
+LINVAL += $(WORKING)/linval/200811.pickle
+LINVAL += $(WORKING)/linval/200902.pickle
+ALL += $(LINVAL)
 
 RFVAL += $(WORKING)/rfval/200402.pickle
 RFVAL += $(WORKING)/rfval/200405.pickle
@@ -37,6 +59,7 @@ RFVAL += $(WORKING)/rfval/200811.pickle
 RFVAL += $(WORKING)/rfval/200902.pickle
 ALL += $(RFVAL)
 
+ALL += $(WORKING)/chart-01/median-price.pdf
 # use max_depth as a proxy for both max_depth and max_features
 # use 2004-02 as a proxy for all years YYYY and months MM
 CHART03 += $(WORKING)/chart-03/max_depth-2004-02.pdf
@@ -64,10 +87,10 @@ $(WORKING)/census-features-derived.csv: census-features.py layout_census.py
 	$(PYTHON) census-features.py
 
 # chart-01
-$(WORKING)/chart-01.txt: chart-01.py $(WORKING)/chart-01.data.pickle
+$(WORKING)/chart-01/median-price.pdf: chart-01.py $(WORKING)/chart-01/data.pickle
 	$(PYTHON) chart-01.py
 	
-$(WORKING)/chart-01.data.pickle: chart-01.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/chart-01/data.pickle: chart-01.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) chart-01.py --data
 
 # chart-03
@@ -80,6 +103,70 @@ $(CHART03REDUCTION): chart-03.py $(RFVAL)
 
 $(WORKING)/chart-03/max_depth-2004-02.pdf: chart-03.py $(CHART03REDUCTION)
 	$(PYTHON) chart-03.py 
+
+# linval
+$(WORKING)/linval/200402.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200402
+
+$(WORKING)/linval/200405.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200405
+
+$(WORKING)/linval/200408.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200408
+
+$(WORKING)/linval/200411.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200411
+
+$(WORKING)/linval/200502.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200502
+
+$(WORKING)/linval/200505.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200505
+
+$(WORKING)/linval/200508.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200508
+
+$(WORKING)/linval/200511.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200511
+
+$(WORKING)/linval/200602.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200602
+
+$(WORKING)/linval/200605.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200605
+
+$(WORKING)/linval/200608.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200608
+
+$(WORKING)/linval/200611.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200611
+
+$(WORKING)/linval/200702.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200702
+
+$(WORKING)/linval/200705.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200705
+
+$(WORKING)/linval/200708.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200708
+
+$(WORKING)/linval/200711.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200711
+
+$(WORKING)/linval/200802.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200802
+
+$(WORKING)/linval/200805.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200805
+
+$(WORKING)/linval/200808.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200808
+
+$(WORKING)/linval/200811.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200811
+
+$(WORKING)/linval/200902.pickle: linval.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) linval.py 200902
 
 # rfval
 $(WORKING)/rfval/200402.pickle: rfval.py $(WORKING)/samples-train-validate.csv
