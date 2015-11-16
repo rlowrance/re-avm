@@ -100,7 +100,6 @@ def make_chart_pdf(data, control):
         for month in (months_2009 if year == 2009 else months):
             key = DataKey(year=year, month=month)
             y.append(medians[key])
-    pdb.set_trace()
     plt.plot(x, y)
     x_ticks = [year_month[i] if i % 12 == 0 else ' '
                for i in xrange(len(year_month))
