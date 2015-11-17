@@ -84,63 +84,51 @@ def make_control(argv):
     )
 
 
-def make_chart(df, hp, control, ege_control):
+def make_charts(df, control, ege_control):
     'write one txt file for each n_months_back'
     def make_subplot(test_period, n_months_back, loss_metric):
         'mutate the default axes'
-        for i, n_estimators in enumerate(sorted(set(df.n_estimators))):
-            mask = (
-                (df.test_period == test_period) &
-                (df.n_months_back == n_months_back) &
-                (df.n_estimators == n_estimators) &
-                (~df.max_depth.isnull() if hp == 'max_depth' else ~df.max_features.isnull())
-            )
-            subset = df.loc[mask]
-            if hp == 'max_depth':
-                x_values = sorted(set(subset.max_depth))
-                assert len(x_values) == len(subset)
-                x = np.empty(len(x_values), dtype=int)
-                y = np.empty(len(x_values), dtype=float)
-                for ii, max_depth_value in enumerate(x_values):
-                    # select one row
-                    mask2 = subset.max_depth == max_depth_value
-                    subset2 = subset.loc[mask2]
-                    assert len(subset2) == 1
-                    row = subset2.iloc[0]
-                    x[ii] = row['max_depth']
-                    y[ii] = row[loss_metric]
-            else:
-                assert hp == 'max_features'
-                x_values = (1, 'sqrt', 'log2', 0.1, 0.3, 'auto')
-                if len(x_values) != len(subset):
-                    pdb.set_trace()
-                assert len(x_values) == len(subset)
-                x = np.empty(len(x_values), dtype=object)
-                y = np.empty(len(x_values), dtype=float)
-                for ii, max_features_value in enumerate(x_values):
-                    # select one row
-                    mask2 = subset.max_features == max_features_value
-                    subset2 = subset.loc[mask2]
-                    assert len(subset2) == 1
-                    row = subset2.iloc[0]
-                    x[ii] = row['max_features']
-                    y[ii] = row[loss_metric]
-            plt.plot(y / 1000.0,
-                     label=('n_estimators: %d' % n_estimators),
-                     linestyle=[':', '-.', '--', '-'][i % 4],
-                     color='bgrcmykw'[i % 8],
-                     )
-            plt.xticks(range(len(y)), x, size='xx-small', rotation='vertical')
-            plt.yticks(size='xx-small')
-            plt.title('yr-mo %s-%s bk %d' % (test_period[:4], test_period[4:], n_months_back),
-                      loc='left',
-                      fontdict={'fontsize': 'xx-small', 'style': 'italic'},
-                      )
-        return
+        alphas = sorted(set(df.alpha))
+        l1_ratios = sorted(set(df.l1_ratio))
+        n_ticks = len(alphas) * len(l1_ratios)
+        line_index = -1
+        for units_X in ('natural', 'log'):
+            for units_y in ('natural', 'log'):
+                line_index += 1
+                x_label = []
+                y = np.empty((n_ticks,), dtype=float)
+                tick_index = -1
+                for alpha in alphas:
+                    for l1_ratio in l1_ratios:
+                        tick_index += 1
+                        mask = (
+                            (df.test_period == test_period) &
+                            (df.n_months_back == n_months_back) &
+                            (df.units_X == units_X) &
+                            (df.units_y == units_y) &
+                            (df.alpha == alpha) &
+                            (df.l1_ratio == l1_ratio)
+                        )
+                        subset = df.loc[mask]
+                        assert len(subset) == 1, subset
+                        row = dict(subset.iloc[0])
+                        y[tick_index] = row[loss_metric]
+                        x_label.append('%3.1f-%4.2f' % (row['alpha'], row['l1_ratio']))
+                plt.plot(y / 1000.0,
+                         label='%3s-%3s' % (units_X, units_y),
+                         linestyle=[':', '-.', '--', '-'][line_index % 4],
+                         color='bgrcmykw'[line_index % 8],
+                         )
+                plt.xticks(range(len(y)), x_label, size='xx-small', rotation='vertical')
+                plt.yticks(size='xx-small')
+        plt.title('yr-mo %s-%s bk %d' % (test_period[:4], test_period[4:], n_months_back),
+                  loc='left',
+                  fontdict={'fontsize': 'xx-small', 'style': 'italic'},
+                  )
 
     def make_figure(year, months):
 
-        print 'make_figure', hp, year, months
+        print 'make_figure', year, months
         test_periods_typical = [str(year * 100 + month)
                                 for month in months
                                 ]
@@ -162,14 +150,14 @@ def make_chart(df, hp, control, ege_control):
                 if test_period_index == last_test_period_index:
                     # annotate the bottom row only
                     if n_months_back_index == 0:
-                        plt.xlabel(hp)
+                        plt.xlabel('alpha-l1_ratio')
                         plt.ylabel('%s x $1000' % loss_metric)
                     if n_months_back_index == last_n_months_back_index:
                         plt.legend(loc='best', fontsize=5)
 
         plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
         out_suffix = '-%02d' % months if len(months) == 1 else ''
-        plt.savefig(control.path_chart_base + hp + '-' + str(year) + out_suffix + '.pdf')
+        plt.savefig(control.path_chart_base + str(year) + out_suffix + '.pdf')
         plt.close()
 
     for year in (2004, 2005, 2006, 2007, 2008, 2009):
@@ -226,8 +214,7 @@ def main(argv):
     else:
         with open(control.path_reduction, 'rb') as f:
             df, ege_control, data_control = pickle.load(f)
-        make_chart(df, 'max_depth', control, ege_control)
-        make_chart(df, 'max_features', control, ege_control)
+        make_charts(df, control, ege_control)
 
     print control
     if control.test:
