@@ -229,7 +229,7 @@ def make_charts(df, control, ege_control):
                 if alpha_index == len(alphas) - 1:
                     # annotate the bottom row only
                     if n_months_back_index == 0:
-                        plt.xlabel('alpha-l1_ratio')
+                        plt.xlabel('l1_ratio')
                         plt.ylabel('%s x $1000' % loss_metric)
                     if n_months_back_index == len(n_months_backs) - 1:
                         plt.legend(loc='best', fontsize=5)
@@ -243,11 +243,7 @@ def make_charts(df, control, ege_control):
         months = (2,) if year == 2009 else (2, 5, 8, 11)
         for month in months:
             make_figure(year, month)
-            break
-        return  # just do months
-        make_figure(year, months)
-        if control.test:
-            break
+    return
 
 
 def make_data(control):
