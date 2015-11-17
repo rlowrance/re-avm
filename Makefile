@@ -104,6 +104,15 @@ $(CHART03REDUCTION): chart-03.py $(RFVAL)
 $(WORKING)/chart-03/max_depth-2004-02.pdf: chart-03.py $(CHART03REDUCTION)
 	$(PYTHON) chart-03.py 
 
+# chart-04
+CHART04REDUCTION = $(WORKING)/chart-04/data.pickle
+
+$(CHART04REDUCTION): chart-04.py $(LINVAL)
+	$(PYTHON) chart-04.py --data
+
+$(WORKING)/chart-04/2004-02.py: chart-03.py $(CHART04REDUCTION)
+	$(PYTHON) chart-04.py 
+
 # linval
 $(WORKING)/linval/200402.pickle: linval.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200402
