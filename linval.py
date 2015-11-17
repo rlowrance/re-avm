@@ -4,7 +4,7 @@ Determine accuracy on validation set YYYYMM of various hyperparameter setting
 for elastic net.
 
 INVOCATION
-  python val.py YYYYMM [-test]
+  python linval.py YYYYMM [-test]
 
 INPUT FILE:
   WORKING/samples-train-validate.csv
