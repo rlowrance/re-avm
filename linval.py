@@ -104,7 +104,7 @@ def do_linval(control, samples):
     n_months_back_seq = (1, 2, 3, 4, 5, 6)
     # for ElasticNet
     # TODO: decide what to do about alphe == 0
-    alpha_seq = (0.1, 0.3, 1.0, 3.0)  # multiplies the penalty term
+    alpha_seq = (0.01, 0.03, 0.1, 0.3, 1.0)  # multiplies the penalty term
     l1_ratio_seq = (0.0, 0.25, 0.50, 0.75, 1.0)  # 0 ==> L2 penalty, 1 ==> L1 penalty
     units_X_seq = ('natural', 'log')
     units_y_seq = ('natural', 'log')
