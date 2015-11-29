@@ -59,7 +59,8 @@ class Features(object):
 
     def extract_and_transform_X_y(self,
                                   df, features_transforms, target_feature_name,
-                                  units_X, units_y):
+                                  units_X, units_y,
+                                  transform_y):
         'return X and y'
         def transform_series(value, how_to_transform=None):
             if how_to_transform is None:
@@ -90,7 +91,9 @@ class Features(object):
         y = np.empty(len(df),
                      dtype='float64',
                      )
-        y = transform_column(target_feature_name, 'log', units_y)
+        y = (transform_column(target_feature_name, 'log', units_y)
+             if transform_y
+             else None)
 
         return X_transposed.T, y
 
