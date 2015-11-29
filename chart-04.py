@@ -193,6 +193,17 @@ def make_charts(df, control, ege_control):
                         (df.alpha == alpha) &
                         (df.l1_ratio == l1_ratio)
                     )
+                    if sum(mask) != 1:
+                        # something is wrong
+                        print 'mask', sum(mask)
+                        print 'test_period', sum(df.test_period == test_period)
+                        print 'n_months_back', sum(df.n_months_back == n_months_back)
+                        print 'units_X', sum(df.units_X == units_X)
+                        print 'units_y', sum(df.units_y == units_y)
+                        print 'alpha', sum(df.alpha == alpha)
+                        print 'l1_ratio', sum(df.l1_ratio == l1_ratio)
+                        print test_period, n_months_back, units_X, units_y, alpha, l1_ratio
+                        pdb.set_trace()
                     subset = df.loc[mask]
                     assert len(subset) == 1, subset.shape
                     row = dict(subset.iloc[0])
@@ -243,6 +254,10 @@ def make_charts(df, control, ege_control):
         months = (2,) if year == 2009 else (2, 5, 8, 11)
         for month in months:
             make_figure(year, month)
+            if control.test:
+                break
+        if control.test:
+            break
     return
 
 
@@ -275,6 +290,8 @@ def make_data(control):
     rows_list = []
     for file in glob.glob(control.path_in_ege):
         ege_control = process_file(file, rows_list)
+        if control.test:
+            break
     df = pd.DataFrame(rows_list)
     return df, ege_control  # return last ege_control, not all
 
