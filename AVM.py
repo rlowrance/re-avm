@@ -7,6 +7,7 @@ from pprint import pprint
 import sklearn
 import sklearn.ensemble
 import sklearn.linear_model
+import sklearn.preprocessing
 
 
 from columns_contain import columns_contain
@@ -66,16 +67,19 @@ class AVM(sklearn.base.BaseEstimator):
                 print 'fit elastic net: %s~%s alpha: %f l1_ratio: %f' % (
                     self.units_X, self.units_y, self.alpha, self.l1_ratio)
 
-            assert self.alpha > 0.0, self.l1_ratio  # otherwise, not reliable
+            assert self.alpha > 0.0, self.alpha  # otherwise, not reliable
             self.model = sklearn.linear_model.ElasticNet(
                 alpha=self.alpha,
                 l1_ratio=self.l1_ratio,
                 fit_intercept=True,
                 normalize=True,
-                selection='random',
+                selection='random',   # select random coefficient to update at each iteration
                 random_state=self.random_state,
             )
-            self.model.fit(X_train, y_train)
+            self.scaler = sklearn.preprocessing.MinMaxScaler()
+            self.scaler.fit(X_train)
+            X_scaled = self.scaler.transform(X_train)
+            self.model.fit(X_scaled, y_train)
             return self
 
         def fit_random_forest_regressor(X_train, y_train):
@@ -113,6 +117,10 @@ class AVM(sklearn.base.BaseEstimator):
             print 'AVM.fit %s %s %s' % (
                 self.model_name, self.forecast_time_period, str(df_kept.shape))
         X_train, y_train = self.extract_and_transform(df_kept)
+        if False and ((self.units_X == 'log') or (self.units_y == 'log')):
+            print self.units_X, self.units_y
+            print 'check transformation to log'
+            pdb.set_trace()
         return {
             'ElasticNet': fit_elastic_net,
             'RandomForestRegressor': fit_random_forest_regressor,
@@ -127,10 +135,7 @@ class AVM(sklearn.base.BaseEstimator):
         )
         return {name: getattr(self.model, name, None) for name in attribute_names}
 
-    # Rely on the parent class to implement get_params and set_params
-    # However, we may need a get_params method to support cloning; TODO: ask AM
-
-    def extract_and_transform(self, df):
+    def extract_and_transform(self, df, transform_y=True):
         'return X and y'
         def extract_and_transform_elastic_net(df):
             f = Features()
@@ -140,6 +145,7 @@ class AVM(sklearn.base.BaseEstimator):
                 layout_transactions.price,
                 self.units_X,
                 self.units_y,
+                transform_y,
             )
 
         def extract_and_transform_random_forest_regressor(df):
@@ -150,6 +156,7 @@ class AVM(sklearn.base.BaseEstimator):
                 layout_transactions.price,
                 'natural',
                 'natural',
+                transform_y,
             )
 
         return {
@@ -158,22 +165,29 @@ class AVM(sklearn.base.BaseEstimator):
         }[self.model_name](df)
 
     def predict(self, df):
-        def predict_elastic_net(df):
+        def predict_elastic_net(X_test):
             if self.verbose > 0:
                 print 'predict_elastic_net'
-            X_test, y_test = self.extract_and_transform(df)
-            return self.model.predict(X_test)
+            X_scaled = self.scaler.transform(X_test)
+            answer_raw = self.model.predict(X_scaled)
+            answer = answer_raw if self.units_y == 'natural' else np.exp(answer_raw)
+            if False:
+                pdb.set_trace()
+                print 'elastic net', self.units_X, self.units_y
+                print answer[:10]
+            return answer
 
-        def predict_random_forest_regressor(df):
+        def predict_random_forest_regressor(X_test):
             if self.verbose > 0:
                 print 'predict_random_forest_regressor'
-            X_test, y_test = self.extract_and_transform(df)
             return self.model.predict(X_test)
 
+        X_test, y_test = self.extract_and_transform(df, transform_y=False)
+        assert y_test is None
         return {
             'ElasticNet': predict_elastic_net,
             'RandomForestRegressor': predict_random_forest_regressor,
-        }[self.model_name](df)
+        }[self.model_name](X_test)
 
     def setattr(self, parameter, value):
         setattr(self, parameter, value)
