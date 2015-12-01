@@ -1,14 +1,14 @@
 '''Determine accuracy on validation set YYYYMM of various hyperparameter setting
-for elastic net.
+for gradient boosted regression trees
 
 INVOCATION
-  python linval.py YYYYMM [-test]
+  python gbrtval.py YYYYMM [-test]
 
 INPUT FILE:
   WORKING/samples-train-validate.csv
 
 OUTPUT FILE:
-  WORKING/linval/YYYYMM.pickle
+  WORKING/gbrtval/YYYYMM.pickle
 '''
 
 from __future__ import division
@@ -50,7 +50,7 @@ def make_control(argv):
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
-        base_name='linval',
+        base_name='gbrtval',
         yyyymm=argv[1],
         test=pcl.has_arg('--test'),
     )
@@ -87,38 +87,42 @@ def make_control(argv):
     )
 
 ResultKey = collections.namedtuple('ResultKey',
-                                   'n_months_back alpha l1_ratio units_X units_y yyyymm',
+                                   'n_months_back loss alpha max_depth max_features yyyymm',
                                    )
 ResultValue = collections.namedtuple('ResultValue',
                                      'actuals predictions',
                                      )
 
 
-def do_linval(control, samples):
+def do_gbrtval(control, samples):
     'run grid search on elastic net and random forest models'
 
     # HP settings to test
     # common across models
     n_months_back_seq = (1, 2, 3, 4, 5, 6)
-    # for ElasticNet
-    # TODO: decide what to do about alphe == 0
-    alpha_seq = (0.01, 0.03, 0.1, 0.3, 1.0)  # multiplies the penalty term
-    l1_ratio_seq = (0.0, 0.25, 0.50, 0.75, 1.0)  # 0 ==> L2 penalty, 1 ==> L1 penalty
-    units_X_seq = ('natural', 'log')
-    units_y_seq = ('natural', 'log')
+    # for GBRT
+    loss_alphas = (('ls', None),        # loss function and corresponding alpha value
+                   ('lad', None),
+                   ('huber', 0.5),
+                   ('quantile', 0.9),
+                   ('quantile', 0.5),
+                   ('quantile', 0.9),
+                   )
+    max_depths = (1, 2, 3)
+    max_featuress = ('auto', 'sqrt', 'log2', None)
 
     result = {}
 
-    def run(n_months_back, alpha, l1_ratio, units_X, units_y):
+    def run(n_months_back, loss, alpha, max_depth, max_features):
         avm = AVM.AVM(
-            model_name='ElasticNet',
+            model_name='GradientBoostingRegressor',
             forecast_time_period=control.arg.yyyymm,
             n_months_back=n_months_back,
             random_state=control.random_seed,
+            loss=loss,
             alpha=alpha,
-            l1_ratio=l1_ratio,
-            units_X=units_X,
-            units_y=units_y,
+            max_depth=max_depth,
+            max_features=max_features,
             verbose=0,
         )
         avm.fit(samples)
@@ -126,17 +130,19 @@ def do_linval(control, samples):
         samples_yyyymm = samples[mask]
         predictions = avm.predict(samples_yyyymm)
         actuals = samples_yyyymm[layout_transactions.price]
-        result_key = ResultKey(n_months_back, alpha, l1_ratio, units_X, units_y, control.arg.yyyymm)
+        result_key = ResultKey(n_months_back, loss, alpha, max_depth, max_features, control.arg.yyyymm)
         result[result_key] = ResultValue(actuals, predictions)
 
+    pdb.set_trace()
     for n_months_back in n_months_back_seq:
-        for alpha in alpha_seq:
-            for l1_ratio in l1_ratio_seq:
-                for units_X in units_X_seq:
-                    for units_y in units_y_seq:
-                        print '%d %02d %4.2f %4.2f %7s %7s' % (
-                            control.arg.yyyymm, n_months_back, alpha, l1_ratio, units_X, units_y)
-                        run(n_months_back, alpha, l1_ratio, units_X, units_y)
+        for loss_alpha in loss_alphas:
+            loss, alpha = loss_alpha
+            for max_depth in max_depths:
+                for max_features in max_featuress:
+                    print '%d %02d %8s %4s %d %4s' % (
+                        control.arg.yyyymm, n_months_back, loss, alpha, max_depth, max_features)
+                    run(n_months_back, loss, alpha, max_depth, max_features)
+
     return result
 
 
@@ -153,7 +159,7 @@ def main(argv):
     )
     print 'samples.shape', samples.shape
 
-    result = do_linval(control, samples)
+    result = do_gbrtval(control, samples)
 
     with open(control.path_out, 'wb') as f:
         pickle.dump((result, control), f)

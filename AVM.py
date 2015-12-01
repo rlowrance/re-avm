@@ -43,6 +43,7 @@ class AVM(sklearn.base.BaseEstimator):
                  n_estimators=None,        # for RandomForestRegressor
                  max_depth=None,
                  max_features=None,
+                 loss=None,                # for GradientBoostingRegressor
                  ):
         # NOTE: just capture the parameters (to conform to the sklearn protocol)
         self.model_name = model_name
