@@ -11,6 +11,8 @@ import sklearn.preprocessing
 
 
 from columns_contain import columns_contain
+import AVM_elastic_net as elastic_net
+import AVM_random_forest_regressor as random_forest_regressor
 from Features import Features
 import layout_transactions
 cc = columns_contain
@@ -123,6 +125,10 @@ class AVM(sklearn.base.BaseEstimator):
             print 'check transformation to log'
             pdb.set_trace()
         return {
+            'ElasticNet': elastic_net,
+            'RandomForestRegressor': random_forest_regressor,
+        }[self.model_name].fit(self, X_train, y_train)
+        return {
             'ElasticNet': fit_elastic_net,
             'RandomForestRegressor': fit_random_forest_regressor,
         }[self.model_name](X_train, y_train)
@@ -161,9 +167,9 @@ class AVM(sklearn.base.BaseEstimator):
             )
 
         return {
-            'ElasticNet': extract_and_transform_elastic_net,
-            'RandomForestRegressor': extract_and_transform_random_forest_regressor,
-        }[self.model_name](df)
+            'ElasticNet': elastic_net,
+            'RandomForestRegressor': random_forest_regressor,
+        }[self.model_name].extract_and_transform(self, df, transform_y)
 
     def predict(self, df):
         def predict_elastic_net(X_test):
@@ -186,9 +192,9 @@ class AVM(sklearn.base.BaseEstimator):
         X_test, y_test = self.extract_and_transform(df, transform_y=False)
         assert y_test is None
         return {
-            'ElasticNet': predict_elastic_net,
-            'RandomForestRegressor': predict_random_forest_regressor,
-        }[self.model_name](X_test)
+            'ElasticNet': elastic_net,
+            'RandomForestRegressor': random_forest_regressor,
+        }[self.model_name].predict(self, X_test)
 
     def setattr(self, parameter, value):
         setattr(self, parameter, value)
