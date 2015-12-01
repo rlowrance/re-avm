@@ -1,6 +1,4 @@
-'''program to estimate the generalization error from a variety of AVMs
-
-Determine accuracy on validation set YYYYMM of various hyperparameter setting
+'''Determine accuracy on validation set YYYYMM of various hyperparameter setting
 for elastic net.
 
 INVOCATION
