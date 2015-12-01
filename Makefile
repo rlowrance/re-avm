@@ -116,131 +116,131 @@ $(WORKING)/chart-04/2004-02.pdf: chart-03.py $(CHART04REDUCTION)
 	$(PYTHON) chart-04.py 
 
 # linval
-$(WORKING)/linval/200402.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200402.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200402
 
-$(WORKING)/linval/200405.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200405.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200405
 
-$(WORKING)/linval/200408.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200408.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200408
 
-$(WORKING)/linval/200411.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200411.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200411
 
-$(WORKING)/linval/200502.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200502.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200502
 
-$(WORKING)/linval/200505.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200505.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200505
 
-$(WORKING)/linval/200508.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200508.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200508
 
-$(WORKING)/linval/200511.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200511.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200511
 
-$(WORKING)/linval/200602.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200602.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200602
 
-$(WORKING)/linval/200605.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200605.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200605
 
-$(WORKING)/linval/200608.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200608.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200608
 
-$(WORKING)/linval/200611.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200611.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200611
 
-$(WORKING)/linval/200702.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200702.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200702
 
-$(WORKING)/linval/200705.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200705.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200705
 
-$(WORKING)/linval/200708.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200708.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200708
 
-$(WORKING)/linval/200711.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200711.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200711
 
-$(WORKING)/linval/200802.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200802.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200802
 
-$(WORKING)/linval/200805.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200805.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200805
 
-$(WORKING)/linval/200808.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200808.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200808
 
-$(WORKING)/linval/200811.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200811.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200811
 
-$(WORKING)/linval/200902.pickle: linval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/linval/200902.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) linval.py 200902
 
 # rfval
-$(WORKING)/rfval/200402.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200402.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200402
 
-$(WORKING)/rfval/200405.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200405.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200405
 
-$(WORKING)/rfval/200408.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200408.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200408
 
-$(WORKING)/rfval/200411.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200411.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200411
 
-$(WORKING)/rfval/200502.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200502.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200502
 
-$(WORKING)/rfval/200505.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200505.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200505
 
-$(WORKING)/rfval/200508.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200508.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200508
 
-$(WORKING)/rfval/200511.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200511.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200511
 
-$(WORKING)/rfval/200602.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200602.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200602
 
-$(WORKING)/rfval/200605.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200605.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200605
 
-$(WORKING)/rfval/200608.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200608.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200608
 
-$(WORKING)/rfval/200611.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200611.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200611
 
-$(WORKING)/rfval/200702.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200702.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200702
 
-$(WORKING)/rfval/200705.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200705.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200705
 
-$(WORKING)/rfval/200708.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200708.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200708
 
-$(WORKING)/rfval/200711.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200711.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200711
 
-$(WORKING)/rfval/200802.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200802.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200802
 
-$(WORKING)/rfval/200805.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200805.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200805
 
-$(WORKING)/rfval/200808.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200808.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200808
 
-$(WORKING)/rfval/200811.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200811.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200811
 
-$(WORKING)/rfval/200902.pickle: rfval.py AVM.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/rfval/200902.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
 	$(PYTHON) rfval.py 200902
 
 # parcels-*
