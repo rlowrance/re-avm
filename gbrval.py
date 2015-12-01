@@ -1,8 +1,8 @@
 '''Determine accuracy on validation set YYYYMM of various hyperparameter setting
-for gradient boosted regression
+for gradient boosted regression trees
 
 INVOCATION
-  python gbrval.py YYYYMM [-test]
+  python gbrtval.py YYYYMM [-test]
 
 INPUT FILE:
   WORKING/samples-train-validate.csv
@@ -50,7 +50,7 @@ def make_control(argv):
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
-        base_name='gbrval',
+        base_name='gbrtval',
         yyyymm=argv[1],
         test=pcl.has_arg('--test'),
     )
@@ -94,7 +94,7 @@ ResultValue = collections.namedtuple('ResultValue',
                                      )
 
 
-def do_gbrval(control, samples):
+def do_gbrtval(control, samples):
     'run grid search on elastic net and random forest models'
 
     # HP settings to test
@@ -159,7 +159,7 @@ def main(argv):
     )
     print 'samples.shape', samples.shape
 
-    result = do_gbrval(control, samples)
+    result = do_gbrtval(control, samples)
 
     with open(control.path_out, 'wb') as f:
         pickle.dump((result, control), f)
