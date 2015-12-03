@@ -11,8 +11,8 @@ import sklearn.preprocessing
 
 
 from columns_contain import columns_contain
-import AVM_elastic_net as elastic_net
-import AVM_random_forest_regressor as random_forest_regressor
+import AVM_elastic_net
+import AVM_random_forest_regressor
 from Features import Features
 import layout_transactions
 cc = columns_contain
@@ -38,6 +38,7 @@ class AVM(sklearn.base.BaseEstimator):
                  n_months_back=None,
                  random_state=None,
                  verbose=0,
+                 implementation_module=None,
                  alpha=None,               # for ElasticNet
                  l1_ratio=None,
                  units_X=None,
@@ -53,6 +54,7 @@ class AVM(sklearn.base.BaseEstimator):
         self.n_months_back = n_months_back
         self.random_state = random_state
         self.verbose = verbose
+        self.immplementation_module = implementation_module
 
         self.alpha = alpha
         self.l1_ratio = l1_ratio
@@ -65,45 +67,10 @@ class AVM(sklearn.base.BaseEstimator):
 
     def fit(self, df):
         'construct and fit df that contains X and y'
-        def fit_elastic_net(X_train, y_train):
-            if self.verbose > 0:
-                print 'fit elastic net: %s~%s alpha: %f l1_ratio: %f' % (
-                    self.units_X, self.units_y, self.alpha, self.l1_ratio)
-
-            assert self.alpha > 0.0, self.alpha  # otherwise, not reliable
-            self.model = sklearn.linear_model.ElasticNet(
-                alpha=self.alpha,
-                l1_ratio=self.l1_ratio,
-                fit_intercept=True,
-                normalize=True,
-                selection='random',   # select random coefficient to update at each iteration
-                random_state=self.random_state,
-            )
-            self.scaler = sklearn.preprocessing.MinMaxScaler()
-            self.scaler.fit(X_train)
-            X_scaled = self.scaler.transform(X_train)
-            self.model.fit(X_scaled, y_train)
-            return self
-
-        def fit_random_forest_regressor(X_train, y_train):
-            if self.verbose > 0:
-                print (
-                    'fit random forest regressor',
-                    self.forecast_time_period,
-                    self.n_estimators,
-                    self.max_depth,
-                    self.max_features,
-                    self.n_months_back,
-                )
-            self.model = sklearn.ensemble.RandomForestRegressor(
-                n_estimators=self.n_estimators,
-                max_depth=self.max_depth,
-                random_state=self.random_state,
-                max_features=self.max_features,
-            )
-            self.model.fit(X_train, y_train)
-            return self
-
+        self.implementation_module = {
+            'ElasticNet': AVM_elastic_net,
+            'RandomForestRegressor': AVM_random_forest_regressor,
+        }[self.model_name]
         mask = df[layout_transactions.yyyymm] < self.forecast_time_period
         df_period = df[mask]
         kept_yyyymm = []
@@ -124,10 +91,7 @@ class AVM(sklearn.base.BaseEstimator):
             print self.units_X, self.units_y
             print 'check transformation to log'
             pdb.set_trace()
-        return {
-            'ElasticNet': elastic_net,
-            'RandomForestRegressor': random_forest_regressor,
-        }[self.model_name].fit(self, X_train, y_train)
+        self.implementation_module.fit(self, X_train, y_train)
 
     def get_attributes(self):
         'return both sets of attributes, with None if not used by that model'
@@ -140,32 +104,7 @@ class AVM(sklearn.base.BaseEstimator):
 
     def extract_and_transform(self, df, transform_y=True):
         'return X and y'
-        def extract_and_transform_elastic_net(df):
-            f = Features()
-            return f.extract_and_transform_X_y(
-                df,
-                f.ege(),
-                layout_transactions.price,
-                self.units_X,
-                self.units_y,
-                transform_y,
-            )
-
-        def extract_and_transform_random_forest_regressor(df):
-            f = Features()
-            return f.extract_and_transform_X_y(
-                df,
-                f.ege(),
-                layout_transactions.price,
-                'natural',
-                'natural',
-                transform_y,
-            )
-
-        return {
-            'ElasticNet': elastic_net,
-            'RandomForestRegressor': random_forest_regressor,
-        }[self.model_name].extract_and_transform(self, df, transform_y)
+        return self.implementation_module.extract_and_transform(self, df, transform_y)
 
     def predict(self, df):
         def predict_elastic_net(X_test):
@@ -187,10 +126,7 @@ class AVM(sklearn.base.BaseEstimator):
 
         X_test, y_test = self.extract_and_transform(df, transform_y=False)
         assert y_test is None
-        return {
-            'ElasticNet': elastic_net,
-            'RandomForestRegressor': random_forest_regressor,
-        }[self.model_name].predict(self, X_test)
+        self.impementation_module.predict(self, X_test)
 
     def setattr(self, parameter, value):
         setattr(self, parameter, value)
