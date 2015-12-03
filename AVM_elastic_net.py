@@ -44,7 +44,7 @@ def extract_and_transform(avm, df, transform_y):
     )
 
 
-def predict_elastic_net(avm, X_test):
+def predict(avm, X_test):
     if avm.verbose > 0:
         print 'predict_elastic_net'
     X_scaled = avm.scaler.transform(X_test)

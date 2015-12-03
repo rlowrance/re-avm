@@ -128,10 +128,6 @@ class AVM(sklearn.base.BaseEstimator):
             'ElasticNet': elastic_net,
             'RandomForestRegressor': random_forest_regressor,
         }[self.model_name].fit(self, X_train, y_train)
-        return {
-            'ElasticNet': fit_elastic_net,
-            'RandomForestRegressor': fit_random_forest_regressor,
-        }[self.model_name](X_train, y_train)
 
     def get_attributes(self):
         'return both sets of attributes, with None if not used by that model'
