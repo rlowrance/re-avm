@@ -12,6 +12,7 @@ import sklearn.preprocessing
 
 from columns_contain import columns_contain
 import AVM_elastic_net
+import AVM_gradient_boosting_regressor
 import AVM_random_forest_regressor
 from Features import Features
 import layout_transactions
@@ -46,7 +47,8 @@ class AVM(sklearn.base.BaseEstimator):
                  n_estimators=None,        # for RandomForestRegressor
                  max_depth=None,
                  max_features=None,
-                 loss=None,                # for GradientBoostingRegressor
+                 learning_rate=None,       # for GradientBoostingRegressor
+                 loss=None,
                  ):
         # NOTE: just capture the parameters (to conform to the sklearn protocol)
         self.model_name = model_name
@@ -65,10 +67,14 @@ class AVM(sklearn.base.BaseEstimator):
         self.max_depth = max_depth
         self.max_features = max_features
 
+        self.learning_rate = learning_rate
+        self.loss = loss
+
     def fit(self, df):
         'construct and fit df that contains X and y'
         self.implementation_module = {
             'ElasticNet': AVM_elastic_net,
+            'GradientBoostingRegressor': AVM_gradient_boosting_regressor,
             'RandomForestRegressor': AVM_random_forest_regressor,
         }[self.model_name]
         mask = df[layout_transactions.yyyymm] < self.forecast_time_period
