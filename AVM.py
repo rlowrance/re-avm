@@ -56,7 +56,7 @@ class AVM(sklearn.base.BaseEstimator):
         self.n_months_back = n_months_back
         self.random_state = random_state
         self.verbose = verbose
-        self.immplementation_module = implementation_module
+        self.implementation_module = implementation_module
 
         self.alpha = alpha
         self.l1_ratio = l1_ratio
@@ -132,7 +132,7 @@ class AVM(sklearn.base.BaseEstimator):
 
         X_test, y_test = self.extract_and_transform(df, transform_y=False)
         assert y_test is None
-        self.impementation_module.predict(self, X_test)
+        self.implementation_module.predict(self, X_test)
 
     def setattr(self, parameter, value):
         setattr(self, parameter, value)
