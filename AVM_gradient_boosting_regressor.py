@@ -3,7 +3,7 @@
 import pdb
 import sklearn
 
-from Feature import Features
+from Features import Features
 import layout_transactions
 
 
@@ -23,7 +23,7 @@ def fit(avm, X_train, y_train):
     avm.model = sklearn.ensemble.GradientBoostingRegressor(
         loss=avm.loss,
         learning_rate=avm.learning_rate,
-        n_estimator=avm.n_estimators,
+        n_estimators=avm.n_estimators,
         max_depth=avm.max_depth,
         max_features=avm.max_features,
         random_state=avm.random_state,
