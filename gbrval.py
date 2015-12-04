@@ -2,7 +2,7 @@
 for gradient boosted regression trees
 
 INVOCATION
-  python gbrtval.py YYYYMM [-test]
+  python gbrval.py YYYYMM [-test]
 
 INPUT FILE:
   WORKING/samples-train-validate.csv
@@ -101,19 +101,25 @@ def do_gbrtval(control, samples):
     # common across models
     n_months_back_seq = (1, 2, 3, 4, 5, 6)
     # for GBRT
-    loss_alphas = (('ls', None),        # loss function and corresponding alpha value
-                   ('lad', None),
-                   ('huber', 0.5),
-                   ('quantile', 0.9),
-                   ('quantile', 0.5),
-                   ('quantile', 0.9),
-                   )
-    max_depths = (1, 2, 3)
+    losses = ('ls', 'lad', 'huber', 'quantile')
+    learning_rates = (0.1, 0.01, 0.001)
+    n_estimatorss = (1, 30, 100, 300, 1000)
+    max_depths = (1, 3, 10)
     max_featuress = ('auto', 'sqrt', 'log2', None)
 
     result = {}
 
-    def run(n_months_back, loss, alpha, max_depth, max_features):
+    def run(n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features):
+        if alpha is None:
+            print (
+                'gbrval %1d %8s %4s %5.3f %4d %2d %4s' %
+                (n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features)
+            )
+        else:
+            print (
+                'gbrval %1d %8s %4.1f %5.3f %4d %2d %4s' %
+                (n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features)
+            )
         avm = AVM.AVM(
             model_name='GradientBoostingRegressor',
             forecast_time_period=control.arg.yyyymm,
@@ -121,6 +127,8 @@ def do_gbrtval(control, samples):
             random_state=control.random_seed,
             loss=loss,
             alpha=alpha,
+            learning_rate=learning_rate,
+            n_estimators=n_estimators,
             max_depth=max_depth,
             max_features=max_features,
             verbose=0,
@@ -133,15 +141,19 @@ def do_gbrtval(control, samples):
         result_key = ResultKey(n_months_back, loss, alpha, max_depth, max_features, control.arg.yyyymm)
         result[result_key] = ResultValue(actuals, predictions)
 
-    pdb.set_trace()
     for n_months_back in n_months_back_seq:
-        for loss_alpha in loss_alphas:
-            loss, alpha = loss_alpha
-            for max_depth in max_depths:
-                for max_features in max_featuress:
-                    print '%d %02d %8s %4s %d %4s' % (
-                        control.arg.yyyymm, n_months_back, loss, alpha, max_depth, max_features)
-                    run(n_months_back, loss, alpha, max_depth, max_features)
+        for loss in losses:
+            alphas = (
+                (None,) if (loss == 'ls') or (loss == 'lad') else
+                (0.1, 0.5, 0.9) if loss == 'huber' or (loss == 'quantile') else
+                pdb.set_trace()
+            )
+            for alpha in alphas:
+                for learning_rate in learning_rates:
+                    for n_estimators in n_estimatorss:
+                        for max_depth in max_depths:
+                            for max_features in max_featuress:
+                                run(n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features)
 
     return result
 
