@@ -50,7 +50,7 @@ def make_control(argv):
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
-        base_name='gbrtval',
+        base_name='gbrval',
         yyyymm=argv[1],
         test=pcl.has_arg('--test'),
     )
@@ -112,13 +112,13 @@ def do_gbrtval(control, samples):
     def run(n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features):
         if alpha is None:
             print (
-                'gbrval %1d %8s %4s %5.3f %4d %2d %4s' %
-                (n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features)
+                'gbrval %6d %1d %8s %4s %5.3f %4d %2d %4s' %
+                (control.arg.yyyymm, n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features)
             )
         else:
             print (
-                'gbrval %1d %8s %4.1f %5.3f %4d %2d %4s' %
-                (n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features)
+                'gbrval %6d %1d %8s %4.1f %5.3f %4d %2d %4s' %
+                (control.arg.yyyymm, n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features)
             )
         avm = AVM.AVM(
             model_name='GradientBoostingRegressor',
@@ -145,7 +145,7 @@ def do_gbrtval(control, samples):
         for loss in losses:
             alphas = (
                 (None,) if (loss == 'ls') or (loss == 'lad') else
-                (0.1, 0.5, 0.9) if loss == 'huber' or (loss == 'quantile') else
+                (0.1, 0.5, 0.9) if (loss == 'huber') or (loss == 'quantile') else
                 pdb.set_trace()
             )
             for alpha in alphas:
