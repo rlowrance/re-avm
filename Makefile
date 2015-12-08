@@ -13,28 +13,28 @@ ALL += $(WORKING)/census-features-derived.csv
 # CHART02 and RFBOUND are obsoleted by RFVAL
 # their rules and recipes are in rfbound.mk
 
-GBRVAL += $(WORKING)/gbrval/200402.pickle
-GBRVAL += $(WORKING)/gbrval/200405.pickle
-GBRVAL += $(WORKING)/gbrval/200408.pickle
-GBRVAL += $(WORKING)/gbrval/200411.pickle
-GBRVAL += $(WORKING)/gbrval/200502.pickle
-GBRVAL += $(WORKING)/gbrval/200505.pickle
-GBRVAL += $(WORKING)/gbrval/200508.pickle
-GBRVAL += $(WORKING)/gbrval/200511.pickle
-GBRVAL += $(WORKING)/gbrval/200602.pickle
-GBRVAL += $(WORKING)/gbrval/200605.pickle
-GBRVAL += $(WORKING)/gbrval/200608.pickle
-GBRVAL += $(WORKING)/gbrval/200611.pickle
-GBRVAL += $(WORKING)/gbrval/200702.pickle
-GBRVAL += $(WORKING)/gbrval/200705.pickle
-GBRVAL += $(WORKING)/gbrval/200708.pickle
-GBRVAL += $(WORKING)/gbrval/200711.pickle
-GBRVAL += $(WORKING)/gbrval/200802.pickle
-GBRVAL += $(WORKING)/gbrval/200805.pickle
-GBRVAL += $(WORKING)/gbrval/200808.pickle
-GBRVAL += $(WORKING)/gbrval/200811.pickle
-GBRVAL += $(WORKING)/gbrval/200902.pickle
-ALL += $(GBRVAL)
+VALGBR += $(WORKING)/valgbr/200402.pickle
+VALGBR += $(WORKING)/valgbr/200405.pickle
+VALGBR += $(WORKING)/valgbr/200408.pickle
+VALGBR += $(WORKING)/valgbr/200411.pickle
+VALGBR += $(WORKING)/valgbr/200502.pickle
+VALGBR += $(WORKING)/valgbr/200505.pickle
+VALGBR += $(WORKING)/valgbr/200508.pickle
+VALGBR += $(WORKING)/valgbr/200511.pickle
+VALGBR += $(WORKING)/valgbr/200602.pickle
+VALGBR += $(WORKING)/valgbr/200605.pickle
+VALGBR += $(WORKING)/valgbr/200608.pickle
+VALGBR += $(WORKING)/valgbr/200611.pickle
+VALGBR += $(WORKING)/valgbr/200702.pickle
+VALGBR += $(WORKING)/valgbr/200705.pickle
+VALGBR += $(WORKING)/valgbr/200708.pickle
+VALGBR += $(WORKING)/valgbr/200711.pickle
+VALGBR += $(WORKING)/valgbr/200802.pickle
+VALGBR += $(WORKING)/valgbr/200805.pickle
+VALGBR += $(WORKING)/valgbr/200808.pickle
+VALGBR += $(WORKING)/valgbr/200811.pickle
+VALGBR += $(WORKING)/valgbr/200902.pickle
+ALL += $(VALGBR)
 
 LINVAL += $(WORKING)/linval/200402.pickle
 LINVAL += $(WORKING)/linval/200405.pickle
@@ -138,69 +138,69 @@ $(CHART04REDUCTION): chart-04.py $(LINVAL)
 $(WORKING)/chart-04/2004-02.pdf: chart-03.py $(CHART04REDUCTION)
 	$(PYTHON) chart-04.py 
 
-# gbrval
-$(WORKING)/gbrval/200402.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200402
+# valgbr
+$(WORKING)/valgbr/200402.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200402
 
-$(WORKING)/gbrval/200405.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200405
+$(WORKING)/valgbr/200405.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200405
 
-$(WORKING)/gbrval/200408.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200408
+$(WORKING)/valgbr/200408.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200408
 
-$(WORKING)/gbrval/200411.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200411
+$(WORKING)/valgbr/200411.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200411
 
-$(WORKING)/gbrval/200502.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200502
+$(WORKING)/valgbr/200502.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200502
 
-$(WORKING)/gbrval/200505.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200505
+$(WORKING)/valgbr/200505.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200505
 
-$(WORKING)/gbrval/200508.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200508
+$(WORKING)/valgbr/200508.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200508
 
-$(WORKING)/gbrval/200511.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200511
+$(WORKING)/valgbr/200511.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200511
 
-$(WORKING)/gbrval/200602.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200602
+$(WORKING)/valgbr/200602.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200602
 
-$(WORKING)/gbrval/200605.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200605
+$(WORKING)/valgbr/200605.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200605
 
-$(WORKING)/gbrval/200608.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200608
+$(WORKING)/valgbr/200608.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200608
 
-$(WORKING)/gbrval/200611.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200611
+$(WORKING)/valgbr/200611.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200611
 
-$(WORKING)/gbrval/200702.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200702
+$(WORKING)/valgbr/200702.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200702
 
-$(WORKING)/gbrval/200705.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200705
+$(WORKING)/valgbr/200705.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200705
 
-$(WORKING)/gbrval/200708.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200708
+$(WORKING)/valgbr/200708.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200708
 
-$(WORKING)/gbrval/200711.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200711
+$(WORKING)/valgbr/200711.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200711
 
-$(WORKING)/gbrval/200802.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200802
+$(WORKING)/valgbr/200802.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200802
 
-$(WORKING)/gbrval/200805.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200805
+$(WORKING)/valgbr/200805.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200805
 
-$(WORKING)/gbrval/200808.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200808
+$(WORKING)/valgbr/200808.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200808
 
-$(WORKING)/gbrval/200811.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200811
+$(WORKING)/valgbr/200811.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200811
 
-$(WORKING)/gbrval/200902.pickle: gbrval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) gbrval.py 200902
+$(WORKING)/valgbr/200902.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) valgbr.py 200902
 
 # linval
 $(WORKING)/linval/200402.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
