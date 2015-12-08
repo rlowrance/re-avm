@@ -2,13 +2,13 @@
 for gradient boosted regression trees
 
 INVOCATION
-  python gbrval.py YYYYMM [-test]
+  python valgbr.py YYYYMM [-test]
 
 INPUT FILE:
   WORKING/samples-train-validate.csv
 
 OUTPUT FILE:
-  WORKING/gbrtval/YYYYMM.pickle
+  WORKING/valgrb/YYYYMM.pickle
 '''
 
 from __future__ import division
@@ -94,7 +94,7 @@ ResultValue = collections.namedtuple('ResultValue',
                                      )
 
 
-def do_gbrtval(control, samples):
+def do_val(control, samples):
     'run grid search on elastic net and random forest models'
 
     # HP settings to test
@@ -171,7 +171,7 @@ def main(argv):
     )
     print 'samples.shape', samples.shape
 
-    result = do_gbrtval(control, samples)
+    result = do_val(control, samples)
 
     with open(control.path_out, 'wb') as f:
         pickle.dump((result, control), f)
