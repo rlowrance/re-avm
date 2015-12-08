@@ -113,26 +113,9 @@ class AVM(sklearn.base.BaseEstimator):
         return self.implementation_module.extract_and_transform(self, df, transform_y)
 
     def predict(self, df):
-        def predict_elastic_net(X_test):
-            if self.verbose > 0:
-                print 'predict_elastic_net'
-            X_scaled = self.scaler.transform(X_test)
-            answer_raw = self.model.predict(X_scaled)
-            answer = answer_raw if self.units_y == 'natural' else np.exp(answer_raw)
-            if False:
-                pdb.set_trace()
-                print 'elastic net', self.units_X, self.units_y
-                print answer[:10]
-            return answer
-
-        def predict_random_forest_regressor(X_test):
-            if self.verbose > 0:
-                print 'predict_random_forest_regressor'
-            return self.model.predict(X_test)
-
         X_test, y_test = self.extract_and_transform(df, transform_y=False)
         assert y_test is None
-        self.implementation_module.predict(self, X_test)
+        return self.implementation_module.predict(self, X_test)
 
     def setattr(self, parameter, value):
         setattr(self, parameter, value)
