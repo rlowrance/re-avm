@@ -1,12 +1,16 @@
 '''program to estimate the generalization error from a variety of AVMs
 
 Determine accuracy on validation set YYYYMM of various hyperparameter setting
-for a random forests model.
+for elastic net.
+
+INVOCATION
+  python val.py YYYYMM [-test]
 
 INPUT FILE:
-    WORKING/samples-train-validate.csv
+  WORKING/samples-train-validate.csv
+
 OUTPUT FILE:
-    WORKING/rfval/YYYYMM.pickle
+  WORKING/linval/YYYYMM.pickle
 '''
 
 from __future__ import division
@@ -36,9 +40,6 @@ def usage(msg=None):
     print __doc__
     if msg is not None:
         print msg
-    print 'usage  : python rfval.py YYYYMM [--test]'
-    print ' YYYYMM  year + month; ex: 200402'
-    print ' --test      : run in test mode (on a small sample of the entire data)',
     sys.exit(1)
 
 
@@ -51,7 +52,7 @@ def make_control(argv):
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
-        base_name='rfval',
+        base_name='linval',
         yyyymm=argv[1],
         test=pcl.has_arg('--test'),
     )
@@ -88,62 +89,55 @@ def make_control(argv):
     )
 
 ResultKey = collections.namedtuple('ResultKey',
-                                   'n_months_back n_estimators max_depth max_features hp yyyymm',
+                                   'n_months_back alpha l1_ratio units_X units_y yyyymm',
                                    )
 ResultValue = collections.namedtuple('ResultValue',
-                                     'actuals predictions rmse',
+                                     'actuals predictions',
                                      )
 
 
-def do_rfval(control, samples):
-    'run grid search on random forest model; return grid search object'
+def do_linval(control, samples):
+    'run grid search on elastic net and random forest models'
+    pdb.set_trace()
 
     # HP settings to test
-    # common across --rfbound options
+    # common across models
     n_months_back_seq = (1, 2, 3, 4, 5, 6)
-    n_estimators_seq = (10, 30, 100, 300, 1000)
-    hp_seq = ('max_depth', 'max_features')
-    # not common across --rfbound options
-    max_features_seq = (1, 'log2', 'sqrt', .1, .3, 'auto')
-    max_depth_seq = (1, 3, 10, 30, 100, 300)
+    # for ElasticNet
+    alpha_seq = (0.0, 0.1, 0.3, 1.0, 3.0),  # multiplies the penalty term
+    l1_ratio_seq = (0.0, 0.25, 0.50, 0.75, 1.0),  # 0 ==> L2 penalty, 1 ==> L1 penalty
+    units_X_seq = ('natural', 'log')
+    units_y_seq = ('natural', 'log')
 
     result = {}
 
-    def run(n_months_back, n_estimators, max_depth, max_features):
-        assert (max_depth is not None) or (max_features is not None)
+    def run(n_months_back, n_estimators, alpha, l1_ratio, units_X, units_y):
+        pdb.set_trace()
         avm = AVM.AVM(
-            model_name='RandomForestRegressor',
+            model_name='ElasticNet',
             forecast_time_period=control.arg.yyyymm,
             n_months_back=n_months_back,
             random_state=control.random_seed,
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            max_features=max_features,
+            alpha=alpha,
+            l1_ratio=l1_ratio,
+            units_X=units_X,
+            units_y=units_y,
         )
         avm.fit(samples)
         mask = samples[layout_transactions.yyyymm] == control.arg.yyyymm
         samples_yyyymm = samples[mask]
         predictions = avm.predict(samples_yyyymm)
         actuals = samples_yyyymm[layout_transactions.price]
-        errors = actuals - predictions
-        mse = np.sum(errors * errors) / len(actuals)
-        rmse = np.sqrt(mse)
-        result_key = ResultKey(n_months_back, n_estimators, max_depth, max_features, hp,
-                               control.arg.yyyymm)
-        print result_key, rmse
-        result[result_key] = ResultValue(actuals, predictions, rmse)
+        result_key = ResultKey(n_months_back, alpha, l1_ratio, units_X, units_y, control.arg.yyyymm)
+        print result_key
+        result[result_key] = ResultValue(actuals, predictions)
 
     for n_months_back in n_months_back_seq:
-        for n_estimators in n_estimators_seq:
-            for hp in hp_seq:
-                if hp == 'max_depth':
-                    max_features = None
-                    for max_depth in max_depth_seq:
-                        run(n_months_back, n_estimators, max_depth, max_features)
-                elif hp == 'max_features':
-                    max_depth = None
-                    for max_features in max_features_seq:
-                        run(n_months_back, n_estimators, max_depth, max_features)
+        for alpha in alpha_seq:
+            for l1_ratio in l1_ratio_seq:
+                for units_X in units_X_seq:
+                    for units_y in units_y_seq:
+                        run(n_months_back, alpha, l1_ratio, units_X, units_y)
     return result
 
 
@@ -160,7 +154,7 @@ def main(argv):
     )
     print 'samples.shape', samples.shape
 
-    result = do_rfval(control, samples)
+    result = do_linval(control, samples)
 
     with open(control.path_out, 'wb') as f:
         pickle.dump((result, control), f)
