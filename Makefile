@@ -139,68 +139,69 @@ $(WORKING)/chart-04/2004-02.pdf: chart-03.py $(CHART04REDUCTION)
 	$(PYTHON) chart-04.py 
 
 # valgbr
-$(WORKING)/valgbr/200402.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+valgbr_dep += valgbr.py 
+valgbr_dep += AVM_gradient_boosting_regressor.py
+valgbr_dep += $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200402.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200402
 
-$(WORKING)/valgbr/200405.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200405.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200405
 
-$(WORKING)/valgbr/200408.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200408.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200408
 
-$(WORKING)/valgbr/200411.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200411.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200411
 
-$(WORKING)/valgbr/200502.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200502.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200502
 
-$(WORKING)/valgbr/200505.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200505.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200505
 
-$(WORKING)/valgbr/200508.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200508.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200508
 
-$(WORKING)/valgbr/200511.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200511.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200511
 
-$(WORKING)/valgbr/200602.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200602.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200602
 
-$(WORKING)/valgbr/200605.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200605.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200605
 
-$(WORKING)/valgbr/200608.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200608.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200608
 
-$(WORKING)/valgbr/200611.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200611.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200611
 
-$(WORKING)/valgbr/200702.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200702.pickle: $(valgbr_dep) 
 	$(PYTHON) valgbr.py 200702
 
-$(WORKING)/valgbr/200705.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200705.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200705
 
-$(WORKING)/valgbr/200708.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200708.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200708
 
-$(WORKING)/valgbr/200711.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200711.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200711
 
-$(WORKING)/valgbr/200802.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200802.pickle: $(valgbr_dep) 
 	$(PYTHON) valgbr.py 200802
 
-$(WORKING)/valgbr/200805.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200805.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200805
 
-$(WORKING)/valgbr/200808.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200808.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200808
 
-$(WORKING)/valgbr/200811.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
+$(WORKING)/valgbr/200811.pickle: $(valbgr_dep)
 	$(PYTHON) valgbr.py 200811
 
-$(WORKING)/valgbr/200902.pickle: valgbr.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) valgbr.py 200902
 
 # linval
 $(WORKING)/linval/200402.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
