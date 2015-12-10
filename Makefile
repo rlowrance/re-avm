@@ -199,8 +199,11 @@ $(WORKING)/valgbr/200805.pickle: $(valgbr_dep)
 $(WORKING)/valgbr/200808.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200808
 
-$(WORKING)/valgbr/200811.pickle: $(valbgr_dep)
+$(WORKING)/valgbr/200811.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200811
+
+$(WORKING)/valgbr/200902.pickle: $(valgbr_dep)
+	$(PYTHON) valgbr.py 200902
 
 
 # linval
