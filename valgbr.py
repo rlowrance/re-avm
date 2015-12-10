@@ -50,7 +50,7 @@ def make_control(argv):
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
-        base_name='gbrval',
+        base_name='valgbr',
         yyyymm=argv[1],
         test=pcl.has_arg('--test'),
     )
@@ -106,9 +106,7 @@ def do_val(control, samples):
     'run grid search on elastic net and random forest models'
 
     # HP settings to test
-    # common across models
     n_months_back_seq = (1, 2, 3, 4, 5, 6)
-    # for GBRT
     learning_rate_seq = (0.3, 0.1, 0.03, 0.01)
 
     result = {}
