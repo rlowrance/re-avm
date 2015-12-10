@@ -77,9 +77,17 @@ def make_control(argv):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
+    fixed_hps = Bunch(
+        loss='quantile',
+        alpha=0.5,
+        n_estimators=1000,
+        max_depth=3,
+        max_features=None)
+
     return Bunch(
         arg=arg,
         debug=debug,
+        fixed_hps=fixed_hps,
         path_in=dir_working + 'samples-train-validate.csv',
         path_out=dir_path + out_file_name,
         random_seed=random_seed,
@@ -87,7 +95,7 @@ def make_control(argv):
     )
 
 ResultKey = collections.namedtuple('ResultKey',
-                                   'n_months_back loss alpha max_depth max_features yyyymm',
+                                   'n_months_back learning_rate yyyymm',
                                    )
 ResultValue = collections.namedtuple('ResultValue',
                                      'actuals predictions',
@@ -101,36 +109,30 @@ def do_val(control, samples):
     # common across models
     n_months_back_seq = (1, 2, 3, 4, 5, 6)
     # for GBRT
-    losses = ('ls', 'lad', 'huber', 'quantile')
-    learning_rates = (0.1, 0.01, 0.001)
-    n_estimatorss = (1, 30, 100, 300, 1000)
-    max_depths = (1, 3, 10)
-    max_featuress = ('auto', 'sqrt', 'log2', None)
+    learning_rate_seq = (0.3, 0.1, 0.03, 0.01)
 
     result = {}
 
-    def run(n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features):
-        if alpha is None:
-            print (
-                'gbrval %6d %1d %8s %4s %5.3f %4d %2d %4s' %
-                (control.arg.yyyymm, n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features)
-            )
-        else:
-            print (
-                'gbrval %6d %1d %8s %4.1f %5.3f %4d %2d %4s' %
-                (control.arg.yyyymm, n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features)
-            )
+    def run(n_months_back, learning_rate):
+        # fix loss as quantile .50
+        # max_depth: use default
+        # max_features: use default
+
+        print (
+            'gbrval %6d %1d %5.3f' %
+            (control.arg.yyyymm, n_months_back, learning_rate)
+        )
         avm = AVM.AVM(
             model_name='GradientBoostingRegressor',
             forecast_time_period=control.arg.yyyymm,
             n_months_back=n_months_back,
             random_state=control.random_seed,
-            loss=loss,
-            alpha=alpha,
+            loss=control.fixed_hps.loss,
+            alpha=control.fixed_hps.alpha,
             learning_rate=learning_rate,
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            max_features=max_features,
+            n_estimators=control.fixed_hps.n_estimators,
+            max_depth=control.fixed_hps.max_depth,
+            max_features=control.fixed_hps.max_features,
             verbose=0,
         )
         avm.fit(samples)
@@ -138,22 +140,14 @@ def do_val(control, samples):
         samples_yyyymm = samples[mask]
         predictions = avm.predict(samples_yyyymm)
         actuals = samples_yyyymm[layout_transactions.price]
-        result_key = ResultKey(n_months_back, loss, alpha, max_depth, max_features, control.arg.yyyymm)
+        result_key = ResultKey(n_months_back, learning_rate, control.arg.yyyymm)
         result[result_key] = ResultValue(actuals, predictions)
 
     for n_months_back in n_months_back_seq:
-        for loss in losses:
-            alphas = (
-                (None,) if (loss == 'ls') or (loss == 'lad') else
-                (0.1, 0.5, 0.9) if (loss == 'huber') or (loss == 'quantile') else
-                pdb.set_trace()
-            )
-            for alpha in alphas:
-                for learning_rate in learning_rates:
-                    for n_estimators in n_estimatorss:
-                        for max_depth in max_depths:
-                            for max_features in max_featuress:
-                                run(n_months_back, loss, alpha, learning_rate, n_estimators, max_depth, max_features)
+        for learning_rate in learning_rate_seq:
+            run(n_months_back, learning_rate)
+        if control.test:
+            break
 
     return result
 
