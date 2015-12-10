@@ -105,6 +105,13 @@ ResultValue = collections.namedtuple('ResultValue',
 def do_val(control, samples):
     'run grid search on elastic net and random forest models'
 
+    def check_for_missing_predictions(result):
+        for k, v in result.iteritems():
+            if v.predictions is None:
+                print k
+                print 'found missing predictions'
+                pdb.set_trace()
+
     # HP settings to test
     n_months_back_seq = (1, 2, 3, 4, 5, 6)
     learning_rate_seq = (0.3, 0.1, 0.03, 0.01)
@@ -137,6 +144,8 @@ def do_val(control, samples):
         mask = samples[layout_transactions.yyyymm] == control.arg.yyyymm
         samples_yyyymm = samples[mask]
         predictions = avm.predict(samples_yyyymm)
+        if predictions is None:
+            pdb.set_trace()
         actuals = samples_yyyymm[layout_transactions.price]
         result_key = ResultKey(n_months_back, learning_rate, control.arg.yyyymm)
         result[result_key] = ResultValue(actuals, predictions)
@@ -147,6 +156,7 @@ def do_val(control, samples):
         if control.test:
             break
 
+    check_for_missing_predictions(result)
     return result
 
 
