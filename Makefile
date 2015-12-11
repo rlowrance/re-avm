@@ -87,6 +87,7 @@ CHARTS += $(WORKING)/chart-01/median-price.pdf
 # use 2004-02 as a proxy for all years YYYY and months MM
 CHARTS += $(WORKING)/chart-03/max_depth-2004-02.pdf
 CHARTS += $(WORKING)/chart-04/2004-02.pdf
+CHARTS += $(WORKING)/chart-05/2004.pdf
 
 ALL += $(CHARTS)
 
@@ -107,6 +108,12 @@ all: $(ALL)
 
 .PHONY : parcels-features
 parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcels-features-zip5.csv
+
+.PHONY : chart-04
+chart-04: $(WORKING)/chart-04/2004-02.pdf
+
+.PHONY : chart-05
+chart-05: $(WORKING)/chart-05/2004.pdf
 
 $(WORKING)/census-features-derived.csv: census-features.py layout_census.py
 	$(PYTHON) census-features.py
@@ -132,7 +139,7 @@ $(WORKING)/chart-03/max_depth-2004-02.pdf: chart-03.py $(CHART03REDUCTION)
 # chart-04
 CHART04REDUCTION = $(WORKING)/chart-04/data.pickle
 
-$(CHART04REDUCTION): chart-04.py $(LINVAL)
+$(CHART04REDUCTION): chart-04.py $(VALLIN)
 	$(PYTHON) chart-04.py --data
 
 $(WORKING)/chart-04/2004-02.pdf: chart-04.py $(CHART04REDUCTION)
@@ -141,11 +148,11 @@ $(WORKING)/chart-04/2004-02.pdf: chart-04.py $(CHART04REDUCTION)
 # chart-05
 CHART05REDUCTION = $(WORKING)/chart-05/data.pickle
 
-$(CHART05REDUCTION): chart-05.py $(LINVAL)
+$(CHART05REDUCTION): chart-05.py $(VALGBR)
 	$(PYTHON) chart-05.py --data
 
-$(WORKING)/chart-05/2004-02.pdf: chart-05.py $(CHART05REDUCTION)
-	$(PYTHON) chart-04.py 
+$(WORKING)/chart-05/2004.pdf: chart-05.py $(CHART05REDUCTION)
+	$(PYTHON) chart-05.py 
 
 # valgbr
 valgbr_dep += valgbr.py 
@@ -215,10 +222,11 @@ $(WORKING)/valgbr/200902.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200902
 
 
-# linval
-vallin_dep += linval.py 
+# vallin
+vallin_dep += vallin.py 
 vallin_dep += AVM_elastic_net.py 
 vallin_dep += $(WORKING)/samples-train-validate.csv
+
 $(WORKING)/vallin/200402.pickle: $(vallin_dep)
 	$(PYTHON) vallin.py 200402
 
