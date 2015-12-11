@@ -114,7 +114,7 @@ def do_val(control, samples):
 
     # HP settings to test
     n_months_back_seq = (1, 2, 3, 4, 5, 6)
-    learning_rate_seq = (0.3, 0.1, 0.03, 0.01)
+    learning_rate_seq = (0.01, 0.03, .10, .30, 1, 3, 10)
 
     result = {}
 
