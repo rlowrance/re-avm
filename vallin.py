@@ -2,13 +2,13 @@
 for elastic net.
 
 INVOCATION
-  python linval.py YYYYMM [-test]
+  python vallin.py YYYYMM [-test]
 
 INPUT FILE:
   WORKING/samples-train-validate.csv
 
 OUTPUT FILE:
-  WORKING/linval/YYYYMM.pickle
+  WORKING/vallin/YYYYMM.pickle
 '''
 
 from __future__ import division
@@ -50,7 +50,7 @@ def make_control(argv):
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
-        base_name='linval',
+        base_name='vallin',
         yyyymm=argv[1],
         test=pcl.has_arg('--test'),
     )
@@ -94,7 +94,7 @@ ResultValue = collections.namedtuple('ResultValue',
                                      )
 
 
-def do_linval(control, samples):
+def do_vallin(control, samples):
     'run grid search on elastic net and random forest models'
 
     # HP settings to test
@@ -153,7 +153,7 @@ def main(argv):
     )
     print 'samples.shape', samples.shape
 
-    result = do_linval(control, samples)
+    result = do_vallin(control, samples)
 
     with open(control.path_out, 'wb') as f:
         pickle.dump((result, control), f)

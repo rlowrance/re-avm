@@ -36,28 +36,28 @@ VALGBR += $(WORKING)/valgbr/200811.pickle
 VALGBR += $(WORKING)/valgbr/200902.pickle
 ALL += $(VALGBR)
 
-LINVAL += $(WORKING)/linval/200402.pickle
-LINVAL += $(WORKING)/linval/200405.pickle
-LINVAL += $(WORKING)/linval/200408.pickle
-LINVAL += $(WORKING)/linval/200411.pickle
-LINVAL += $(WORKING)/linval/200502.pickle
-LINVAL += $(WORKING)/linval/200505.pickle
-LINVAL += $(WORKING)/linval/200508.pickle
-LINVAL += $(WORKING)/linval/200511.pickle
-LINVAL += $(WORKING)/linval/200602.pickle
-LINVAL += $(WORKING)/linval/200605.pickle
-LINVAL += $(WORKING)/linval/200608.pickle
-LINVAL += $(WORKING)/linval/200611.pickle
-LINVAL += $(WORKING)/linval/200702.pickle
-LINVAL += $(WORKING)/linval/200705.pickle
-LINVAL += $(WORKING)/linval/200708.pickle
-LINVAL += $(WORKING)/linval/200711.pickle
-LINVAL += $(WORKING)/linval/200802.pickle
-LINVAL += $(WORKING)/linval/200805.pickle
-LINVAL += $(WORKING)/linval/200808.pickle
-LINVAL += $(WORKING)/linval/200811.pickle
-LINVAL += $(WORKING)/linval/200902.pickle
-ALL += $(LINVAL)
+VALLIN += $(WORKING)/vallin/200402.pickle
+VALLIN += $(WORKING)/vallin/200405.pickle
+VALLIN += $(WORKING)/vallin/200408.pickle
+VALLIN += $(WORKING)/vallin/200411.pickle
+VALLIN += $(WORKING)/vallin/200502.pickle
+VALLIN += $(WORKING)/vallin/200505.pickle
+VALLIN += $(WORKING)/vallin/200508.pickle
+VALLIN += $(WORKING)/vallin/200511.pickle
+VALLIN += $(WORKING)/vallin/200602.pickle
+VALLIN += $(WORKING)/vallin/200605.pickle
+VALLIN += $(WORKING)/vallin/200608.pickle
+VALLIN += $(WORKING)/vallin/200611.pickle
+VALLIN += $(WORKING)/vallin/200702.pickle
+VALLIN += $(WORKING)/vallin/200705.pickle
+VALLIN += $(WORKING)/vallin/200708.pickle
+VALLIN += $(WORKING)/vallin/200711.pickle
+VALLIN += $(WORKING)/vallin/200802.pickle
+VALLIN += $(WORKING)/vallin/200805.pickle
+VALLIN += $(WORKING)/vallin/200808.pickle
+VALLIN += $(WORKING)/vallin/200811.pickle
+VALLIN += $(WORKING)/vallin/200902.pickle
+ALL += $(VALLIN)
 
 RFVAL += $(WORKING)/rfval/200402.pickle
 RFVAL += $(WORKING)/rfval/200405.pickle
@@ -216,68 +216,71 @@ $(WORKING)/valgbr/200902.pickle: $(valgbr_dep)
 
 
 # linval
-$(WORKING)/linval/200402.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200402
+vallin_dep += linval.py 
+vallin_dep += AVM_elastic_net.py 
+vallin_dep += $(WORKING)/samples-train-validate.csv
+$(WORKING)/vallin/200402.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200402
 
-$(WORKING)/linval/200405.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200405
+$(WORKING)/vallin/200405.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200405
 
-$(WORKING)/linval/200408.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200408
+$(WORKING)/vallin/200408.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200408
 
-$(WORKING)/linval/200411.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200411
+$(WORKING)/vallin/200411.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200411
 
-$(WORKING)/linval/200502.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200502
+$(WORKING)/vallin/200502.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200502
 
-$(WORKING)/linval/200505.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200505
+$(WORKING)/vallin/200505.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200505
 
-$(WORKING)/linval/200508.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200508
+$(WORKING)/vallin/200508.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200508
 
-$(WORKING)/linval/200511.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200511
+$(WORKING)/vallin/200511.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200511
 
-$(WORKING)/linval/200602.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200602
+$(WORKING)/vallin/200602.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200602
 
-$(WORKING)/linval/200605.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200605
+$(WORKING)/vallin/200605.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200605
 
-$(WORKING)/linval/200608.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200608
+$(WORKING)/vallin/200608.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200608
 
-$(WORKING)/linval/200611.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200611
+$(WORKING)/vallin/200611.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200611
 
-$(WORKING)/linval/200702.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200702
+$(WORKING)/vallin/200702.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200702
 
-$(WORKING)/linval/200705.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200705
+$(WORKING)/vallin/200705.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200705
 
-$(WORKING)/linval/200708.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200708
+$(WORKING)/vallin/200708.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200708
 
-$(WORKING)/linval/200711.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200711
+$(WORKING)/vallin/200711.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200711
 
-$(WORKING)/linval/200802.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200802
+$(WORKING)/vallin/200802.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200802
 
-$(WORKING)/linval/200805.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200805
+$(WORKING)/vallin/200805.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200805
 
-$(WORKING)/linval/200808.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200808
+$(WORKING)/vallin/200808.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200808
 
-$(WORKING)/linval/200811.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200811
+$(WORKING)/vallin/200811.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200811
 
-$(WORKING)/linval/200902.pickle: linval.py AVM_elastic_net.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) linval.py 200902
+$(WORKING)/vallin/200902.pickle: $(vallin_dep)
+	$(PYTHON) vallin.py 200902
 
 # rfval
 $(WORKING)/rfval/200402.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
