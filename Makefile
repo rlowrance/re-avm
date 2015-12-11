@@ -135,7 +135,16 @@ CHART04REDUCTION = $(WORKING)/chart-04/data.pickle
 $(CHART04REDUCTION): chart-04.py $(LINVAL)
 	$(PYTHON) chart-04.py --data
 
-$(WORKING)/chart-04/2004-02.pdf: chart-03.py $(CHART04REDUCTION)
+$(WORKING)/chart-04/2004-02.pdf: chart-04.py $(CHART04REDUCTION)
+	$(PYTHON) chart-04.py 
+
+# chart-05
+CHART05REDUCTION = $(WORKING)/chart-05/data.pickle
+
+$(CHART05REDUCTION): chart-05.py $(LINVAL)
+	$(PYTHON) chart-05.py --data
+
+$(WORKING)/chart-05/2004-02.pdf: chart-05.py $(CHART05REDUCTION)
 	$(PYTHON) chart-04.py 
 
 # valgbr
