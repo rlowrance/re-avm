@@ -59,28 +59,28 @@ VALLIN += $(WORKING)/vallin/200811.pickle
 VALLIN += $(WORKING)/vallin/200902.pickle
 ALL += $(VALLIN)
 
-RFVAL += $(WORKING)/rfval/200402.pickle
-RFVAL += $(WORKING)/rfval/200405.pickle
-RFVAL += $(WORKING)/rfval/200408.pickle
-RFVAL += $(WORKING)/rfval/200411.pickle
-RFVAL += $(WORKING)/rfval/200502.pickle
-RFVAL += $(WORKING)/rfval/200505.pickle
-RFVAL += $(WORKING)/rfval/200508.pickle
-RFVAL += $(WORKING)/rfval/200511.pickle
-RFVAL += $(WORKING)/rfval/200602.pickle
-RFVAL += $(WORKING)/rfval/200605.pickle
-RFVAL += $(WORKING)/rfval/200608.pickle
-RFVAL += $(WORKING)/rfval/200611.pickle
-RFVAL += $(WORKING)/rfval/200702.pickle
-RFVAL += $(WORKING)/rfval/200705.pickle
-RFVAL += $(WORKING)/rfval/200708.pickle
-RFVAL += $(WORKING)/rfval/200711.pickle
-RFVAL += $(WORKING)/rfval/200802.pickle
-RFVAL += $(WORKING)/rfval/200805.pickle
-RFVAL += $(WORKING)/rfval/200808.pickle
-RFVAL += $(WORKING)/rfval/200811.pickle
-RFVAL += $(WORKING)/rfval/200902.pickle
-ALL += $(RFVAL)
+VALRF += $(WORKING)/valrf/200402.pickle
+VALRF += $(WORKING)/valrf/200405.pickle
+VALRF += $(WORKING)/valrf/200408.pickle
+VALRF += $(WORKING)/valrf/200411.pickle
+VALRF += $(WORKING)/valrf/200502.pickle
+VALRF += $(WORKING)/valrf/200505.pickle
+VALRF += $(WORKING)/valrf/200508.pickle
+VALRF += $(WORKING)/valrf/200511.pickle
+VALRF += $(WORKING)/valrf/200602.pickle
+VALRF += $(WORKING)/valrf/200605.pickle
+VALRF += $(WORKING)/valrf/200608.pickle
+VALRF += $(WORKING)/valrf/200611.pickle
+VALRF += $(WORKING)/valrf/200702.pickle
+VALRF += $(WORKING)/valrf/200705.pickle
+VALRF += $(WORKING)/valrf/200708.pickle
+VALRF += $(WORKING)/valrf/200711.pickle
+VALRF += $(WORKING)/valrf/200802.pickle
+VALRF += $(WORKING)/valrf/200805.pickle
+VALRF += $(WORKING)/valrf/200808.pickle
+VALRF += $(WORKING)/valrf/200811.pickle
+VALRF += $(WORKING)/valrf/200902.pickle
+ALL += $(VALRF)
 
 CHARTS += $(WORKING)/chart-01/median-price.pdf
 # use max_depth as a proxy for both max_depth and max_features
@@ -130,7 +130,7 @@ $(WORKING)/chart-01/data.pickle: chart-01.py $(WORKING)/samples-train-validate.c
 #    2004-02 is a proxy for all years YYYY and all months MM
 CHART03REDUCTION = $(WORKING)/chart-03/data.pickle
 
-$(CHART03REDUCTION): chart-03.py $(RFVAL)
+$(CHART03REDUCTION): chart-03.py $(VALRF)
 	$(PYTHON) chart-03.py --data
 
 $(WORKING)/chart-03/max_depth-2004-02.pdf: chart-03.py $(CHART03REDUCTION)
@@ -290,69 +290,73 @@ $(WORKING)/vallin/200811.pickle: $(vallin_dep)
 $(WORKING)/vallin/200902.pickle: $(vallin_dep)
 	$(PYTHON) vallin.py 200902
 
-# rfval
-$(WORKING)/rfval/200402.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200402
+# valrf
+valrf_dep += valrf.py 
+valrf_dep += AVM_random_forest_regressor.py
+valrf_dep += $(WORKING)/samples-train-validate.csv
 
-$(WORKING)/rfval/200405.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200405
+$(WORKING)/valrf/200402.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200402
 
-$(WORKING)/rfval/200408.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200408
+$(WORKING)/valrf/200405.pickle: $(valrf_dep)
+	$(PYTHON) valrf.py 200405
 
-$(WORKING)/rfval/200411.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200411
+$(WORKING)/valrf/200408.pickle: $(valrf_dep)
+	$(PYTHON) valrf.py 200408
 
-$(WORKING)/rfval/200502.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200502
+$(WORKING)/valrf/200411.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200411
 
-$(WORKING)/rfval/200505.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200505
+$(WORKING)/valrf/200502.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200502
 
-$(WORKING)/rfval/200508.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200508
+$(WORKING)/valrf/200505.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200505
 
-$(WORKING)/rfval/200511.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200511
+$(WORKING)/valrf/200508.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200508
 
-$(WORKING)/rfval/200602.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200602
+$(WORKING)/valrf/200511.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200511
 
-$(WORKING)/rfval/200605.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200605
+$(WORKING)/valrf/200602.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200602
 
-$(WORKING)/rfval/200608.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200608
+$(WORKING)/valrf/200605.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200605
 
-$(WORKING)/rfval/200611.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200611
+$(WORKING)/valrf/200608.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200608
 
-$(WORKING)/rfval/200702.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200702
+$(WORKING)/valrf/200611.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200611
 
-$(WORKING)/rfval/200705.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200705
+$(WORKING)/valrf/200702.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200702
 
-$(WORKING)/rfval/200708.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200708
+$(WORKING)/valrf/200705.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200705
 
-$(WORKING)/rfval/200711.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200711
+$(WORKING)/valrf/200708.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200708
 
-$(WORKING)/rfval/200802.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200802
+$(WORKING)/valrf/200711.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200711
 
-$(WORKING)/rfval/200805.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200805
+$(WORKING)/valrf/200802.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200802
 
-$(WORKING)/rfval/200808.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200808
+$(WORKING)/valrf/200805.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200805
 
-$(WORKING)/rfval/200811.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200811
+$(WORKING)/valrf/200808.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200808
 
-$(WORKING)/rfval/200902.pickle: rfval.py AVM_random_forest_regressor.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) rfval.py 200902
+$(WORKING)/valrf/200811.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200811
+
+$(WORKING)/valrf/200902.pickle: $(valrf_dep) 
+	$(PYTHON) valrf.py 200902
 
 # parcels-*
 $(WORKING)/parcels-features-census_tract.csv: parcels-features.py layout_parcels.py
