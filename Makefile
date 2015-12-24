@@ -13,6 +13,20 @@ ALL += $(WORKING)/census-features-derived.csv
 # CHART02 and RFBOUND are obsoleted by RFVAL
 # their rules and recipes are in rfbound.mk
 
+VALAVM += $(WORKING)/valavm/200701.pickle
+VALAVM += $(WORKING)/valavm/200702.pickle
+VALAVM += $(WORKING)/valavm/200703.pickle
+VALAVM += $(WORKING)/valavm/200704.pickle
+VALAVM += $(WORKING)/valavm/200705.pickle
+VALAVM += $(WORKING)/valavm/200706.pickle
+VALAVM += $(WORKING)/valavm/200707.pickle
+VALAVM += $(WORKING)/valavm/200708.pickle
+VALAVM += $(WORKING)/valavm/200709.pickle
+VALAVM += $(WORKING)/valavm/200710.pickle
+VALAVM += $(WORKING)/valavm/200711.pickle
+VALAVM += $(WORKING)/valavm/200712.pickle
+ALL += $(VALAVM)
+
 VALGBR += $(WORKING)/valgbr/200402.pickle
 VALGBR += $(WORKING)/valgbr/200405.pickle
 VALGBR += $(WORKING)/valgbr/200408.pickle
@@ -153,6 +167,54 @@ $(CHART05REDUCTION): chart-05.py $(VALGBR)
 
 $(WORKING)/chart-05/2004.pdf: chart-05.py $(CHART05REDUCTION)
 	$(PYTHON) chart-05.py 
+
+# valavm
+valavm_dep += valavm.py
+valavm_dep += AVM.py
+valavm_dep += AVM_gradient_boosting_regressor.py
+valavm_dep += AVM_random_forest_regressor.py
+valavm_dep += AVM_elastic_net.py
+valavm_dep += $(WORKING)/samples-train-validate.csv
+
+$(WORKING)/valavm/200701.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200701
+
+$(WORKING)/valavm/200702.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200702
+
+$(WORKING)/valavm/200703.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200703
+
+$(WORKING)/valavm/200704.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200704
+
+$(WORKING)/valavm/200705.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200705
+
+$(WORKING)/valavm/200706.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200706
+
+$(WORKING)/valavm/200707.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200707
+
+$(WORKING)/valavm/200708.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200708
+
+$(WORKING)/valavm/200708.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200708
+
+$(WORKING)/valavm/200709.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200709
+
+$(WORKING)/valavm/200710.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200710
+
+$(WORKING)/valavm/200711.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200711
+
+$(WORKING)/valavm/200712.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200712
+
 
 # valgbr
 valgbr_dep += valgbr.py 
