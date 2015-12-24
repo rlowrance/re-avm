@@ -94,16 +94,26 @@ def make_control(argv):
         test=arg.test,
     )
 
-ResultKey = collections.namedtuple('ResultKey',
-                                   'n_months_back learning_rate yyyymm',
-                                   )
-ResultValue = collections.namedtuple('ResultValue',
-                                     'actuals predictions',
-                                     )
+ResultKeyEn = collections.namedtuple(
+    'ResultKeyEn',
+    'n_months_back units_X units_y alpha l1_ratio',
+)
+ResultKeyGbr = collections.namedtuple(
+    'ResultKeyGbr',
+    'n_months_back units_X units_y n_estimators max_features max_depth loss learning_rate',
+)
+ResultKeyRfr = collections.namedtuple(
+    'ResultKeyRfr',
+    'n_months_back units_X units_y n_estimators max_features max_depth',
+)
+ResultValue = collections.namedtuple(
+    'ResultValue',
+    'actuals predictions',
+)
 
 
 def do_val(control, samples):
-    'run grid search on elastic net and random forest models'
+    'run grid search on hyperparameters across the 3 model kinds'
 
     def check_for_missing_predictions(result):
         for k, v in result.iteritems():
@@ -112,51 +122,155 @@ def do_val(control, samples):
                 print 'found missing predictions'
                 pdb.set_trace()
 
-    # HP settings to test
+    # HP settings to test across all models
     n_months_back_seq = (1, 2, 3, 4, 5, 6)
+    units_X_seq = ('natural', 'log')
+    units_y_seq = ('natural', 'log')
+
+    # HP settings to test for ElasticNet models
+    alpha_seq = (0.01, 0.03, 0.1, 0.3, 1.0)  # multiplies the penalty term
+    l1_ratio_seq = (0.0, 0.25, 0.50, 0.75, 1.0)  # 0 ==> L2 penalty, 1 ==> L1 penalty
+
+    # HP settings to test for tree-based models
+    n_estimators_seq = (10, 30, 100, 300, 1000)
+    max_features_seq = (1, 'log2', 'sqrt', .1, .3, 'auto')
+    max_depth_seq = (1, 3, 10, 30, 100, 300)
+
+    # HP setting to test for GradientBoostingRegression models
     learning_rate_seq = (.10, .20, .30, .40, .50, .60, .70, .80, .90)
+    loss_seq = ('ls', 'lad', 'quantile')
+
+    def max_features_s(max_features):
+        'convert to 4-character string (for printing)'
+        return max_features[:4] if isinstance(max_features, str) else ('%4.1f' % max_features)
 
     result = {}
 
-    def run(n_months_back, learning_rate):
-        # fix loss as quantile .50
-        # max_depth: use default
-        # max_features: use default
-
-        print (
-            'gbrval %6d %1d %5.3f' %
-            (control.arg.yyyymm, n_months_back, learning_rate)
-        )
-        avm = AVM.AVM(
-            model_name='GradientBoostingRegressor',
-            forecast_time_period=control.arg.yyyymm,
-            n_months_back=n_months_back,
-            random_state=control.random_seed,
-            loss=control.fixed_hps.loss,
-            alpha=control.fixed_hps.alpha,
-            learning_rate=learning_rate,
-            n_estimators=control.fixed_hps.n_estimators,
-            max_depth=control.fixed_hps.max_depth,
-            max_features=control.fixed_hps.max_features,
-            verbose=0,
-        )
+    def fit_and_run(avm):
+        'return a ResultValue'
         avm.fit(samples)
         mask = samples[layout_transactions.yyyymm] == control.arg.yyyymm
         samples_yyyymm = samples[mask]
         predictions = avm.predict(samples_yyyymm)
         if predictions is None:
+            print 'no predictions!'
             pdb.set_trace()
         actuals = samples_yyyymm[layout_transactions.price]
-        result_key = ResultKey(n_months_back, learning_rate, control.arg.yyyymm)
-        result[result_key] = ResultValue(actuals, predictions)
+        return ResultValue(actuals, predictions)
 
+    def search_en(n_months_back, units_X, units_y):
+        'search over ElasticNet HPs, appending to result'
+        for alpha in alpha_seq:
+            for l1_ratio in l1_ratio_seq:
+                print (
+                    '%6d %3s %1d %3s %3s %4.2f %4.2f' %
+                    (control.arg.yyyymm, 'en', n_months_back, units_X[:3], units_y[:3],
+                     alpha, l1_ratio)
+                )
+                avm = AVM.AVM(
+                    model_name='ElasticNet',
+                    forecast_time_period=control.arg.yyyymm,
+                    random_state=control.random_seed,
+                    n_months_back=n_months_back,
+                    units_X=units_X,
+                    units_y=units_y,
+                    alpha=alpha,
+                    l1_ratio=l1_ratio,
+                )
+                result_key = ResultKeyEn(
+                    n_months_back,
+                    units_X,
+                    units_y,
+                    alpha,
+                    l1_ratio,
+                )
+                result[result_key] = fit_and_run(avm)
+                if control.test:
+                    return
+
+    def search_gbr(n_months_back, units_X, units_y):
+        'search over GradientBoostingRegressor HPs, appending to result'
+        for n_estimators in n_estimators_seq:
+            for max_features in max_features_seq:
+                for max_depth in max_depth_seq:
+                    for loss in loss_seq:
+                        for learning_rate in learning_rate_seq:
+                            print (
+                                '%6d %3s %1d %3s %3s %4d %4s %3d %8s %4.2f' %
+                                (control.arg.yyyymm, 'gbr', n_months_back, units_X[:3], units_y[:3],
+                                 n_estimators, max_features_s(max_features), max_depth, loss, learning_rate)
+                            )
+                            avm = AVM.AVM(
+                                model_name='GradientBoostingRegressor',
+                                forecast_time_period=control.arg.yyyymm,
+                                random_state=control.random_seed,
+                                n_months_back=n_months_back,
+                                units_X=units_X,
+                                units_y=units_y,
+                                learning_rate=learning_rate,
+                                loss=loss,
+                                alpha=.5 if loss == 'quantile' else None,
+                                n_estimators=n_estimators,  # number of boosting stages
+                                max_depth=max_depth,  # max depth of any tree
+                                max_features=max_features,  # how many features to test when splitting
+                            )
+                            result_key = ResultKeyGbr(
+                                n_months_back,
+                                units_X,
+                                units_y,
+                                n_estimators,
+                                max_features,
+                                max_depth,
+                                loss,
+                                learning_rate,
+                            )
+                            result[result_key] = fit_and_run(avm)
+                            if control.test:
+                                return
+
+    def search_rf(n_months_back, units_X, units_y):
+        'search over RandomForestRegressor HPs, appending to result'
+        for n_estimators in n_estimators_seq:
+            for max_features in max_features_seq:
+                for max_depth in max_depth_seq:
+                    print (
+                        '%6d %3s %1d %3s %3s %4d %4s %3d' %
+                        (control.arg.yyyymm, 'rfr', n_months_back, units_X[:3], units_y[:3],
+                         n_estimators, max_features_s(max_features), max_depth)
+                    )
+                    avm = AVM.AVM(
+                        model_name='RandomForestRegressor',
+                        forecast_time_period=control.arg.yyyymm,
+                        random_state=control.random_seed,
+                        n_months_back=n_months_back,
+                        units_X=units_X,
+                        units_y=units_y,
+                        n_estimators=n_estimators,  # number of boosting stages
+                        max_depth=max_depth,  # max depth of any tree
+                        max_features=max_features,  # how many features to test when splitting
+                    )
+                    result_key = ResultKeyRfr(
+                        n_months_back,
+                        units_X,
+                        units_y,
+                        n_estimators,
+                        max_features,
+                        max_depth,
+                    )
+                    result[result_key] = fit_and_run(avm)
+                    if control.test:
+                        return
+
+    # grid search for all model types
     for n_months_back in n_months_back_seq:
-        for learning_rate in learning_rate_seq:
-            run(n_months_back, learning_rate)
-        if control.test:
-            break
+        for units_X in units_X_seq:
+            for units_y in units_y_seq:
+                search_en(n_months_back, units_X, units_y)
+                search_gbr(n_months_back, units_X, units_y)
+                search_rf(n_months_back, units_X, units_y)
+                if control.test:
+                    break
 
-    check_for_missing_predictions(result)
     return result
 
 
@@ -169,7 +283,7 @@ def main(argv):
 
     samples = pd.read_csv(
         control.path_in,
-        nrows=1000 if control.test else None,
+        nrows=None if control.test else None,
     )
     print 'samples.shape', samples.shape
 
