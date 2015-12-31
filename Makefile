@@ -13,7 +13,7 @@ ALL += $(WORKING)/census-features-derived.csv
 # CHART02 and RFBOUND are obsoleted by RFVAL
 # their rules and recipes are in rfbound.mk
 
-#VALAVM += $(WORKING)/valavm/200701.pickle
+VALAVM += $(WORKING)/valavm/200701.pickle
 VALAVM += $(WORKING)/valavm/200702.pickle
 VALAVM += $(WORKING)/valavm/200703.pickle
 VALAVM += $(WORKING)/valavm/200704.pickle
