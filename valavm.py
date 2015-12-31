@@ -136,9 +136,18 @@ def do_val(control, samples):
     max_features_seq = (1, 'log2', 'sqrt', .1, .3, 'auto')
     max_depth_seq = (1, 3, 10, 30, 100, 300)
 
+    # reduce grid size to shorten computation time
+    n_estimators_seq = (10, 30, 100)
+    max_features_seq = (1, 'log2', 'sqrt', 'auto')
+    max_depth_seq = (1, 3, 10, 30)
+
     # HP setting to test for GradientBoostingRegression models
     learning_rate_seq = (.10, .20, .30, .40, .50, .60, .70, .80, .90)
     loss_seq = ('ls', 'lad', 'quantile')
+
+    # reduce grid size to shorten computation time
+    learning_rate_seq = (.10, .25, .50, .75, .99)
+    loss_seq = ('ls', 'quantile')
 
     def max_features_s(max_features):
         'convert to 4-character string (for printing)'
