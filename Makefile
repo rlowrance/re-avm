@@ -13,6 +13,8 @@ ALL += $(WORKING)/census-features-derived.csv
 # CHART02 and RFBOUND are obsoleted by RFVAL
 # their rules and recipes are in rfbound.mk
 
+# make -j 4 runs OK to make all the valavm objects
+# TODO: test make -j 6 to see if it runs out of memory
 VALAVM += $(WORKING)/valavm/200701.pickle
 VALAVM += $(WORKING)/valavm/200702.pickle
 VALAVM += $(WORKING)/valavm/200703.pickle
