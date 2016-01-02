@@ -1,14 +1,14 @@
 '''create charts showing results of valgbr.py
 
 INVOCATION
-  python chart-06.py [--data | YYYYMM] [--test]
+  python chart-06.py [--data] [--test]
 
 INPUT FILES
  INPUT/valavm/YYYYMM.pickle
 
 OUTPUT FILES
  WORKING/chart-06/[test-]data.pickle
- WORKING/chart-06/[test-]YYYY-a.pdf    comparison of losses by model
+ WORKING/chart-06/[test-]YYYY-a.pdf    comparison of losses by model by month in 2007
 '''
 
 from __future__ import division
@@ -31,6 +31,7 @@ from columns_contain import columns_contain
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
 from Path import Path
+from Report import Report
 from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 cc = columns_contain
 
@@ -180,108 +181,183 @@ def make_charts_v1(df, control, ege_control):
             break
 
 
-def make_charts(df, control, ege_control):
+def select_and_sort(df, year, month, model):
+    'return new df contain sorted observations for specified year, month, model'
+    yyyymm = str(year * 100 + month)
+    mask = (
+        (df.model == model) &
+        (df.yyyymm == yyyymm)
+    )
+    subset = df.loc[mask]
+    assert len(subset) > 0, subset.shape
+    return subset.sort_values('mae')
+
+
+def make_chart_a(df, control, ege_control):
     'write one txt file for each n_months_back'
-    def make_subplot(year, month, n_months_back):
+    print 'make_chart_a'
+    year = 2007
+
+    def make_subplot(month):
         'mutate the default axes'
-        test_period = str(year * 100 + month)  # yyyymm
-        mask = (
-            (df.test_period == test_period) &
-            (df.n_months_back == n_months_back)
-        )
-        subset = df.loc[mask]
-        y = subset.mae
-        y.index = subset.learning_rate.values
-        y = y.sort_index()
-        plt.plot(y / 1000.0)
-        x_label = ['%4.2f' % x for x in y.index]
-        plt.xticks(range(len(y)), x_label, size='xx-small', rotation='vertical')
-        plt.yticks(size='xx-small')
-        plt.title('%4d-%02d %1d' % (year, month, n_months_back),
-                  loc='right',
-                  fontdict={'fontsize': 'xx-small', 'style': 'italic'},
-                  )
+        print 'make_subplot month', month
+        for model in set(df.model):
+            subset_sorted = select_and_sort(df, year, month, model)
+            y = (subset_sorted.mae / 1000.0)
+            plt.plot(
+                y,
+                label=model,
+            )
+            plt.yticks(size='xx-small')
+            plt.title(
+                '%4d-%02d' % (year, month),
+                loc='right',
+                fontdict={'fontsize': 'xx-small', 'style': 'italic'},
+            )
+            plt.xticks([])  # no ticks on x axis
         return
-        learning_rates = sorted(set(df.learning_rates))
-        n_ticks = len(learning_rates)
-        # OLD BELOW ME
-        l1_ratios = sorted(set(df.l1_ratio))
-        n_ticks = len(l1_ratios)
-        line_index = -1
-        for units_X in ('natural', 'log'):
-            for units_y in ('natural', 'log'):
-                line_index += 1
-                x_label = []
-                y = np.empty((n_ticks,), dtype=float)
-                tick_index = -1
-                for l1_ratio in l1_ratios:
-                    tick_index += 1
-                    mask = (
-                        (df.test_period == test_period) &
-                        (df.n_months_back == n_months_back) &
-                        (df.units_X == units_X) &
-                        (df.units_y == units_y) &
-                        (df.alpha == alpha) &
-                        (df.l1_ratio == l1_ratio)
-                    )
-                    if sum(mask) != 1:
-                        # something is wrong
-                        print 'mask', sum(mask)
-                        print 'test_period', sum(df.test_period == test_period)
-                        print 'n_months_back', sum(df.n_months_back == n_months_back)
-                        print 'units_X', sum(df.units_X == units_X)
-                        print 'units_y', sum(df.units_y == units_y)
-                        print 'alpha', sum(df.alpha == alpha)
-                        print 'l1_ratio', sum(df.l1_ratio == l1_ratio)
-                        print test_period, n_months_back, units_X, units_y, alpha, l1_ratio
-                        pdb.set_trace()
-                    subset = df.loc[mask]
-                    assert len(subset) == 1, subset.shape
-                    row = dict(subset.iloc[0])
-                    y[tick_index] = row[loss_metric]
-                    x_label.append('%4.2f' % row['l1_ratio'])
-                plt.plot(y / 1000.0,
-                         label='%3s-%3s' % (units_X, units_y),
-                         linestyle=[':', '-.', '--', '-'][line_index % 4],
-                         color='bgrcmykw'[line_index % 8],
-                         )
-                plt.xticks(range(len(y)), x_label, size='xx-small', rotation='vertical')
-                plt.yticks(size='xx-small')
-        plt.title('%4.2f %s-%s %d' % (alpha, test_period[:4], test_period[4:], n_months_back),
-                  loc='left',
-                  fontdict={'fontsize': 'xx-small', 'style': 'italic'},
-                  )
 
-    def make_figure(year):
+    def make_figure():
+        # make and save figure
 
-        print 'make_figure', year
         plt.figure()  # new figure
         # plt.suptitle('Loss by Test Period, Tree Max Depth, N Trees')  # overlays the subplots
         axes_number = 0
-        n_months_backs = (1, 2, 3, 4, 5, 6)
-        month_seq = (2, 5, 8, 11)
-        for month in month_seq:
-            for n_months_back in n_months_backs:
-                axes_number += 1  # count across rows
-                plt.subplot(len(month_seq), len(n_months_backs), axes_number)
-                make_subplot(year, month, n_months_back)
+        row_seq = (1, 2, 3, 4)
+        col_seq = (1, 2, 3)
+        for row in row_seq:
+            for col in col_seq:
+                axes_number += 1  # count across rows (axes_number == month number)
+                plt.subplot(len(row_seq), len(col_seq), axes_number)
+                make_subplot(axes_number)
                 # annotate the bottom row only
-                if month == 11:
-                    if n_months_back == 1:
-                        plt.xlabel('learning_rate')
+                if row == 4:
+                    if col == 1:
+                        plt.xlabel('hp set')
                         plt.ylabel('mae x $1000')
-                    if n_months_back == 6:
+                    if col == 3:
                         plt.legend(loc='best', fontsize=5)
 
         plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-        plt.savefig(control.path_chart_base + str(year) + '.pdf')
+        plt.savefig(control.path_chart_base + str(year) + '-a.pdf')
         plt.close()
 
-    for year in (2004, 2005, 2006, 2007, 2008, 2009):
-        make_figure(year)
-        if control.test:
-            break
+    make_figure()
     return
+
+
+def differ_only_in_units(a, b):
+    if a is None:
+        return False
+    # print a, b
+    for index, value in a.iteritems():
+        # print index, value
+        if index == 'units_y':
+            continue
+        if index == 'units_X':
+            continue
+        if isinstance(value, float) and np.isnan(value) and np.isnan(b[index]):
+            continue
+        if value != b[index]:
+            return True
+    return False
+
+
+def differ(a, b):
+    if a is None:
+        return b is None
+    for index, value in a.iteritems():
+        if isinstance(value, float) and np.isnan(value) and (not np.isnan(b[index])):
+            return True
+        if value != b[index]:
+            return True
+    return False
+
+
+def make_chart_bc(df, control, ege_control, chart_letter, suppress_same_units):
+    'write report: mae, model, HPs for year, month'
+    def report(year, month):
+        format_header = '%6s %5s %1s %7s %3s %4s %4s %-20s'
+        format_detail = '%6d %5s %1d %3s-%3s %3d %4d %4s %-20s'
+        n_detail_lines = 50
+
+        def header(r):
+            r.append('MAE for %d best-performing models and their hyperparameters' % n_detail_lines)
+            r.append('Year %d Month %0d' % (year, month))
+            r.append(' ')
+            r.append(format_header % ('MAE', 'Model', 'b', 'units', 'mxd', 'nest', 'mxft', 'Other HPs'))
+
+        def append_detail_line(r, series):
+            'append detail line to report r'
+            hp_string = ''
+            # accumulate non-missing hyperparameters
+            called_out_indices = set(('mae', 'model', 'yyyymm', 'n_months_back',
+                                      'units_X', 'units_y',
+                                      'max_depth', 'n_estimators'))
+            for index, value in series.iteritems():
+                print index, value
+                if index in called_out_indices:
+                    # not a hyperparameter
+                    continue
+                if (isinstance(value, float) and np.isnan(value)) or value is None:
+                    # value is missing
+                    continue
+                hp_string += '%s=%s ' % (index, value)
+            r.append(format_detail % (
+                series.mae, series.model, series.n_months_back,
+                series.units_y[:3], series.units_X[:3],
+                series.max_depth,
+                series.n_estimators,
+                series.max_features,
+                hp_string))
+
+        def footer(r):
+            r.append(' ')
+            r.append('column legend:')
+            r.append('b -> n_months_back')
+            r.append('units -> y_units, X_units (both in {nat[ural], log}')
+            r.append('mxd -> max depth of individual tree')
+            r.append('nest -> n_estimators (number of trees)')
+            r.append('mxft -> max_features considered when selecting new split variable')
+
+        yyyymm = str(year * 100 + month)
+        mask = (
+            df.yyyymm == yyyymm
+        )
+        subset = df.loc[mask]
+        assert len(subset) > 0, subset.shape
+        subset_sorted = subset.sort_values('mae')
+        r = Report()
+        header(r)
+        detail_line_number = 0
+        previous_row_series = None
+        for row in subset_sorted.iterrows():
+            print row
+            row_series = row[1]
+            print previous_row_series, row_series
+            if suppress_same_units:
+                if differ_only_in_units(previous_row_series, row_series):
+                    detail_line_number += 1
+                    append_detail_line(r, row_series)
+            else:
+                detail_line_number += 1
+                append_detail_line(r, row_series)
+            previous_row_series = row_series
+            if detail_line_number == n_detail_lines:
+                break
+        footer(r)
+        r.write(control.path_chart_base + yyyymm + '-' + chart_letter + '.txt')
+
+    year = 2007
+    month_seq = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+    for month in month_seq:
+        report(year, month)
+
+
+def make_charts(df, control, ege_control):
+    make_chart_a(df, control, ege_control)
+    make_chart_bc(df, control, ege_control, 'b', suppress_same_units=True)
+    make_chart_bc(df, control, ege_control, 'c', suppress_same_units=False)
 
 
 def errors(actuals, predictions):
@@ -309,6 +385,7 @@ def make_data(control):
             is_gbr = isinstance(k, ResultKeyGbr)
             is_rfr = isinstance(k, ResultKeyRfr)
             is_tree = is_gbr or is_rfr
+            model = 'en' if is_en else ('gb' if is_gbr else 'rf')
             actuals = v.actuals.values
             predictions = v.predictions
             if predictions is None:
@@ -317,10 +394,11 @@ def make_data(control):
                 pdb.set_trace()
             rmse, mae = errors(actuals, predictions)
             row = {
+                'model': model,
                 'yyyymm': yyyymm,
                 'n_months_back': k.n_months_back,
                 'units_X': k.units_X,
-                'units-y': k.units_y,
+                'units_y': k.units_y,
                 'alpha': k.alpha if is_en else None,
                 'l1_ratio': k.l1_ratio if is_en else None,
                 'n_estimators': k.n_estimators if is_tree else None,
@@ -372,7 +450,6 @@ if __name__ == '__main__':
         pd.DataFrame()
         np.array()
         AVM()
-        ResultKey
         ResultValue
 
     main(sys.argv)
