@@ -100,11 +100,11 @@ ResultKeyEn = collections.namedtuple(
 )
 ResultKeyGbr = collections.namedtuple(
     'ResultKeyGbr',
-    'n_months_back units_X units_y n_estimators max_features max_depth loss learning_rate',
+    'n_months_back n_estimators max_features max_depth loss learning_rate',
 )
 ResultKeyRfr = collections.namedtuple(
     'ResultKeyRfr',
-    'n_months_back units_X units_y n_estimators max_features max_depth',
+    'n_months_back n_estimators max_features max_depth',
 )
 ResultValue = collections.namedtuple(
     'ResultValue',
@@ -123,13 +123,13 @@ def do_val(control, samples):
                 pdb.set_trace()
 
     # HP settings to test across all models
-    n_months_back_seq = (1, 2, 3, 4, 5, 6)
-    units_X_seq = ('natural', 'log')
-    units_y_seq = ('natural', 'log')
+    n_months_back_seq = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
 
     # HP settings to test for ElasticNet models
     alpha_seq = (0.01, 0.03, 0.1, 0.3, 1.0)  # multiplies the penalty term
     l1_ratio_seq = (0.0, 0.25, 0.50, 0.75, 1.0)  # 0 ==> L2 penalty, 1 ==> L1 penalty
+    units_X_seq = ('natural', 'log')
+    units_y_seq = ('natural', 'log')
 
     # HP settings to test for tree-based models
     n_estimators_seq = (10, 30, 100, 300, 1000)
@@ -137,9 +137,9 @@ def do_val(control, samples):
     max_depth_seq = (1, 3, 10, 30, 100, 300)
 
     # reduce grid size to shorten computation time
-    n_estimators_seq = (10, 30, 100)
+    n_estimators_seq = (10, 30, 100, 300)
     max_features_seq = (1, 'log2', 'sqrt', 'auto')
-    max_depth_seq = (1, 3, 10, 30)
+    max_depth_seq = (1, 3, 10, 30, 100)
 
     # HP setting to test for GradientBoostingRegression models
     learning_rate_seq = (.10, .20, .30, .40, .50, .60, .70, .80, .90)
@@ -167,37 +167,39 @@ def do_val(control, samples):
         actuals = samples_yyyymm[layout_transactions.price]
         return ResultValue(actuals, predictions)
 
-    def search_en(n_months_back, units_X, units_y):
+    def search_en(n_months_back):
         'search over ElasticNet HPs, appending to result'
-        for alpha in alpha_seq:
-            for l1_ratio in l1_ratio_seq:
-                print (
-                    '%6d %3s %1d %3s %3s %4.2f %4.2f' %
-                    (control.arg.yyyymm, 'en', n_months_back, units_X[:3], units_y[:3],
-                     alpha, l1_ratio)
-                )
-                avm = AVM.AVM(
-                    model_name='ElasticNet',
-                    forecast_time_period=control.arg.yyyymm,
-                    random_state=control.random_seed,
-                    n_months_back=n_months_back,
-                    units_X=units_X,
-                    units_y=units_y,
-                    alpha=alpha,
-                    l1_ratio=l1_ratio,
-                )
-                result_key = ResultKeyEn(
-                    n_months_back,
-                    units_X,
-                    units_y,
-                    alpha,
-                    l1_ratio,
-                )
-                result[result_key] = fit_and_run(avm)
-                if control.test:
-                    return
+        for units_X in units_X_seq:
+            for units_y in units_y_seq:
+                for alpha in alpha_seq:
+                    for l1_ratio in l1_ratio_seq:
+                        print (
+                            '%6d %3s %1d %3s %3s %4.2f %4.2f' %
+                            (control.arg.yyyymm, 'en', n_months_back, units_X[:3], units_y[:3],
+                             alpha, l1_ratio)
+                        )
+                        avm = AVM.AVM(
+                            model_name='ElasticNet',
+                            forecast_time_period=control.arg.yyyymm,
+                            random_state=control.random_seed,
+                            n_months_back=n_months_back,
+                            units_X=units_X,
+                            units_y=units_y,
+                            alpha=alpha,
+                            l1_ratio=l1_ratio,
+                        )
+                        result_key = ResultKeyEn(
+                            n_months_back,
+                            units_X,
+                            units_y,
+                            alpha,
+                            l1_ratio,
+                        )
+                        result[result_key] = fit_and_run(avm)
+                        if control.test:
+                            return
 
-    def search_gbr(n_months_back, units_X, units_y):
+    def search_gbr(n_months_back):
         'search over GradientBoostingRegressor HPs, appending to result'
         for n_estimators in n_estimators_seq:
             for max_features in max_features_seq:
@@ -205,8 +207,8 @@ def do_val(control, samples):
                     for loss in loss_seq:
                         for learning_rate in learning_rate_seq:
                             print (
-                                '%6d %3s %1d %3s %3s %4d %4s %3d %8s %4.2f' %
-                                (control.arg.yyyymm, 'gbr', n_months_back, units_X[:3], units_y[:3],
+                                '%6d %3s %1d %4d %4s %3d %8s %4.2f' %
+                                (control.arg.yyyymm, 'gbr', n_months_back,
                                  n_estimators, max_features_s(max_features), max_depth, loss, learning_rate)
                             )
                             avm = AVM.AVM(
@@ -214,8 +216,6 @@ def do_val(control, samples):
                                 forecast_time_period=control.arg.yyyymm,
                                 random_state=control.random_seed,
                                 n_months_back=n_months_back,
-                                units_X=units_X,
-                                units_y=units_y,
                                 learning_rate=learning_rate,
                                 loss=loss,
                                 alpha=.5 if loss == 'quantile' else None,
@@ -225,8 +225,6 @@ def do_val(control, samples):
                             )
                             result_key = ResultKeyGbr(
                                 n_months_back,
-                                units_X,
-                                units_y,
                                 n_estimators,
                                 max_features,
                                 max_depth,
@@ -237,14 +235,14 @@ def do_val(control, samples):
                             if control.test:
                                 return
 
-    def search_rf(n_months_back, units_X, units_y):
+    def search_rf(n_months_back):
         'search over RandomForestRegressor HPs, appending to result'
         for n_estimators in n_estimators_seq:
             for max_features in max_features_seq:
                 for max_depth in max_depth_seq:
                     print (
-                        '%6d %3s %1d %3s %3s %4d %4s %3d' %
-                        (control.arg.yyyymm, 'rfr', n_months_back, units_X[:3], units_y[:3],
+                        '%6d %3s %1d %4d %4s %3d' %
+                        (control.arg.yyyymm, 'rfr', n_months_back,
                          n_estimators, max_features_s(max_features), max_depth)
                     )
                     avm = AVM.AVM(
@@ -252,16 +250,12 @@ def do_val(control, samples):
                         forecast_time_period=control.arg.yyyymm,
                         random_state=control.random_seed,
                         n_months_back=n_months_back,
-                        units_X=units_X,
-                        units_y=units_y,
                         n_estimators=n_estimators,  # number of boosting stages
                         max_depth=max_depth,  # max depth of any tree
                         max_features=max_features,  # how many features to test when splitting
                     )
                     result_key = ResultKeyRfr(
                         n_months_back,
-                        units_X,
-                        units_y,
                         n_estimators,
                         max_features,
                         max_depth,
@@ -272,13 +266,11 @@ def do_val(control, samples):
 
     # grid search for all model types
     for n_months_back in n_months_back_seq:
-        for units_X in units_X_seq:
-            for units_y in units_y_seq:
-                search_en(n_months_back, units_X, units_y)
-                search_gbr(n_months_back, units_X, units_y)
-                search_rf(n_months_back, units_X, units_y)
-                if control.test:
-                    break
+        search_en(n_months_back)
+        search_gbr(n_months_back)
+        search_rf(n_months_back)
+        if control.test:
+            break
 
     return result
 
