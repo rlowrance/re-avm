@@ -293,7 +293,7 @@ def make_chart_bc(df, control, ege_control, chart_letter, suppress_same_units):
             # accumulate non-missing hyperparameters
             called_out_indices = set(('mae', 'model', 'yyyymm', 'n_months_back',
                                       'units_X', 'units_y',
-                                      'max_depth', 'n_estimators'))
+                                      'max_depth', 'n_estimators', 'max_features'))
             for index, value in series.iteritems():
                 print index, value
                 if index in called_out_indices:
