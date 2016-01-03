@@ -76,6 +76,7 @@ def make_control(argv):
         path_in_samples=dir_working + 'samples-train-validate.csv',
         path_out_pdf=dir_path + 'median-price.pdf',
         path_out_txt=dir_path + 'median-price.txt',
+        path_out_txt_2006_2007=dir_path + 'median-price_2006_2007.txt',
         path_reduction=dir_path + reduced_file_name,
         random_seed=random_seed,
         test=arg.test,
@@ -142,6 +143,27 @@ def make_chart_txt(data, control):
     r.write(control.path_out_txt)
 
 
+def make_chart_txt_2006_2007(data, control):
+    counts, means, medians, prices = data
+    r = Report()
+    format_header = '%7s %7s %7s %7s'
+    format_detail = '%7d %7d %7.0f %7d'
+    r.append('Median Prices and Transaction Counts by Month')
+    r.append('')
+    r.append(format_header % (' ', ' ', 'median', 'number'))
+    r.append(format_header % ('year', 'month', 'price', 'trades'))
+    for year in (2006, 2007):
+        for month in xrange(1, 13):
+            key = DataKey(year=year, month=month)
+            r.append(format_detail % (
+                year,
+                month,
+                medians[key],
+                counts[key],
+            ))
+    r.write(control.path_out_txt_2006_2007)
+
+
 def make_data(control):
     transactions = pd.read_csv(control.path_in_samples,
                                nrows=1000 if control.test else None,
@@ -175,6 +197,7 @@ def main(argv):
     else:
         with open(control.path_reduction, 'rb') as f:
             data, reduction_control = pickle.load(f)
+        make_chart_txt_2006_2007(data, control)
         make_chart_txt(data, control)
         make_chart_pdf(data, control)
 
