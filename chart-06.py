@@ -96,93 +96,9 @@ def make_control(argv):
     )
 
 
-def make_charts_v1(df, control, ege_control):
-    'write one txt file for each n_months_back'
-    def make_subplot(test_period, n_months_back, loss_metric):
-        'mutate the default axes'
-        alphas = sorted(set(df.alpha))
-        l1_ratios = sorted(set(df.l1_ratio))
-        n_ticks = len(alphas) * len(l1_ratios)
-        line_index = -1
-        for units_X in ('natural', 'log'):
-            for units_y in ('natural', 'log'):
-                line_index += 1
-                x_label = []
-                y = np.empty((n_ticks,), dtype=float)
-                tick_index = -1
-                for alpha in alphas:
-                    for l1_ratio in l1_ratios:
-                        tick_index += 1
-                        mask = (
-                            (df.test_period == test_period) &
-                            (df.n_months_back == n_months_back) &
-                            (df.units_X == units_X) &
-                            (df.units_y == units_y) &
-                            (df.alpha == alpha) &
-                            (df.l1_ratio == l1_ratio)
-                        )
-                        subset = df.loc[mask]
-                        assert len(subset) == 1, subset
-                        row = dict(subset.iloc[0])
-                        y[tick_index] = row[loss_metric]
-                        x_label.append('%3.1f-%4.2f' % (row['alpha'], row['l1_ratio']))
-                plt.plot(y / 1000.0,
-                         label='%3s-%3s' % (units_X, units_y),
-                         linestyle=[':', '-.', '--', '-'][line_index % 4],
-                         color='bgrcmykw'[line_index % 8],
-                         )
-                plt.xticks(range(len(y)), x_label, size='xx-small', rotation='vertical')
-                plt.yticks(size='xx-small')
-        plt.title('yr-mo %s-%s bk %d' % (test_period[:4], test_period[4:], n_months_back),
-                  loc='left',
-                  fontdict={'fontsize': 'xx-small', 'style': 'italic'},
-                  )
-
-    def make_figure(year, months):
-
-        print 'make_figure', year, months
-        test_periods_typical = [str(year * 100 + month)
-                                for month in months
-                                ]
-        test_periods = ('200902',) if year == 2009 else test_periods_typical
-
-        plt.figure()  # new figure
-        # plt.suptitle('Loss by Test Period, Tree Max Depth, N Trees')  # overlays the subplots
-        loss_metric = 'rmse'
-        loss_metric = 'mae'
-        axes_number = 0
-        n_months_backs = range(1, 7, 1)
-        last_test_period_index = len(test_periods) - 1
-        last_n_months_back_index = len(n_months_backs) - 1
-        for test_period_index, test_period in enumerate(test_periods):
-            for n_months_back_index, n_months_back in enumerate(n_months_backs):
-                axes_number += 1  # count across rows
-                plt.subplot(len(test_periods), len(n_months_backs), axes_number)
-                make_subplot(test_period, n_months_back, loss_metric)
-                if test_period_index == last_test_period_index:
-                    # annotate the bottom row only
-                    if n_months_back_index == 0:
-                        plt.xlabel('alpha-l1_ratio')
-                        plt.ylabel('%s x $1000' % loss_metric)
-                    if n_months_back_index == last_n_months_back_index:
-                        plt.legend(loc='best', fontsize=5)
-
-        plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-        out_suffix = '-%02d' % months if len(months) == 1 else ''
-        plt.savefig(control.path_chart_base + str(year) + out_suffix + '.pdf')
-        plt.close()
-
-    for year in (2004, 2005, 2006, 2007, 2008, 2009):
-        months = (2,) if year == 2009 else (2, 5, 8, 11)
-        for month in months:
-            make_figure(year, (month,))
-        make_figure(year, months)
-        if control.test:
-            break
-
-
 def select_and_sort(df, year, month, model):
     'return new df contain sorted observations for specified year, month, model'
+    pdb.set_trace()
     yyyymm = str(year * 100 + month)
     mask = (
         (df.model == model) &
@@ -397,8 +313,8 @@ def make_data(control):
                 'model': model,
                 'yyyymm': yyyymm,
                 'n_months_back': k.n_months_back,
-                'units_X': k.units_X,
-                'units_y': k.units_y,
+                'units_X': k.units_X if is_en else 'natural',
+                'units_y': k.units_y if is_en else 'natural',
                 'alpha': k.alpha if is_en else None,
                 'l1_ratio': k.l1_ratio if is_en else None,
                 'n_estimators': k.n_estimators if is_tree else None,
