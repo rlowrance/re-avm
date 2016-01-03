@@ -126,7 +126,7 @@ def make_chart_txt(data, control):
     r = Report()
     format_header = '%7s %7s %7s %7s %7s'
     format_detail = '%7d %7d %7.0f %7.0f %7d'
-    r.append('Chart 01: Prices by Month')
+    r.append('Prices by Month')
     r.append('')
     r.append(format_header % (' ', ' ', 'mean', 'median', 'number'))
     r.append(format_header % ('year', 'month', 'price', 'price', 'trades'))
