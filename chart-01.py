@@ -26,6 +26,7 @@ import random
 import sys
 
 from Bunch import Bunch
+from chart_01_datakey import DataKey
 from columns_contain import columns_contain
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
@@ -81,9 +82,6 @@ def make_control(argv):
         random_seed=random_seed,
         test=arg.test,
     )
-
-
-DataKey = collections.namedtuple('DataKey', 'year month')
 
 
 def make_chart_pdf(data, control):

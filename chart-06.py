@@ -30,6 +30,7 @@ import sys
 
 from AVM import AVM
 from Bunch import Bunch
+from chart_01_datakey import DataKey
 from columns_contain import columns_contain
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
@@ -37,8 +38,6 @@ from Path import Path
 from Report import Report
 from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 cc = columns_contain
-
-DataKey = collections.namedtuple('DataKey', 'year month')  # TODO: fix (use common file in chart-01.py)
 
 Key = collections.namedtuple(  # hold all posssible keys that valavm may have generated
     'Key',
