@@ -88,7 +88,7 @@ def make_control(argv):
         arg=arg,
         debug=debug,
         fixed_hps=fixed_hps,
-        path_in=dir_working + 'samples-train-validate.csv',
+        path_in=dir_working + 'samples-train.csv',
         path_out=dir_path + out_file_name,
         random_seed=random_seed,
         test=arg.test,
