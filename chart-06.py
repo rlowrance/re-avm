@@ -8,7 +8,7 @@ INPUT FILES
 
 OUTPUT FILES
  WORKING/chart-06/[test-]data.pickle
- WORKING/chart-06/[test-]YYYY-a.pdf    comparison of losses by model by month in 2007
+ WORKING/chart-06/[test-]2007-a.pdf    comparison of losses by model by month in 2007
 '''
 
 from __future__ import division
@@ -98,7 +98,6 @@ def make_control(argv):
 
 def select_and_sort(df, year, month, model):
     'return new df contain sorted observations for specified year, month, model'
-    pdb.set_trace()
     yyyymm = str(year * 100 + month)
     mask = (
         (df.model == model) &
@@ -190,38 +189,43 @@ def differ(a, b):
     return False
 
 
-def make_chart_bc(df, control, ege_control, chart_letter, suppress_same_units):
-    'write report: mae, model, HPs for year, month'
+def make_chart_b(df, control, ege_control, chart_letter):
+    '''write report: mae, model, HPs for year, month
+    NOTE: This code knows that en is never the best model
+    '''
     def report(year, month):
-        format_header = '%6s %5s %1s %7s %3s %4s %4s %-20s'
-        format_detail = '%6d %5s %1d %3s-%3s %3d %4d %4s %-20s'
+        format_header = '%6s %5s %2s %3s %4s %4s %-20s'
+        format_detail = '%6d %5s %2d %3d %4d %4s %-20s'
         n_detail_lines = 50
 
         def header(r):
             r.append('MAE for %d best-performing models and their hyperparameters' % n_detail_lines)
             r.append('Year %d Month %0d' % (year, month))
             r.append(' ')
-            r.append(format_header % ('MAE', 'Model', 'b', 'units', 'mxd', 'nest', 'mxft', 'Other HPs'))
+            r.append(format_header % ('MAE', 'Model', 'bk', 'mxd', 'nest', 'mxft', 'Other HPs'))
 
         def append_detail_line(r, series):
             'append detail line to report r'
             hp_string = ''
             # accumulate non-missing hyperparameters
             called_out_indices = set(('mae', 'model', 'yyyymm', 'n_months_back',
-                                      'units_X', 'units_y',
                                       'max_depth', 'n_estimators', 'max_features'))
             for index, value in series.iteritems():
                 print index, value
                 if index in called_out_indices:
-                    # not a hyperparameter
+                    # not a hyperparameter collected into "Other HPs"
                     continue
                 if (isinstance(value, float) and np.isnan(value)) or value is None:
                     # value is missing
                     continue
+                if index == 'units_X' and value == 'natural':
+                    continue
+                if index == 'units_y' and value == 'natural':
+                    continue
                 hp_string += '%s=%s ' % (index, value)
+            assert series.model != 'en', series
             r.append(format_detail % (
                 series.mae, series.model, series.n_months_back,
-                series.units_y[:3], series.units_X[:3],
                 series.max_depth,
                 series.n_estimators,
                 series.max_features,
@@ -230,11 +234,10 @@ def make_chart_bc(df, control, ege_control, chart_letter, suppress_same_units):
         def footer(r):
             r.append(' ')
             r.append('column legend:')
-            r.append('b -> n_months_back')
-            r.append('units -> y_units, X_units (both in {nat[ural], log}')
+            r.append('bk -> number of months back for training')
             r.append('mxd -> max depth of individual tree')
             r.append('nest -> n_estimators (number of trees)')
-            r.append('mxft -> max_features considered when selecting new split variable')
+            r.append('mxft -> max number of features considered when selecting new split variable')
 
         yyyymm = str(year * 100 + month)
         mask = (
@@ -251,18 +254,13 @@ def make_chart_bc(df, control, ege_control, chart_letter, suppress_same_units):
             print row
             row_series = row[1]
             print previous_row_series, row_series
-            if suppress_same_units:
-                if differ_only_in_units(previous_row_series, row_series):
-                    detail_line_number += 1
-                    append_detail_line(r, row_series)
-            else:
-                detail_line_number += 1
-                append_detail_line(r, row_series)
+            detail_line_number += 1
+            append_detail_line(r, row_series)
             previous_row_series = row_series
             if detail_line_number == n_detail_lines:
                 break
         footer(r)
-        r.write(control.path_chart_base + yyyymm + '-' + chart_letter + '.txt')
+        r.write(control.path_chart_base + yyyymm + '-b.txt')
 
     year = 2007
     month_seq = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
@@ -270,10 +268,84 @@ def make_chart_bc(df, control, ege_control, chart_letter, suppress_same_units):
         report(year, month)
 
 
+def make_chart_c(df, control, ege_control):
+    '''write report: mae, model, HPs for month in year 2007
+    NOTE: This code knows that en is never the best model
+    '''
+    def report(year):
+        format_header = '%3s %6s %5s %2s %3s %4s %4s %-20s'
+        format_detail = '%3s %6d %5s %2d %3d %4d %4s %-20s'
+        month_names = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+
+        def header(r):
+            r.append('MAE by month for best-performing models and their hyperparameters')
+            r.append('Year %0d' % year)
+            r.append(' ')
+            r.append(format_header % ('Mnt', 'MAE', 'Model', 'bk', 'mxd', 'nest', 'mxft', 'Other HPs'))
+
+        def write_details(r, month_number, series):
+            'append detail line to report r'
+            hp_string = ''
+            # accumulate non-missing hyperparameters
+            called_out_indices = set(('mae', 'model', 'yyyymm', 'n_months_back',
+                                      'max_depth', 'n_estimators', 'max_features'))
+            for index, value in series.iteritems():
+                print index, value
+                if index in called_out_indices:
+                    # not a hyperparameter collected into "Other HPs"
+                    continue
+                if (isinstance(value, float) and np.isnan(value)) or value is None:
+                    # value is missing
+                    continue
+                if index == 'units_X' and value == 'natural':
+                    continue
+                if index == 'units_y' and value == 'natural':
+                    continue
+                hp_string += '%s=%s ' % (index, value)
+            assert series.model != 'en', series
+            r.append(format_detail % (
+                month_names[month_number],
+                series.mae, series.model, series.n_months_back,
+                series.max_depth,
+                series.n_estimators,
+                series.max_features,
+                hp_string))
+
+        def footer(r):
+            r.append(' ')
+            r.append('column legend:')
+            r.append('mnt -> month')
+            r.append('bk -> number of months back for training')
+            r.append('mxd -> max depth of individual tree')
+            r.append('nest -> n_estimators (number of trees)')
+            r.append('mxft -> max number of features considered when selecting new split variable')
+
+        def append_month_line(r, month):
+            yyyymm = str(year * 100 + (month + 1))
+            mask = (
+                df.yyyymm == yyyymm
+            )
+            subset = df.loc[mask]
+            assert len(subset) > 0, subset.shape
+            subset_sorted = subset.sort_values('mae')
+            write_details(r, month, subset_sorted.iloc[0])  # print value with lowest error
+
+        r = Report()
+        header(r)
+        for month_number in xrange(12):
+            append_month_line(r, month_number)
+        footer(r)
+        r.write(control.path_chart_base + str(year) + '-c.txt')
+
+    year = 2007
+    report(year)
+
+
 def make_charts(df, control, ege_control):
-    make_chart_a(df, control, ege_control)
-    make_chart_bc(df, control, ege_control, 'b', suppress_same_units=True)
-    make_chart_bc(df, control, ege_control, 'c', suppress_same_units=False)
+    # make_chart_a(df, control, ege_control)
+    # make_chart_b(df, control, ege_control)
+    make_chart_c(df, control, ege_control)
 
 
 def errors(actuals, predictions):
