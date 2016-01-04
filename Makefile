@@ -177,7 +177,7 @@ CHART06REDUCTION = $(WORKING)/chart-06/data.pickle
 $(CHART06REDUCTION): chart-06.py $(VALAVM)
 	$(PYTHON) chart-06.py --data
 
-$(WORKING)/chart-06/2007-a.pdf: chart-06.py $(CHART06REDUCTION)
+$(WORKING)/chart-06/2007-a.pdf: chart-06.py $(CHART06REDUCTION) $(WORKING)/chart-01/data.pickle
 	$(PYTHON) chart-06.py
 
 # valavm
