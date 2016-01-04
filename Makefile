@@ -13,8 +13,8 @@ ALL += $(WORKING)/census-features-derived.csv
 # CHART02 and RFBOUND are obsoleted by RFVAL
 # their rules and recipes are in rfbound.mk
 
-# make -j 4 runs OK to make all the valavm objects
-# TODO: test make -j 6 to see if it runs out of memory
+# make -j 6 runs OK to make all the valavm objects
+# TODO: test make -j 12 to see if it runs out of memory
 VALAVM += $(WORKING)/valavm/200701.pickle
 VALAVM += $(WORKING)/valavm/200702.pickle
 VALAVM += $(WORKING)/valavm/200703.pickle
@@ -104,6 +104,7 @@ CHARTS += $(WORKING)/chart-01/median-price.pdf
 CHARTS += $(WORKING)/chart-03/max_depth-2004-02.pdf
 CHARTS += $(WORKING)/chart-04/2004-02.pdf
 CHARTS += $(WORKING)/chart-05/2004.pdf
+CHARTS += $(WORKING)/chart-06/2007-a.pdf  # plus others
 
 ALL += $(CHARTS)
 
@@ -169,6 +170,15 @@ $(CHART05REDUCTION): chart-05.py $(VALGBR)
 
 $(WORKING)/chart-05/2004.pdf: chart-05.py $(CHART05REDUCTION)
 	$(PYTHON) chart-05.py 
+
+# chart-06
+CHART06REDUCTION = $(WORKING)/chart-06/data.pickle
+
+$(CHART06REDUCTION): chart-06.py $(VALAVM)
+	$(PYTHON) chart-06.py --data
+
+$(WORKING)/chart-06/2007-a.pdf: chart-06.py $(CHART06REDUCTION)
+	$(PYTHON) chart-06.py
 
 # valavm
 valavm_dep += valavm.py
