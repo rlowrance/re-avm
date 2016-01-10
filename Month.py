@@ -19,6 +19,11 @@ class Month(object):
             elif isinstance(value1, int):
                 self.month = value1 % 100
                 self.year = (value1 - self.month) / 100
+            elif isinstance(value1, Month):
+                self.month = value1.month
+                self.year = value1.year
+            else:
+                print 'construction error: value1 is of type %s' % type(value1), value1
         else:
             self.year = int(value1)
             self.month = int(value2)
@@ -37,12 +42,19 @@ class Month(object):
         else:
             return Month(self.year, self.month + 1)
 
-    def decrement(self):
+    def decrement(self, by=1):
         'return new Month one month before self'
-        if self.month == 1:
-            return Month(self.year - 1, 12)
+        assert by >= 0
+        print self, by
+        if by > 12:
+            years = by // 12
+            print years
+            return Month(self.year - years, self.month).decrement(by - 12 * years)
+        elif self.month > by:
+            return Month(self.year, self.month - by)
         else:
-            return Month(self.year, self.month - 1)
+            print 12 - by + 1
+            return Month(self.year - 1, 12 - by + 1)
 
     def as_str(self):
         return '%04d%02d' % (self.year, self.month)
@@ -59,6 +71,9 @@ class TestMonth(unittest.TestCase):
         self.assertTrue(Month('200703').equal(Month(2007, 03)))
         self.assertTrue(Month(200703).equal(Month(2007, 03)))
         self.assertTrue(Month(200712).equal(Month(2007, 12)))
+        m1 = Month(2007, 3)
+        m2 = Month(m1)
+        self.assertTrue(m1 != m2)
 
     def test_as_str(self):
         self.assertTrue(Month(200703).as_str() == '200703')
@@ -76,6 +91,11 @@ class TestMonth(unittest.TestCase):
     def test_decrement(self):
         self.assertTrue(Month(200701).decrement().equal(Month(200612)))
         self.assertTrue(Month(200712).decrement().equal(Month(200711)))
+        self.assertTrue(Month(200701).decrement(1).equal(Month(200612)))
+        self.assertTrue(Month(200701).decrement(2).equal(Month(200611)))
+        self.assertTrue(Month(200701).decrement(12).equal(Month(200601)))
+        self.assertTrue(Month(200701).decrement(13).equal(Month(200512)))
+        self.assertTrue(Month(200701).decrement(120).equal(Month(199701)))
 
 if __name__ == '__main__':
     unittest.main()
