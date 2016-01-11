@@ -45,15 +45,12 @@ class Month(object):
     def decrement(self, by=1):
         'return new Month one month before self'
         assert by >= 0
-        print self, by
         if by > 12:
             years = by // 12
-            print years
             return Month(self.year - years, self.month).decrement(by - 12 * years)
         elif self.month > by:
             return Month(self.year, self.month - by)
         else:
-            print 12 - by + 1
             return Month(self.year - 1, 12 - by + 1)
 
     def as_str(self):
