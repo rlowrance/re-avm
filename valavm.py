@@ -1,14 +1,8 @@
 '''Determine accuracy on validation set YYYYMM of various hyperparameter setting
-for AVMs based on 3 models (linear, random forests, gradient boosting regression
+for AVMs based on 3 models (linear, random forests, gradient boosting regression)
 
 INVOCATION
-  python valavm.py YYYYMM [-test]
-
-INPUT FILE:
-  WORKING/samples-train.csv
-
-OUTPUT FILE:
-  WORKING/valgrb/YYYYMM.pickle
+  python valavm.py YYYYMM [--in PATH_IN] [--out PATH_OUT] [--test]
 '''
 
 from __future__ import division
@@ -67,16 +61,25 @@ def make_grid():
 def make_control(argv):
     # return a Bunch
 
+    def check_is_string(obj, name):
+        if not isinstance(obj, str):
+            usage('%s is not a string' % name)
+
     print argv
-    if not(2 <= len(argv) <= 3):
+    if not(6 <= len(argv) <= 7):
         usage('invalid number of arguments')
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
         base_name='valavm',
         yyyymm=argv[1],
+        path_in=pcl.get_arg('--in'),
+        path_out=pcl.get_arg('--out'),
         test=pcl.has_arg('--test'),
     )
+
+    check_is_string(arg.path_in, 'PATH_IN')
+    check_is_string(arg.path_out, 'PATH_OUT')
 
     try:
         arg.yyyymm = int(arg.yyyymm)
@@ -90,10 +93,7 @@ def make_control(argv):
 
     debug = False
 
-    out_file_name = (
-        ('test-' if arg.test else '') +
-        '%s.pickle' % arg.yyyymm
-    )
+    arg.path_out = ('test-' if arg.test else '') + arg.path_out
 
     # assure output directory exists
     dir_path = dir_working + arg.base_name + '/'
@@ -112,8 +112,6 @@ def make_control(argv):
         debug=debug,
         fixed_hps=fixed_hps,
         grid=make_grid(),
-        path_in=dir_working + 'samples-train.csv',
-        path_out=dir_path + out_file_name,
         random_seed=random_seed,
         test=arg.test,
     )
@@ -280,14 +278,14 @@ def main(argv):
     print control
 
     samples = pd.read_csv(
-        control.path_in,
+        control.arg.path_in,
         nrows=None if control.test else None,
     )
     print 'samples.shape', samples.shape
 
     result = do_val(control, samples)
 
-    with open(control.path_out, 'wb') as f:
+    with open(control.arg.path_out, 'wb') as f:
         pickle.dump((result, control), f)
 
     print control
