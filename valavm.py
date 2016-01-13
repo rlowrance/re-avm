@@ -24,6 +24,7 @@ import layout_transactions
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
 from Path import Path
+from Timer import Timer
 # from TimeSeriesCV import TimeSeriesCV
 cc = columns_contain
 
@@ -93,8 +94,6 @@ def make_control(argv):
 
     debug = False
 
-    arg.path_out = ('test-' if arg.test else '') + arg.path_out
-
     # assure output directory exists
     dir_path = dir_working + arg.base_name + '/'
     if not os.path.exists(dir_path):
@@ -134,7 +133,7 @@ ResultValue = collections.namedtuple(
 )
 
 
-def do_val(control, samples):
+def do_val(control, samples, save):
     'run grid search on control.grid.hyperparameters across the 3 model kinds'
 
     def check_for_missing_predictions(result):
@@ -190,7 +189,7 @@ def do_val(control, samples):
                             alpha,
                             l1_ratio,
                         )
-                        result[result_key] = fit_and_run(avm)
+                        save(result_key, fit_and_run(avm))
                         if control.test:
                             return
 
@@ -226,7 +225,7 @@ def do_val(control, samples):
                                 loss,
                                 learning_rate,
                             )
-                            result[result_key] = fit_and_run(avm)
+                            save(result_key, fit_and_run(avm))
                             if control.test:
                                 return
 
@@ -255,7 +254,7 @@ def do_val(control, samples):
                         max_features,
                         max_depth,
                     )
-                    result[result_key] = fit_and_run(avm)
+                    save(result_key, fit_and_run(avm))
                     if control.test:
                         return
 
@@ -271,6 +270,7 @@ def do_val(control, samples):
 
 
 def main(argv):
+    timer = Timer()
     control = make_control(argv)
     if False:
         # avoid error in sklearn that requires flush to have no arguments
@@ -283,10 +283,18 @@ def main(argv):
     )
     print 'samples.shape', samples.shape
 
-    result = do_val(control, samples)
+    output_file = open(control.arg.path_out, 'wb')
 
-    with open(control.arg.path_out, 'wb') as f:
-        pickle.dump((result, control), f)
+    def save(result_key, result_value):
+        'append to output file'
+        pickle.dump((result_key, result_value), output_file)
+
+    do_val(control, samples, save)
+
+    output_file.close()
+
+    print 'elapsed wall clock seconds:', timer.elapsed_wallclock_seconds()
+    print 'elapsed CPU seconds       :', timer.elapsed_cpu_seconds()
 
     print control
     if control.test:
