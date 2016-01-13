@@ -50,7 +50,7 @@ VALGBR += $(WORKING)/valgbr/200805.pickle
 VALGBR += $(WORKING)/valgbr/200808.pickle
 VALGBR += $(WORKING)/valgbr/200811.pickle
 VALGBR += $(WORKING)/valgbr/200902.pickle
-ALL += $(VALGBR)
+#ALL += $(VALGBR)
 
 VALLIN += $(WORKING)/vallin/200402.pickle
 VALLIN += $(WORKING)/vallin/200405.pickle
@@ -73,7 +73,7 @@ VALLIN += $(WORKING)/vallin/200805.pickle
 VALLIN += $(WORKING)/vallin/200808.pickle
 VALLIN += $(WORKING)/vallin/200811.pickle
 VALLIN += $(WORKING)/vallin/200902.pickle
-ALL += $(VALLIN)
+#ALL += $(VALLIN)
 
 VALRF += $(WORKING)/valrf/200402.pickle
 VALRF += $(WORKING)/valrf/200405.pickle
@@ -96,7 +96,7 @@ VALRF += $(WORKING)/valrf/200805.pickle
 VALRF += $(WORKING)/valrf/200808.pickle
 VALRF += $(WORKING)/valrf/200811.pickle
 VALRF += $(WORKING)/valrf/200902.pickle
-ALL += $(VALRF)
+#ALL += $(VALRF)
 
 CHARTS += $(WORKING)/chart-01/median-price.pdf
 # use max_depth as a proxy for both max_depth and max_features
@@ -186,7 +186,7 @@ valavm_dep += AVM.py
 valavm_dep += AVM_gradient_boosting_regressor.py
 valavm_dep += AVM_random_forest_regressor.py
 valavm_dep += AVM_elastic_net.py
-valavm_dep += $(WORKING)/samples-train-validate.csv
+valavm_dep += $(WORKING)/samples-train.csv
 
 $(WORKING)/valavm/200701.pickle: $(valavm_dep)
 	$(PYTHON) valavm.py 200701
@@ -228,7 +228,7 @@ $(WORKING)/valavm/200712.pickle: $(valavm_dep)
 # valgbr
 valgbr_dep += valgbr.py 
 valgbr_dep += AVM_gradient_boosting_regressor.py
-valgbr_dep += $(WORKING)/samples-train-validate.csv
+valgbr_dep += $(WORKING)/samples-train.csv
 $(WORKING)/valgbr/200402.pickle: $(valgbr_dep)
 	$(PYTHON) valgbr.py 200402
 
@@ -296,7 +296,7 @@ $(WORKING)/valgbr/200902.pickle: $(valgbr_dep)
 # vallin
 vallin_dep += vallin.py 
 vallin_dep += AVM_elastic_net.py 
-vallin_dep += $(WORKING)/samples-train-validate.csv
+vallin_dep += $(WORKING)/samples-train.csv
 
 $(WORKING)/vallin/200402.pickle: $(vallin_dep)
 	$(PYTHON) vallin.py 200402
@@ -364,7 +364,7 @@ $(WORKING)/vallin/200902.pickle: $(vallin_dep)
 # valrf
 valrf_dep += valrf.py 
 valrf_dep += AVM_random_forest_regressor.py
-valrf_dep += $(WORKING)/samples-train-validate.csv
+valrf_dep += $(WORKING)/samples-train.csv
 
 $(WORKING)/valrf/200402.pickle: $(valrf_dep) 
 	$(PYTHON) valrf.py 200402
