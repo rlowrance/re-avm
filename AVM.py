@@ -32,7 +32,7 @@ def avm_scoring(estimator, df):
 
 
 class AVM(sklearn.base.BaseEstimator):
-    'one estimator for two underlying models: ElasticNet and RandomForestRegressor'
+    'one estimator for several underlying models'
     def __init__(self,
                  model_name=None,          # parameters for all models
                  forecast_time_period=None,
