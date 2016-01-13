@@ -5,7 +5,7 @@ INVOCATION
   python vallin.py YYYYMM [-test]
 
 INPUT FILE:
-  WORKING/samples-train-validate.csv
+  WORKING/samples-train.csv
 
 OUTPUT FILE:
   WORKING/vallin/YYYYMM.pickle
@@ -80,7 +80,7 @@ def make_control(argv):
     return Bunch(
         arg=arg,
         debug=debug,
-        path_in=dir_working + 'samples-train-validate.csv',
+        path_in=dir_working + 'samples-train.csv',
         path_out=dir_path + out_file_name,
         random_seed=random_seed,
         test=arg.test,
