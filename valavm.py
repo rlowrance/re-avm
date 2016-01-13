@@ -5,7 +5,7 @@ INVOCATION
   python valavm.py YYYYMM [-test]
 
 INPUT FILE:
-  WORKING/samples-train-validate.csv
+  WORKING/samples-train.csv
 
 OUTPUT FILE:
   WORKING/valgrb/YYYYMM.pickle
@@ -39,6 +39,29 @@ def usage(msg=None):
     if msg is not None:
         print msg
     sys.exit(1)
+
+
+def make_grid():
+    # return Bunch of hyperparameter settings
+    return Bunch(
+        # HP settings to test across all models
+        n_months_back_seq=(1, 2, 3, 6, 12),
+
+        # HP settings to test for ElasticNet models
+        alpha_seq=(0.01, 0.03, 0.1, 0.3, 1.0),  # multiplies the penalty term
+        l1_ratio_seq=(0.0, 0.25, 0.50, 0.75, 1.0),  # 0 ==> L2 penalty, 1 ==> L1 penalty
+        units_X_seq=('natural', 'log'),
+        units_y_seq=('natural', 'log'),
+
+        # HP settings to test for tree-based models
+        n_estimators_seq=(10, 30, 100, 300),
+        max_features_seq=(1, 'log2', 'sqrt', 'auto'),
+        max_depth_seq=(1, 3, 10, 30, 100, 300),
+
+        # HP setting to test for GradientBoostingRegression models
+        learning_rate_seq=(.10, .25, .50, .75, .99),
+        loss_seq=('ls', 'quantile'),
+    )
 
 
 def make_control(argv):
@@ -88,6 +111,7 @@ def make_control(argv):
         arg=arg,
         debug=debug,
         fixed_hps=fixed_hps,
+        grid=make_grid(),
         path_in=dir_working + 'samples-train.csv',
         path_out=dir_path + out_file_name,
         random_seed=random_seed,
@@ -113,7 +137,7 @@ ResultValue = collections.namedtuple(
 
 
 def do_val(control, samples):
-    'run grid search on hyperparameters across the 3 model kinds'
+    'run grid search on control.grid.hyperparameters across the 3 model kinds'
 
     def check_for_missing_predictions(result):
         for k, v in result.iteritems():
@@ -121,33 +145,6 @@ def do_val(control, samples):
                 print k
                 print 'found missing predictions'
                 pdb.set_trace()
-
-    # HP settings to test across all models
-    n_months_back_seq = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-
-    # HP settings to test for ElasticNet models
-    alpha_seq = (0.01, 0.03, 0.1, 0.3, 1.0)  # multiplies the penalty term
-    l1_ratio_seq = (0.0, 0.25, 0.50, 0.75, 1.0)  # 0 ==> L2 penalty, 1 ==> L1 penalty
-    units_X_seq = ('natural', 'log')
-    units_y_seq = ('natural', 'log')
-
-    # HP settings to test for tree-based models
-    n_estimators_seq = (10, 30, 100, 300, 1000)
-    max_features_seq = (1, 'log2', 'sqrt', .1, .3, 'auto')
-    max_depth_seq = (1, 3, 10, 30, 100, 300)
-
-    # reduce grid size to shorten computation time
-    n_estimators_seq = (10, 30, 100, 300)
-    max_features_seq = (1, 'log2', 'sqrt', 'auto')
-    max_depth_seq = (1, 3, 10, 30, 100)
-
-    # HP setting to test for GradientBoostingRegression models
-    learning_rate_seq = (.10, .20, .30, .40, .50, .60, .70, .80, .90)
-    loss_seq = ('ls', 'lad', 'quantile')
-
-    # reduce grid size to shorten computation time
-    learning_rate_seq = (.10, .25, .50, .75, .99)
-    loss_seq = ('ls', 'quantile')
 
     def max_features_s(max_features):
         'convert to 4-character string (for printing)'
@@ -169,10 +166,10 @@ def do_val(control, samples):
 
     def search_en(n_months_back):
         'search over ElasticNet HPs, appending to result'
-        for units_X in units_X_seq:
-            for units_y in units_y_seq:
-                for alpha in alpha_seq:
-                    for l1_ratio in l1_ratio_seq:
+        for units_X in control.grid.units_X_seq:
+            for units_y in control.grid.units_y_seq:
+                for alpha in control.grid.alpha_seq:
+                    for l1_ratio in control.grid.l1_ratio_seq:
                         print (
                             '%6d %3s %1d %3s %3s %4.2f %4.2f' %
                             (control.arg.yyyymm, 'en', n_months_back, units_X[:3], units_y[:3],
@@ -201,11 +198,11 @@ def do_val(control, samples):
 
     def search_gbr(n_months_back):
         'search over GradientBoostingRegressor HPs, appending to result'
-        for n_estimators in n_estimators_seq:
-            for max_features in max_features_seq:
-                for max_depth in max_depth_seq:
-                    for loss in loss_seq:
-                        for learning_rate in learning_rate_seq:
+        for n_estimators in control.grid.n_estimators_seq:
+            for max_features in control.grid.max_features_seq:
+                for max_depth in control.grid.max_depth_seq:
+                    for loss in control.grid.loss_seq:
+                        for learning_rate in control.grid.learning_rate_seq:
                             print (
                                 '%6d %3s %1d %4d %4s %3d %8s %4.2f' %
                                 (control.arg.yyyymm, 'gbr', n_months_back,
@@ -221,7 +218,7 @@ def do_val(control, samples):
                                 alpha=.5 if loss == 'quantile' else None,
                                 n_estimators=n_estimators,  # number of boosting stages
                                 max_depth=max_depth,  # max depth of any tree
-                                max_features=max_features,  # how many features to test when splitting
+                                max_features=max_features,  # how many features to test whenBoosting splitting
                             )
                             result_key = ResultKeyGbr(
                                 n_months_back,
@@ -237,9 +234,9 @@ def do_val(control, samples):
 
     def search_rf(n_months_back):
         'search over RandomForestRegressor HPs, appending to result'
-        for n_estimators in n_estimators_seq:
-            for max_features in max_features_seq:
-                for max_depth in max_depth_seq:
+        for n_estimators in control.grid.n_estimators_seq:
+            for max_features in control.grid.max_features_seq:
+                for max_depth in control.grid.max_depth_seq:
                     print (
                         '%6d %3s %1d %4d %4s %3d' %
                         (control.arg.yyyymm, 'rfr', n_months_back,
@@ -265,7 +262,7 @@ def do_val(control, samples):
                         return
 
     # grid search for all model types
-    for n_months_back in n_months_back_seq:
+    for n_months_back in control.grid.n_months_back_seq:
         search_en(n_months_back)
         search_gbr(n_months_back)
         search_rf(n_months_back)
