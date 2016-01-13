@@ -18,7 +18,6 @@ def make_test_train(test_time_period, train_n_months_back, trade_month_column_na
     test_df = samples[test_mask]
 
     first_train_month = Month(test_time_period).decrement(train_n_months_back)
-    print 'first_train_month', first_train_month
     train_mask = (first_train_month.as_int() <= trade_month) & (trade_month < test_month)
     train_df = samples[train_mask]
 
@@ -53,7 +52,6 @@ class Test_make_test_train(unittest.TestCase):
         vp(train)
         assert len(test) == 1
         assert len(train) == 2
-        pass
 
 
 if __name__ == '__main__':
