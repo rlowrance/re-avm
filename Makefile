@@ -189,40 +189,40 @@ valavm_dep += AVM_elastic_net.py
 valavm_dep += $(WORKING)/samples-train.csv
 
 $(WORKING)/valavm/200701.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200701
+	$(PYTHON) valavm.py 200701 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200701.pickle
 
 $(WORKING)/valavm/200702.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200702
+	$(PYTHON) valavm.py 200702 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200702.pickle
 
 $(WORKING)/valavm/200703.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200703
+	$(PYTHON) valavm.py 200703 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200703.pickle
 
 $(WORKING)/valavm/200704.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200704
+	$(PYTHON) valavm.py 200704 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200704.pickle
 
 $(WORKING)/valavm/200705.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200705
+	$(PYTHON) valavm.py 200705 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200705.pickle
 
 $(WORKING)/valavm/200706.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200706
+	$(PYTHON) valavm.py 200706 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200706.pickle
 
 $(WORKING)/valavm/200707.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200707
+	$(PYTHON) valavm.py 200707 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200707.pickle
 
 $(WORKING)/valavm/200708.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200708
+	$(PYTHON) valavm.py 200708 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200708.pickle
 
 $(WORKING)/valavm/200709.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200709
+	$(PYTHON) valavm.py 200709 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200709.pickle
 
 $(WORKING)/valavm/200710.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200710
+	$(PYTHON) valavm.py 200710 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200710.pickle
 
 $(WORKING)/valavm/200711.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200711
+	$(PYTHON) valavm.py 200711 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200711.pickle
 
 $(WORKING)/valavm/200712.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200712
+	$(PYTHON) valavm.py 200712 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200712.pickle
 
 
 # valgbr
