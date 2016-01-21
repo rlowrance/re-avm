@@ -378,13 +378,7 @@ def extract_yyyymm(path):
 
 def make_data(control):
     'return data frame, ege_control'
-    def process_file(path, rows_list):
-        'mutate rows_list, a list of dictionaries, to include objects at path'
-        print 'reducing', path
-        with open(path, 'rb') as f:
-            val_result, ege_control = pickle.load(f)
-        yyyymm = extract_yyyymm(path)
-        for k, v in val_result.iteritems():
+    def make_row(yyyymm, k, v):
             is_en = isinstance(k, ResultKeyEn)
             is_gbr = isinstance(k, ResultKeyGbr)
             is_rfr = isinstance(k, ResultKeyRfr)
@@ -392,12 +386,13 @@ def make_data(control):
             model = 'en' if is_en else ('gb' if is_gbr else 'rf')
             actuals = v.actuals.values
             predictions = v.predictions
+
             if predictions is None:
                 print k
                 print 'predictions is missing'
                 pdb.set_trace()
             rmse, mae = errors(actuals, predictions)
-            row = {
+            return {
                 'model': model,
                 'yyyymm': yyyymm,
                 'n_months_back': k.n_months_back,
@@ -412,16 +407,31 @@ def make_data(control):
                 'learning_rate': k.learning_rate if is_gbr else None,
                 'mae': mae,
             }
-            rows_list.append(row)
-        return ege_control  # return last ege_control value (they should all be the same)
+
+    def append_rows(path, rows_list):
+        'mutate rows_list, a list of dictionaries, to include objects at path'
+        print 'reducing', path
+        yyyymm = extract_yyyymm(path)
+        n = 0
+        with open(path, 'rb') as f:
+            while True:
+                try:
+                    key, value = pickle.load(f)  # read until EOF
+                    n += 1
+                    rows_list.append(make_row(yyyymm, key, value))
+                except ValueError as e:
+                    print key, value
+                    print 'ValueError', e  # ignore error
+                except EOFError:
+                    break
+        print 'number of records', n
 
     rows_list = []
     for path in glob.glob(control.path_in_ege):
-        ege_control = process_file(path, rows_list)
+        append_rows(path, rows_list)
         if control.test:
             break
-    df = pd.DataFrame(rows_list)
-    return df, ege_control  # return last ege_control, not all
+    return pd.DataFrame(rows_list)
 
 
 def main(argv):
@@ -430,9 +440,9 @@ def main(argv):
     print control
 
     if control.arg.data:
-        df, ege_control = make_data(control)
+        df = make_data(control)
         with open(control.path_reduction, 'wb') as f:
-            pickle.dump((df, ege_control, control), f)
+            pickle.dump((df, control), f)
     else:
         with open(control.path_reduction, 'rb') as f:
             df, ege_control, data_control = pickle.load(f)
