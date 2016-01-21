@@ -420,7 +420,8 @@ def make_data(control):
                     n += 1
                     rows_list.append(make_row(yyyymm, key, value))
                 except ValueError as e:
-                    print key, value
+                    print key
+                    print value
                     print 'ValueError', e  # ignore error
                 except EOFError:
                     break
