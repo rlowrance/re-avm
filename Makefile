@@ -15,18 +15,21 @@ ALL += $(WORKING)/census-features-derived.csv
 
 # make -j 6 runs OK to make all the valavm objects
 # TODO: test make -j 12 to see if it runs out of memory
-VALAVM += $(WORKING)/valavm/200701.pickle
-VALAVM += $(WORKING)/valavm/200702.pickle
-VALAVM += $(WORKING)/valavm/200703.pickle
-VALAVM += $(WORKING)/valavm/200704.pickle
-VALAVM += $(WORKING)/valavm/200705.pickle
-VALAVM += $(WORKING)/valavm/200706.pickle
-VALAVM += $(WORKING)/valavm/200707.pickle
-VALAVM += $(WORKING)/valavm/200708.pickle
-VALAVM += $(WORKING)/valavm/200709.pickle
-VALAVM += $(WORKING)/valavm/200710.pickle
-VALAVM += $(WORKING)/valavm/200711.pickle
-VALAVM += $(WORKING)/valavm/200712.pickle
+VALAVM_JC += $(WORKING)/valavm/200612.pickle
+VALAVM_RL += $(WORKING)/valavm/200701.pickle
+VALAVM_RL += $(WORKING)/valavm/200702.pickle
+VALAVM_RL += $(WORKING)/valavm/200703.pickle
+VALAVM_RL += $(WORKING)/valavm/200704.pickle
+VALAVM_RL += $(WORKING)/valavm/200705.pickle
+VALAVM_RL += $(WORKING)/valavm/200706.pickle
+VALAVM_RL += $(WORKING)/valavm/200707.pickle
+VALAVM_RL += $(WORKING)/valavm/200708.pickle
+VALAVM_RL += $(WORKING)/valavm/200709.pickle
+VALAVM_RL += $(WORKING)/valavm/200710.pickle
+VALAVM_RL += $(WORKING)/valavm/200711.pickle
+VALAVM_RL += $(WORKING)/valavm/200712.pickle
+VALAVM_JC += $(WORKING)/valavm/200801.pickle
+VALAVM += $(VALAVM_JC) $(VALAVM_RL)
 ALL += $(VALAVM)
 
 VALGBR += $(WORKING)/valgbr/200402.pickle
@@ -181,12 +184,21 @@ $(WORKING)/chart-06/2007-a.pdf: chart-06.py $(CHART06REDUCTION) $(WORKING)/chart
 	$(PYTHON) chart-06.py
 
 # valavm
+.PHONY: VALAVM_JC
+VALAVM_JC: $(VALAVM_JC)
+
+.PHONY: VALAVM_RL
+VALAVM_RL: $(VALAVM_RL)
+
 valavm_dep += valavm.py
 valavm_dep += AVM.py
 valavm_dep += AVM_gradient_boosting_regressor.py
 valavm_dep += AVM_random_forest_regressor.py
 valavm_dep += AVM_elastic_net.py
 valavm_dep += $(WORKING)/samples-train.csv
+
+$(WORKING)/valavm/200612.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200612 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200612.pickle
 
 $(WORKING)/valavm/200701.pickle: $(valavm_dep)
 	$(PYTHON) valavm.py 200701 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200701.pickle
@@ -223,6 +235,9 @@ $(WORKING)/valavm/200711.pickle: $(valavm_dep)
 
 $(WORKING)/valavm/200712.pickle: $(valavm_dep)
 	$(PYTHON) valavm.py 200712 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200712.pickle
+
+$(WORKING)/valavm/200801.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200801 --in $(WORKING)/samples-train.csv --out $(WORKING)/valavm/200801.pickle
 
 
 # valgbr
