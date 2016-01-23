@@ -35,6 +35,10 @@ class DiskDictionary(object):
                 break  # fall through and yield StopIteration
         self.f.close()
 
+    def file_exists(self):
+        'return True iff backing file exists at the provided path'
+        return os.path.exists(self.filepath)
+
     def keyset(self):
         result = set()
         for k, v in self.items():
@@ -80,6 +84,11 @@ class Test(unittest.TestCase):
         with DiskDictionary(path) as dd:
             keyset = dd.keyset()
             self.assertEqual(len(keyset), 2)
+
+    def test_file_exists(self):
+        path = '/tmp/blah blah'
+        with DiskDictionary(path) as dd:
+            self.assertFalse(dd.file_exists())
 
 
 if __name__ == '__main__':
