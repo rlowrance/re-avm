@@ -21,7 +21,7 @@ class DiskDictionary(object):
             self.f.close()
 
     def items(self):
-        'generate (key, value) pairs'
+        'generate (key, value) pairs that are in the disk file'
         if self.f is not None:
             raise RuntimeError('backing file already opened')
         self.f = open(self.filepath, 'rb')
@@ -34,6 +34,7 @@ class DiskDictionary(object):
                 self.f.close()
                 break  # fall through and yield StopIteration
         self.f.close()
+        self.f = None
 
     def file_exists(self):
         'return True iff backing file exists at the provided path'
@@ -41,9 +42,10 @@ class DiskDictionary(object):
 
     def keyset(self):
         result = set()
-        for k, v in self.items():
-            assert k not in result, 'duplicate key: %s' % str(k)
-            result.add(k)
+        if self.file_exists():
+            for k, v in self.items():
+                assert k not in result, 'duplicate key: %s' % str(k)
+                result.add(k)
         return result
 
     # implement with DiskDictionary(path) as dd:
