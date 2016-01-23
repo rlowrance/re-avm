@@ -3,6 +3,9 @@ for AVMs based on 3 models (linear, random forests, gradient boosting regression
 
 INVOCATION
   python valavm.py YYYYMM [--in PATH_IN] [--out PATH_OUT] [--test]
+  defaults:
+      PATH_IN  ../data/working/samples-train.csv
+      PATH_OUT ../data/working/valavm/YYYYYMM.pickle
 '''
 
 from __future__ import division
@@ -67,7 +70,7 @@ def make_control(argv):
             usage('%s is not a string' % name)
 
     print argv
-    if not(6 <= len(argv) <= 7):
+    if not(2 <= len(argv) <= 7):
         usage('invalid number of arguments')
 
     pcl = ParseCommandLine(argv)
@@ -78,6 +81,12 @@ def make_control(argv):
         path_out=pcl.get_arg('--out'),
         test=pcl.has_arg('--test'),
     )
+
+    # set defaults
+    if arg.path_in is None:
+        arg.path_in = '../data/working/samples-train.csv'
+    if arg.path_out is None:
+        arg.path_out = '../data/working/' + arg.yyyymm + '.pickle'
 
     check_is_string(arg.path_in, 'PATH_IN')
     check_is_string(arg.path_out, 'PATH_OUT')
