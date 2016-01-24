@@ -6,12 +6,12 @@ INVOCATION
   defaults:
       PATH_IN  ../data/working/samples-train.csv
       PATH_OUT ../data/working/valavm/YYYYYMM.pickle
+  Note: If PATH_OUT exists, extend it (providing checkpoint-restart)
 '''
 
 from __future__ import division
 
 import collections
-import cPickle as pickle
 import numpy as np
 import os
 import pandas as pd
@@ -23,6 +23,7 @@ import sys
 import AVM
 from Bunch import Bunch
 from columns_contain import columns_contain
+from DiskDictionary import DiskDictionary
 import layout_transactions
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
@@ -86,7 +87,7 @@ def make_control(argv):
     if arg.path_in is None:
         arg.path_in = '../data/working/samples-train.csv'
     if arg.path_out is None:
-        arg.path_out = '../data/working/' + arg.yyyymm + '.pickle'
+        arg.path_out = '../data/working/valavm/' + arg.yyyymm + '.pickle'
 
     check_is_string(arg.path_in, 'PATH_IN')
     check_is_string(arg.path_out, 'PATH_OUT')
@@ -142,7 +143,7 @@ ResultValue = collections.namedtuple(
 )
 
 
-def do_val(control, samples, save):
+def do_val(control, samples, save, already_exists):
     'run grid search on control.grid.hyperparameters across the 3 model kinds'
 
     def check_for_missing_predictions(result):
@@ -180,7 +181,7 @@ def do_val(control, samples, save):
                             '%6d %3s %1d %3s %3s %4.2f %4.2f' %
                             (control.arg.yyyymm, 'en', n_months_back, units_X[:3], units_y[:3],
                              alpha, l1_ratio)
-                        )
+                        ),
                         avm = AVM.AVM(
                             model_name='ElasticNet',
                             forecast_time_period=control.arg.yyyymm,
@@ -198,9 +199,13 @@ def do_val(control, samples, save):
                             alpha,
                             l1_ratio,
                         )
-                        save(result_key, fit_and_run(avm))
-                        if control.test:
-                            return
+                        if already_exists(result_key):
+                            print 'already exists'
+                        else:
+                            print
+                            save(result_key, fit_and_run(avm))
+                            if control.test:
+                                return
 
     def search_gbr(n_months_back):
         'search over GradientBoostingRegressor HPs, appending to result'
@@ -213,7 +218,7 @@ def do_val(control, samples, save):
                                 '%6d %3s %1d %4d %4s %3d %8s %4.2f' %
                                 (control.arg.yyyymm, 'gbr', n_months_back,
                                  n_estimators, max_features_s(max_features), max_depth, loss, learning_rate)
-                            )
+                            ),
                             avm = AVM.AVM(
                                 model_name='GradientBoostingRegressor',
                                 forecast_time_period=control.arg.yyyymm,
@@ -234,9 +239,13 @@ def do_val(control, samples, save):
                                 loss,
                                 learning_rate,
                             )
-                            save(result_key, fit_and_run(avm))
-                            if control.test:
-                                return
+                            if already_exists(result_key):
+                                print 'already exists'
+                            else:
+                                print
+                                save(result_key, fit_and_run(avm))
+                                if control.test:
+                                    return
 
     def search_rf(n_months_back):
         'search over RandomForestRegressor HPs, appending to result'
@@ -247,7 +256,7 @@ def do_val(control, samples, save):
                         '%6d %3s %1d %4d %4s %3d' %
                         (control.arg.yyyymm, 'rfr', n_months_back,
                          n_estimators, max_features_s(max_features), max_depth)
-                    )
+                    ),
                     avm = AVM.AVM(
                         model_name='RandomForestRegressor',
                         forecast_time_period=control.arg.yyyymm,
@@ -263,9 +272,13 @@ def do_val(control, samples, save):
                         max_features,
                         max_depth,
                     )
-                    save(result_key, fit_and_run(avm))
-                    if control.test:
-                        return
+                    if already_exists(result_key):
+                        print 'already exists'
+                    else:
+                        print
+                        save(result_key, fit_and_run(avm))
+                        if control.test:
+                            return
 
     # grid search for all model types
     for n_months_back in control.grid.n_months_back_seq:
@@ -292,15 +305,20 @@ def main(argv):
     )
     print 'samples.shape', samples.shape
 
-    output_file = open(control.arg.path_out, 'wb')
+    # assure output file exists
+    if not os.path.exists(control.arg.path_out):
+        os.system('touch %s' % control.arg.path_out)
 
-    def save(result_key, result_value):
-        'append to output file'
-        pickle.dump((result_key, result_value), output_file)
+    with DiskDictionary(control.arg.path_out) as dd:
+        existing_keys = dd.keyset()
 
-    do_val(control, samples, save)
+        def already_exists(key):
+            return key in existing_keys
 
-    output_file.close()
+        def save(result_key, result_value):
+            dd.append(result_key, result_value)
+
+        do_val(control, samples, save, already_exists)
 
     print 'elapsed wall clock seconds:', timer.elapsed_wallclock_seconds()
     print 'elapsed CPU seconds       :', timer.elapsed_cpu_seconds()
