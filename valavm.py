@@ -12,6 +12,7 @@ INVOCATION
 from __future__ import division
 
 import collections
+import cPickle as pickle
 import numpy as np
 import os
 import pandas as pd
@@ -23,7 +24,6 @@ import sys
 import AVM
 from Bunch import Bunch
 from columns_contain import columns_contain
-from DiskDictionary import DiskDictionary
 import layout_transactions
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
@@ -309,14 +309,28 @@ def main(argv):
     if not os.path.exists(control.arg.path_out):
         os.system('touch %s' % control.arg.path_out)
 
-    with DiskDictionary(control.arg.path_out) as dd:
-        existing_keys = dd.keyset()
+    existing_keys = set()
+    with open(control.arg.path_out, 'rb') as prior:
+        while True:
+            try:
+                record = pickle.load(prior)
+                key, value = record
+                existing_keys.add(key)
+            except ValueError as e:
+                print record
+                print e
+                print 'ignored'
+            except EOFError:
+                break
+    print 'number of existing keys in output file:', len(existing_keys)
 
+    with open(control.arg.path_out, 'ab') as output:
         def already_exists(key):
             return key in existing_keys
 
-        def save(result_key, result_value):
-            dd.append(result_key, result_value)
+        def save(key, value):
+            record = (key, value)
+            pickle.dump(record, output)
 
         do_val(control, samples, save, already_exists)
 
