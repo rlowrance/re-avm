@@ -416,12 +416,16 @@ def make_data(control):
         with open(path, 'rb') as f:
             while True:
                 try:
-                    key, value = pickle.load(f)  # read until EOF
+                    record = pickle.load(f)  # read until EOF
+                    assert isinstance(record, tuple), type(record)
+                    key, value = record
                     n += 1
                     rows_list.append(make_row(yyyymm, key, value))
                 except ValueError as e:
-                    print key
-                    print value
+                    if key is not None:
+                        print key
+                    if key is not None:
+                        print value
                     print 'ValueError', e  # ignore error
                 except EOFError:
                     break
