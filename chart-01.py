@@ -26,7 +26,6 @@ import random
 import sys
 
 from Bunch import Bunch
-from chart_01_datakey import DataKey
 from columns_contain import columns_contain
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
@@ -84,6 +83,10 @@ def make_control(argv):
     )
 
 
+def key(year, month):
+    return year * 100 + month
+
+
 def make_chart_pdf(data, control):
     counts, means, medians, prices = data
     years = (2003, 2004, 2005, 2006, 2007, 2008, 2009)
@@ -97,8 +100,7 @@ def make_chart_pdf(data, control):
     y = []
     for year in years:
         for month in (months_2009 if year == 2009 else months):
-            key = DataKey(year=year, month=month)
-            y.append(medians[key])
+            y.append(medians[key(year, month)])
     plt.plot(x, y)
     x_ticks = [year_month[i] if i % 12 == 0 else ' '
                for i in xrange(len(year_month))
@@ -130,13 +132,13 @@ def make_chart_txt(data, control):
     r.append(format_header % ('year', 'month', 'price', 'price', 'trades'))
     for year in xrange(2003, 2010):
         for month in (xrange(1, 4) if year == 2009 else xrange(1, 13)):
-            key = DataKey(year=year, month=month)
+            k = key(year, month)
             r.append(format_detail % (
                 year,
                 month,
-                means[key],
-                medians[key],
-                counts[key],
+                means[k],
+                medians[k],
+                counts[k],
             ))
     r.write(control.path_out_txt)
 
@@ -152,12 +154,12 @@ def make_chart_txt_2006_2007(data, control):
     r.append(format_header % ('year', 'month', 'price', 'trades'))
     for year in (2006, 2007):
         for month in xrange(1, 13):
-            key = DataKey(year=year, month=month)
+            k = key(year, month)
             r.append(format_detail % (
                 year,
                 month,
-                medians[key],
-                counts[key],
+                medians[k],
+                counts[k],
             ))
     r.write(control.path_out_txt_2006_2007)
 
@@ -169,9 +171,7 @@ def make_data(control):
     prices = collections.defaultdict(list)
     for index, row in transactions.iterrows():
         yyyymm = row[t.yyyymm]
-        yyyy = int(yyyymm / 100.0)
-        mm = int(yyyymm % 100.0)
-        prices[DataKey(year=yyyy, month=mm)].append(row[t.price])
+        prices[yyyymm].append(row[t.price])
     counts = {}
     means = {}
     medians = {}
