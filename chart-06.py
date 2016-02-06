@@ -7,11 +7,15 @@ INPUT FILES
  INPUT/valavm/YYYYMM.pickle
 
 OUTPUT FILES
- WORKING/chart-06/[test-]data.pickle
- WORKING/chart-06/[test-]2007-a.pdf
- WORKING/chart-06/[test-]2007MM-b.pdf
- WORKING/chart-06/[test-]2007-c.pdf
+ jWORKING/chart-06/[test-]data.pickle   | reduced data
+ WORKING/chart-06/[test-]a.pdf          | range of losses by model (graph)
+ WORKING/chart-06/[test-]b-MM.pdf       | HPs with lowest losses
+ WORKING/chart-06/[test-]c.pdf          | best model each month
+ WORKING/chart-06/[test-]d.pdf          | best & 50th best each month
+ WORKING/chart-06/[test-]e.pdf          | best 50 models each month (was chart-07)
  WORKING/chart-06/best.pickle         dataframe with best choices each month
+where
+ TESTMONTH is YYYYMM
 '''
 
 from __future__ import division
@@ -30,7 +34,7 @@ import sys
 
 from AVM import AVM
 from Bunch import Bunch
-from chart_01_datakey import DataKey
+# from chart_01_datakey import DataKey
 from columns_contain import columns_contain
 from Logger import Logger
 from ParseCommandLine import ParseCommandLine
@@ -92,7 +96,8 @@ def make_control(argv):
     return Bunch(
         arg=arg,
         debug=debug,
-        path_in_ege=dir_working + 'valavm/*.pickle',
+        path_in_ege=dir_working + 'valavm/??????.pickle',
+        path_in_samples='../data/working/samples-train.csv',
         path_reduction=dir_path + reduced_file_name,
         path_median_prices=dir_working + 'chart-01/data.pickle',
         path_chart_base=dir_path,
@@ -113,16 +118,15 @@ def select_and_sort(df, year, month, model):
     return subset.sort_values('mae')
 
 
-def make_chart_a(df, control, ege_control):
-    'write one txt file for each n_months_back'
+def make_chart_a(reduction, control):
+    'graph range of errors by month by method'
     print 'make_chart_a'
-    year = 2007
 
-    def make_subplot(month):
+    def make_subplot(year, month):
         'mutate the default axes'
         print 'make_subplot month', month
-        for model in set(df.model):
-            subset_sorted = select_and_sort(df, year, month, model)
+        for model in set(reduction.model):
+            subset_sorted = select_and_sort(reduction, year, month, model)
             y = (subset_sorted.mae / 1000.0)
             plt.plot(
                 y,
@@ -143,13 +147,19 @@ def make_chart_a(df, control, ege_control):
         plt.figure()  # new figure
         # plt.suptitle('Loss by Test Period, Tree Max Depth, N Trees')  # overlays the subplots
         axes_number = 0
+        year_months = ((2006, 12), (2007, 1), (2007, 2),
+                       (2007, 3), (2007, 4), (2007, 5),
+                       (2007, 6), (2006, 7), (2006, 8),
+                       (2007, 9), (2007, 10), (2007, 11),
+                       )
         row_seq = (1, 2, 3, 4)
         col_seq = (1, 2, 3)
         for row in row_seq:
             for col in col_seq:
-                axes_number += 1  # count across rows (axes_number == month number)
+                year, month = year_months[axes_number]
+                axes_number += 1  # count across rows
                 plt.subplot(len(row_seq), len(col_seq), axes_number)
-                make_subplot(axes_number)
+                make_subplot(year, month)
                 # annotate the bottom row only
                 if row == 4:
                     if col == 1:
@@ -194,8 +204,8 @@ def differ(a, b):
     return False
 
 
-def make_chart_b(df, control, ege_control, chart_letter):
-    '''write report: mae, model, HPs for year, month
+def make_chart_b(reduction, control):
+    '''MAE for best-performing models by training period
     NOTE: This code knows that en is never the best model
     '''
     def report(year, month):
@@ -205,7 +215,7 @@ def make_chart_b(df, control, ege_control, chart_letter):
 
         def header(r):
             r.append('MAE for %d best-performing models and their hyperparameters' % n_detail_lines)
-            r.append('Year %d Month %0d' % (year, month))
+            r.append('Training period: %d-%0d' % (year, month))
             r.append(' ')
             r.append(format_header % ('MAE', 'Model', 'bk', 'mxd', 'nest', 'mxft', 'Other HPs'))
 
@@ -246,9 +256,9 @@ def make_chart_b(df, control, ege_control, chart_letter):
 
         yyyymm = str(year * 100 + month)
         mask = (
-            df.yyyymm == yyyymm
+            reduction.yyyymm == yyyymm
         )
-        subset = df.loc[mask]
+        subset = reduction.loc[mask]
         assert len(subset) > 0, subset.shape
         subset_sorted = subset.sort_values('mae')
         r = Report()
@@ -267,36 +277,57 @@ def make_chart_b(df, control, ege_control, chart_letter):
         footer(r)
         r.write(control.path_chart_base + yyyymm + '-b.txt')
 
-    year = 2007
-    month_seq = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-    for month in month_seq:
-        report(year, month)
+    for year in (2006, 2007):
+        months = (12,) if year == 2006 else (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+        for month in months:
+            report(year, month)
 
 
-def make_charts_c(df, control, ege_control, median_prices):
+def test_months():
+    return (200612, 200701, 200702, 200703, 200704, 200705,
+            200706, 200707, 200708, 200709, 200710, 200711,
+            )
+
+
+def make_best_dictOLD(reduction, median_prices):
+    'return dict st key=test_date, value=(median_price, sorted_hps)'
+    best = {}
+    median_prices = {}
+    for test_month in test_months():
+        mask = reduction.test_month == test_month.as_str()
+        subset = reduction.loc[mask]
+        subset_sorted = subset.sort_values('mae')
+        best[test_month] = (median_prices[test_month.as_int()], subset_sorted)
+    return best
+
+
+def make_chart_c(reduction, control, median_prices, sorted_hps):
     '''write report: mae, model, HPs for month in year 2007
     NOTE: This code knows that en is never the best model
     '''
-    def report(year):
-        format_header = '%3s %6s %8s %5s %2s %3s %4s %4s %-20s'
-        format_detail = '%3s %6d %8d %5s %2d %3d %4d %4s %-20s'
-        month_names = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+    def create_report():
+        'write a report showing best HPs in each month'
+        format_header = '%6s %4s %6s %8s %5s %2s %3s %4s %4s %-20s'
+        format_detail = '%6d %4d %6d %8d %5s %2d %3d %4d %4s %-20s'
 
         def header(r):
-            r.append('MAE by month for best-performing models and their hyperparameters')
-            r.append('Year %0d' % year)
+            r.append('Median Absolute Error (MAE) by month for best-performing models and their hyperparameters')
             r.append(' ')
-            r.append(format_header % ('Mnt', 'MAE', 'MedPrice', 'Model', 'bk', 'mxd', 'nest', 'mxft', 'Other HPs'))
+            r.append(format_header % ('Test', '', '', 'Median', '', '', '', '', '', ''))
+            r.append(format_header % ('Month', 'rank', 'MAE', 'Price',
+                                      'Model', 'bk', 'mxd', 'nest', 'mxft', 'Other HPs'))
 
-        def write_details(r, month_index, series):
+        def write_detail_line(sorted_index, r, test_month, sorted_df, median_price):
             'append detail line to report r'
             hp_string = ''
             # accumulate non-missing hyperparameters
             called_out_indices = set(('mae', 'model', 'yyyymm', 'n_months_back',
-                                      'max_depth', 'n_estimators', 'max_features'))
+                                      'max_depth', 'n_estimators', 'max_features',
+                                      'test_month',
+                                      ))
+            assert len(sorted_df) > 0, (test_month, sorted_index)
+            series = sorted_df.iloc[sorted_index]
             for index, value in series.iteritems():
-                print index, value
                 if index in called_out_indices:
                     # not a hyperparameter collected into "Other HPs"
                     continue
@@ -309,59 +340,64 @@ def make_charts_c(df, control, ege_control, median_prices):
                     continue
                 hp_string += '%s=%s ' % (index, value)
             assert series.model != 'en', series
-            median_price = median_prices[DataKey(year, month_index + 1)]
             r.append(format_detail % (
-                month_names[month_index],
+                test_month, sorted_index + 1,
                 series.mae, median_price,
                 series.model, series.n_months_back,
                 series.max_depth,
                 series.n_estimators,
                 series.max_features,
                 hp_string))
-            return median_price
 
         def footer(r):
             r.append(' ')
             r.append('column legend:')
-            r.append('Mnt -> month')
-            r.append('MAE -> median absolute error in the price estimate')
-            r.append('MedPrice -> median price in the month')
-            r.append('bk -> number of months back for training')
-            r.append('mxd -> max depth of individual tree')
-            r.append('nest -> n_estimators (number of trees)')
-            r.append('mxft -> max number of features considered when selecting new split variable')
 
-        def append_month_line(r, month):
-            yyyymm = str(year * 100 + (month + 1))
-            mask = (
-                df.yyyymm == yyyymm
-            )
-            subset = df.loc[mask]
-            assert len(subset) > 0, subset.shape
-            subset_sorted = subset.sort_values('mae')
-            best_series = subset_sorted.iloc[0]  # the one with the lowest MAE error
-            median_price = write_details(r, month, best_series)
-            return best_series, median_price
+            def legend(tag, meaning):
+                r.append('%8s -> %s' % (tag, meaning))
+
+            legend('Test Month', 'year-month')
+            legend('rank', 'rank within month; 1 ==> best/lowest MAE')
+            legend('MAE', 'median absolute error in the price estimate')
+            legend('Median Price', 'median price in the test month')
+            legend('bk', 'number of months back for training')
+            legend('mxd', 'max depth of individual tree')
+            legend('nest', 'n_estimators (number of trees)')
+            legend('mxft', 'max number of features considered when selecting new split variable')
 
         r = Report()
         header(r)
-        best = {}
-        for month_number in xrange(12):
-            best_series, median_price = append_month_line(r, month_number)
-            best[best_series.yyyymm] = (best_series, median_price)
+        for test_month in test_months():
+            median_price = median_prices[test_month]
+            sorted_hps_test_month = sorted_hps[test_month]
+            write_detail_line(0, r, test_month, sorted_hps_test_month, median_price)
         footer(r)
-        r.write(control.path_chart_base + str(year) + '-c.txt')
-        with open(control.path_chart_base + 'best.pickle', 'wb') as f:
-            pickle.dump(best, f)
+        r.write(control.path_chart_base + 'c.txt')
 
-    report(2007)
-    # report(2008)  NOTE: 2008 data was not generated by valavm
+    return create_report()
 
 
-def make_charts(df, control, ege_control, median_prices):
-    # make_chart_a(df, control, ege_control)
-    # make_chart_b(df, control, ege_control)
-    make_charts_c(df, control, ege_control, median_prices)
+def make_sorted_hps(reduction):
+    def subset_sorted(test_month):
+        mask = reduction.test_month == str(test_month)
+        return reduction.loc[mask].sort_values('mae')
+
+    return {test_month: subset_sorted(test_month)
+            for test_month in test_months()
+            }
+
+
+def make_median_prices(medians):
+    return {test_month: medians[test_month.as_int()]
+            for test_month in test_months()
+            }
+
+
+def make_charts(reduction, samples, control, median_prices):
+    # make_chart_a(reduction, control)
+    # make_chart_b(reduction, control)
+    sorted_hps = make_sorted_hps(reduction)
+    make_chart_c(reduction, control, median_prices, sorted_hps)
 
 
 def errors(actuals, predictions):
@@ -378,40 +414,40 @@ def extract_yyyymm(path):
 
 def make_data(control):
     'return data frame, ege_control'
-    def make_row(yyyymm, k, v):
-            is_en = isinstance(k, ResultKeyEn)
-            is_gbr = isinstance(k, ResultKeyGbr)
-            is_rfr = isinstance(k, ResultKeyRfr)
-            is_tree = is_gbr or is_rfr
-            model = 'en' if is_en else ('gb' if is_gbr else 'rf')
-            actuals = v.actuals.values
-            predictions = v.predictions
+    def make_row(test_month, k, v):
+        is_en = isinstance(k, ResultKeyEn)
+        is_gbr = isinstance(k, ResultKeyGbr)
+        is_rfr = isinstance(k, ResultKeyRfr)
+        is_tree = is_gbr or is_rfr
+        model = 'en' if is_en else ('gb' if is_gbr else 'rf')
+        actuals = v.actuals.values
+        predictions = v.predictions
 
-            if predictions is None:
-                print k
-                print 'predictions is missing'
-                pdb.set_trace()
-            rmse, mae = errors(actuals, predictions)
-            return {
-                'model': model,
-                'yyyymm': yyyymm,
-                'n_months_back': k.n_months_back,
-                'units_X': k.units_X if is_en else 'natural',
-                'units_y': k.units_y if is_en else 'natural',
-                'alpha': k.alpha if is_en else None,
-                'l1_ratio': k.l1_ratio if is_en else None,
-                'n_estimators': k.n_estimators if is_tree else None,
-                'max_features': k.max_features if is_tree else None,
-                'max_depth': k.max_depth if is_tree else None,
-                'loss': k.loss if is_gbr else None,
-                'learning_rate': k.learning_rate if is_gbr else None,
-                'mae': mae,
-            }
+        if predictions is None:
+            print k
+            print 'predictions is missing'
+            pdb.set_trace()
+        rmse, mae = errors(actuals, predictions)
+        return {
+            'model': model,
+            'test_month': test_month,
+            'n_months_back': k.n_months_back,
+            'units_X': k.units_X if is_en else 'natural',
+            'units_y': k.units_y if is_en else 'natural',
+            'alpha': k.alpha if is_en else None,
+            'l1_ratio': k.l1_ratio if is_en else None,
+            'n_estimators': k.n_estimators if is_tree else None,
+            'max_features': k.max_features if is_tree else None,
+            'max_depth': k.max_depth if is_tree else None,
+            'loss': k.loss if is_gbr else None,
+            'learning_rate': k.learning_rate if is_gbr else None,
+            'mae': mae,
+        }
 
     def append_rows(path, rows_list):
         'mutate rows_list, a list of dictionaries, to include objects at path'
         print 'reducing', path
-        yyyymm = extract_yyyymm(path)
+        test_month = extract_yyyymm(path)
         n = 0
         with open(path, 'rb') as f:
             while True:
@@ -420,7 +456,7 @@ def make_data(control):
                     assert isinstance(record, tuple), type(record)
                     key, value = record
                     n += 1
-                    rows_list.append(make_row(yyyymm, key, value))
+                    rows_list.append(make_row(test_month, key, value))
                 except ValueError as e:
                     if key is not None:
                         print key
@@ -432,7 +468,8 @@ def make_data(control):
         print 'number of records', n
 
     rows_list = []
-    for path in glob.glob(control.path_in_ege):
+    paths = sorted(glob.glob(control.path_in_ege))
+    for path in paths:
         append_rows(path, rows_list)
         if control.test:
             break
@@ -449,12 +486,13 @@ def main(argv):
         with open(control.path_reduction, 'wb') as f:
             pickle.dump((df, control), f)
     else:
+        samples = pd.read_csv(control.path_in_samples)
         with open(control.path_reduction, 'rb') as f:
-            df, ege_control, data_control = pickle.load(f)
+            reduction, reduction_control = pickle.load(f)
             with open(control.path_median_prices, 'rb') as g:
                 data, reduction_control = pickle.load(g)
                 counts, means, medians, prices = data
-                make_charts(df, control, ege_control, medians)
+                make_charts(reduction, samples, control, medians)
 
     print control
     if control.test:
