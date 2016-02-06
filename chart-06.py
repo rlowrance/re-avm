@@ -301,10 +301,98 @@ def make_best_dictOLD(reduction, median_prices):
     return best
 
 
-def make_chart_c(reduction, control, median_prices, sorted_hps):
-    '''write report: mae, model, HPs for month in year 2007
-    NOTE: This code knows that en is never the best model
-    '''
+class ChartReport(object):
+    def __init__(self):
+        self.report = Report()
+        self.format_header = '%6s %4s %6s %8s %5s %2s %3s %4s %4s %-20s'
+        self.format_detail = '%6d %4d %6d %8d %5s %2d %3d %4d %4s %-20s'
+        self._header()
+
+    def append(self, line):
+        self.report.append(line)
+
+    def write(self, path):
+        self._footer()
+        self.report.write(path)
+
+    def _header(self):
+        self.report.append('Median Absolute Error (MAE) by month for best-performing models and their hyperparameters')
+        self.report.append(' ')
+        self.report.append(self.format_header % ('Test', '', '', 'Median', '', '', '', '', '', ''))
+        self.report.append(self.format_header % (
+            'Month', 'rank', 'MAE', 'Price',
+            'Model', 'bk', 'mxd', 'nest', 'mxft', 'Other HPs'))
+
+    def _footer(self):
+        self.report.append(' ')
+        self.report.append('column legend:')
+
+        def legend(tag, meaning):
+            self.report.append('%12s -> %s' % (tag, meaning))
+
+        legend('Test Month', 'year-month')
+        legend('rank', 'rank within month; 1 ==> best/lowest MAE')
+        legend('MAE', 'median absolute error in the price estimate')
+        legend('Median Price', 'median price in the test month')
+        legend('bk', 'number of months back for training')
+        legend('mxd', 'max depth of individual tree')
+        legend('nest', 'n_estimators (number of trees)')
+        legend('mxft', 'max number of features considered when selecting new split variable')
+
+    def detail_line(self, sorted_index, test_month, sorted_df, median_price):
+        def make_hp_string(series):
+            'accumulate HPs not printed in columns'
+            # the common HPs are printed in columns
+            hp_string = ''
+            called_out_indices = set(('mae', 'model', 'yyyymm', 'n_months_back',
+                                      'max_depth', 'n_estimators', 'max_features',
+                                      'test_month',
+                                      ))
+            for index, value in series.iteritems():
+                if index in called_out_indices:
+                    # not a hyperparameter collected into "Other HPs"
+                    continue
+                if (isinstance(value, float) and np.isnan(value)) or value is None:
+                    # value is missing
+                    continue
+                if series.model != 'en' and index == 'units_X' and value == 'natural':
+                    continue
+                if series.model != 'en' and index == 'units_y' and value == 'natural':
+                    continue
+                hp_string += '%s=%s ' % (index, value)
+            return hp_string
+
+        assert len(sorted_df) > 0, (test_month, sorted_index)
+        series = sorted_df.iloc[sorted_index]
+        if series.model == 'en':
+            self.report.append(self.format_detail % (
+                test_month, sorted_index + 1,
+                series.mae, median_price,
+                series.model, series.n_months_back,
+                0, 0, 0,   # these are tree-oriented HPs
+                make_hp_string(series)))
+        else:
+            self.report.append(self.format_detail % (
+                test_month, sorted_index + 1,
+                series.mae, median_price,
+                series.model, series.n_months_back,
+                series.max_depth,
+                series.n_estimators,
+                series.max_features,
+                make_hp_string(series)))
+
+
+def make_chart_cd(reduction, control, median_prices, sorted_hps, detail_lines, report_id):
+    '''write report: mae, model, HPs for month'''
+    cr = ChartReport()
+    for test_month in test_months():
+        median_price = median_prices[test_month]
+        sorted_hps_test_month = sorted_hps[test_month]
+        for dl in detail_lines(sorted_hps_test_month):
+            cr.detail_line(dl, test_month, sorted_hps_test_month, median_price)
+    cr.write(control.path_chart_base + report_id + '.txt')
+    return
+
     def create_report():
         'write a report showing best HPs in each month'
         format_header = '%6s %4s %6s %8s %5s %2s %3s %4s %4s %-20s'
@@ -334,27 +422,34 @@ def make_chart_c(reduction, control, median_prices, sorted_hps):
                 if (isinstance(value, float) and np.isnan(value)) or value is None:
                     # value is missing
                     continue
-                if index == 'units_X' and value == 'natural':
+                if series.model != 'en' and index == 'units_X' and value == 'natural':
                     continue
-                if index == 'units_y' and value == 'natural':
+                if series.model != 'en' and index == 'units_y' and value == 'natural':
                     continue
                 hp_string += '%s=%s ' % (index, value)
-            assert series.model != 'en', series
-            r.append(format_detail % (
-                test_month, sorted_index + 1,
-                series.mae, median_price,
-                series.model, series.n_months_back,
-                series.max_depth,
-                series.n_estimators,
-                series.max_features,
-                hp_string))
+            if series.model == 'en':
+                r.append(format_detail % (
+                    test_month, sorted_index + 1,
+                    series.mae, median_price,
+                    series.model, series.n_months_back,
+                    0, 0, 0,   # these are tree-oriented HPs
+                    hp_string))
+            else:
+                r.append(format_detail % (
+                    test_month, sorted_index + 1,
+                    series.mae, median_price,
+                    series.model, series.n_months_back,
+                    series.max_depth,
+                    series.n_estimators,
+                    series.max_features,
+                    hp_string))
 
         def footer(r):
             r.append(' ')
             r.append('column legend:')
 
             def legend(tag, meaning):
-                r.append('%8s -> %s' % (tag, meaning))
+                r.append('%12s -> %s' % (tag, meaning))
 
             legend('Test Month', 'year-month')
             legend('rank', 'rank within month; 1 ==> best/lowest MAE')
@@ -370,21 +465,12 @@ def make_chart_c(reduction, control, median_prices, sorted_hps):
         for test_month in test_months():
             median_price = median_prices[test_month]
             sorted_hps_test_month = sorted_hps[test_month]
-            write_detail_line(0, r, test_month, sorted_hps_test_month, median_price)
+            for dl in detail_lines(sorted_hps_test_month):
+                write_detail_line(dl, r, test_month, sorted_hps_test_month, median_price)
         footer(r)
         r.write(control.path_chart_base + 'c.txt')
 
     return create_report()
-
-
-def make_sorted_hps(reduction):
-    def subset_sorted(test_month):
-        mask = reduction.test_month == str(test_month)
-        return reduction.loc[mask].sort_values('mae')
-
-    return {test_month: subset_sorted(test_month)
-            for test_month in test_months()
-            }
 
 
 def make_median_prices(medians):
@@ -396,8 +482,32 @@ def make_median_prices(medians):
 def make_charts(reduction, samples, control, median_prices):
     # make_chart_a(reduction, control)
     # make_chart_b(reduction, control)
+    def make_sorted_hps(reduction):
+        'return dict; key = test_month; value = df of HPs, sorted by MAE'
+        def subset_sorted(test_month):
+            mask = reduction.test_month == str(test_month)
+            return reduction.loc[mask].sort_values('mae')
+
+        return {test_month: subset_sorted(test_month)
+                for test_month in test_months()
+                }
+
     sorted_hps = make_sorted_hps(reduction)
-    make_chart_c(reduction, control, median_prices, sorted_hps)
+
+    def detail_lines_c(sorted_hps_test_month):
+        return [0]  # the one with the lowest MAE (the best set of HPs)
+
+    def detail_lines_d(sorted_hps_test_month):
+        result = []
+        for k in xrange(len(sorted_hps_test_month)):
+            result.append(k)
+            if k == 4:
+                break
+        result.append(len(sorted_hps_test_month) - 1)
+        return result
+
+    make_chart_cd(reduction, control, median_prices, sorted_hps, detail_lines_c, 'c')
+    make_chart_cd(reduction, control, median_prices, sorted_hps, detail_lines_d, 'd')
 
 
 def errors(actuals, predictions):
