@@ -70,8 +70,19 @@ class AVM(sklearn.base.BaseEstimator):
         self.learning_rate = learning_rate
         self.loss = loss
 
-    def fit(self, df):
+    def fit(self, samples):
+        'convert samples to X,Y and fit them'
+        self.implementation_module = {
+            'ElasticNet': AVM_elastic_net,
+            'GradientBoostingRegressor': AVM_gradient_boosting_regressor,
+            'RandomForestRegressor': AVM_random_forest_regressor,
+        }[self.model_name]
+        X_train, y_train = self.extract_and_transform(samples)
+        self.implementation_module.fit(self, X_train, y_train)
+
+    def fitOLD(self, df):
         'construct and fit df that contains X and y'
+        assert False, 'deprecated'
         self.implementation_module = {
             'ElasticNet': AVM_elastic_net,
             'GradientBoostingRegressor': AVM_gradient_boosting_regressor,
@@ -108,12 +119,12 @@ class AVM(sklearn.base.BaseEstimator):
         )
         return {name: getattr(self.model, name, None) for name in attribute_names}
 
-    def extract_and_transform(self, df, transform_y=True):
+    def extract_and_transform(self, samples, transform_y=True):
         'return X and y'
-        return self.implementation_module.extract_and_transform(self, df, transform_y)
+        return self.implementation_module.extract_and_transform(self, samples, transform_y)
 
-    def predict(self, df):
-        X_test, y_test = self.extract_and_transform(df, transform_y=False)
+    def predict(self, samples):
+        X_test, y_test = self.extract_and_transform(samples, transform_y=False)
         assert y_test is None
         return self.implementation_module.predict(self, X_test)
 
