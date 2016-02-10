@@ -35,23 +35,27 @@ class Month(object):
     def __repr__(self):
         return 'Month(year=%d, month=%d)' % (self.year, self.month)
 
-    def increment(self):
+    def increment(self, by=1):
         'return new Month one month after self'
-        if self.month == 12:
-            return Month(self.year + 1, 1)
+        assert by >= 0, by
+        month = self.month + by
+        if month > 12:
+            delta_years = month // 12
+            month = month - 12 * delta_years
+            year = self.year + delta_years
+            return Month(year, month)
         else:
-            return Month(self.year, self.month + 1)
+            return Month(self.year, month)
 
     def decrement(self, by=1):
         'return new Month one month before self'
-        assert by >= 0
-        if by > 12:
-            years = by // 12
-            return Month(self.year - years, self.month).decrement(by - 12 * years)
-        elif self.month > by:
-            return Month(self.year, self.month - by)
-        else:
-            return Month(self.year - 1, 12 - by + 1)
+        assert by >= 0, by
+        month = self.month - by
+        year = self.year
+        while month <= 0:
+            month += 12
+            year -= 1
+        return Month(year, month)
 
     def as_str(self):
         return '%04d%02d' % (self.year, self.month)
@@ -82,11 +86,18 @@ class TestMonth(unittest.TestCase):
         self.assertTrue(Month('200703').equal(Month(2007, 03)))
 
     def test_increment(self):
+        self.assertTrue(Month(200612).increment().equal(Month(200701)))
+        self.assertTrue(Month(200612).increment(1).equal(Month(200701)))
+        self.assertTrue(Month(200612).increment(2).equal(Month(200702)))
+        self.assertTrue(Month(200612).increment(14).equal(Month(200802)))
         self.assertTrue(Month(200701).increment().equal(Month(200702)))
         self.assertTrue(Month(200712).increment().equal(Month(200801)))
 
     def test_decrement(self):
         self.assertTrue(Month(200701).decrement().equal(Month(200612)))
+        self.assertTrue(Month(200701).decrement(1).equal(Month(200612)))
+        self.assertTrue(Month(200701).decrement(2).equal(Month(200611)))
+        self.assertTrue(Month(200701).decrement(14).equal(Month(200511)))
         self.assertTrue(Month(200712).decrement().equal(Month(200711)))
         self.assertTrue(Month(200701).decrement(1).equal(Month(200612)))
         self.assertTrue(Month(200701).decrement(2).equal(Month(200611)))
