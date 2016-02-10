@@ -15,7 +15,7 @@ ALL += $(WORKING)/census-features-derived.csv
 
 # make -j 6 runs OK to make all the valavm objects
 # TODO: test make -j 12 to see if it runs out of memory
-VALAVM_JC += $(WORKING)/valavm/200612.pickle
+VALAVM_RL += $(WORKING)/valavm/200612.pickle
 VALAVM_RL += $(WORKING)/valavm/200701.pickle
 VALAVM_RL += $(WORKING)/valavm/200702.pickle
 VALAVM_RL += $(WORKING)/valavm/200703.pickle
@@ -27,8 +27,6 @@ VALAVM_RL += $(WORKING)/valavm/200708.pickle
 VALAVM_RL += $(WORKING)/valavm/200709.pickle
 VALAVM_RL += $(WORKING)/valavm/200710.pickle
 VALAVM_RL += $(WORKING)/valavm/200711.pickle
-VALAVM_RL += $(WORKING)/valavm/200712.pickle
-VALAVM_JC += $(WORKING)/valavm/200801.pickle
 VALAVM += $(VALAVM_JC) $(VALAVM_RL)
 ALL += $(VALAVM)
 
@@ -106,7 +104,7 @@ CHARTS += $(WORKING)/chart-01/median-price.pdf
 # use 2004-02 as a proxy for all years YYYY and months MM
 CHARTS += $(WORKING)/chart-03/max_depth-2004-02.pdf
 CHARTS += $(WORKING)/chart-04/2004-02.pdf
-CHARTS += $(WORKING)/chart-05/2004.pdf
+#CHARTS += $(WORKING)/chart-05/2004.pdf
 CHARTS += $(WORKING)/chart-06/2007-a.pdf  # plus others
 
 ALL += $(CHARTS)
