@@ -180,115 +180,6 @@ def do_val(control, samples, save, already_exists):
         actuals = samples_test[layout_transactions.price]
         return ResultValue(actuals, predictions)
 
-    def search_enOLD(n_months_back):
-        'search over ElasticNet HPs, appending to result'
-        for units_X in control.grid.units_X_seq:
-            for units_y in control.grid.units_y_seq:
-                for alpha in control.grid.alpha_seq:
-                    for l1_ratio in control.grid.l1_ratio_seq:
-                        print (
-                            '%6d %3s %1d %3s %3s %4.2f %4.2f' %
-                            (control.arg.yyyymm, 'en', n_months_back, units_X[:3], units_y[:3],
-                             alpha, l1_ratio)
-                        ),
-                        avm = AVM.AVM(
-                            model_name='ElasticNet',
-                            forecast_time_period=control.arg.yyyymm,
-                            random_state=control.random_seed,
-                            n_months_back=n_months_back,
-                            units_X=units_X,
-                            units_y=units_y,
-                            alpha=alpha,
-                            l1_ratio=l1_ratio,
-                        )
-                        result_key = ResultKeyEn(
-                            n_months_back,
-                            units_X,
-                            units_y,
-                            alpha,
-                            l1_ratio,
-                        )
-                        if already_exists(result_key):
-                            print 'already exists'
-                        else:
-                            print
-                            save(result_key, fit_and_run(avm))
-                            if control.test:
-                                return
-
-    def search_gbrOLD(n_months_back):
-        'search over GradientBoostingRegressor HPs, appending to result'
-        for n_estimators in control.grid.n_estimators_seq:
-            for max_features in control.grid.max_features_seq:
-                for max_depth in control.grid.max_depth_seq:
-                    for loss in control.grid.loss_seq:
-                        for learning_rate in control.grid.learning_rate_seq:
-                            print (
-                                '%6d %3s %1d %4d %4s %3d %8s %4.2f' %
-                                (control.arg.yyyymm, 'gbr', n_months_back,
-                                 n_estimators, max_features_s(max_features), max_depth, loss, learning_rate)
-                            ),
-                            avm = AVM.AVM(
-                                model_name='GradientBoostingRegressor',
-                                forecast_time_period=control.arg.yyyymm,
-                                random_state=control.random_seed,
-                                n_months_back=n_months_back,
-                                learning_rate=learning_rate,
-                                loss=loss,
-                                alpha=.5 if loss == 'quantile' else None,
-                                n_estimators=n_estimators,  # number of boosting stages
-                                max_depth=max_depth,  # max depth of any tree
-                                max_features=max_features,  # how many features to test whenBoosting splitting
-                            )
-                            result_key = ResultKeyGbr(
-                                n_months_back,
-                                n_estimators,
-                                max_features,
-                                max_depth,
-                                loss,
-                                learning_rate,
-                            )
-                            if already_exists(result_key):
-                                print 'already exists'
-                            else:
-                                print
-                                save(result_key, fit_and_run(avm))
-                                if control.test:
-                                    return
-
-    def search_rfOLD(n_months_back):
-        'search over RandomForestRegressor HPs, appending to result'
-        for n_estimators in control.grid.n_estimators_seq:
-            for max_features in control.grid.max_features_seq:
-                for max_depth in control.grid.max_depth_seq:
-                    print (
-                        '%6d %3s %1d %4d %4s %3d' %
-                        (control.arg.yyyymm, 'rfr', n_months_back,
-                         n_estimators, max_features_s(max_features), max_depth)
-                    ),
-                    avm = AVM.AVM(
-                        model_name='RandomForestRegressor',
-                        forecast_time_period=control.arg.yyyymm,
-                        random_state=control.random_seed,
-                        n_months_back=n_months_back,
-                        n_estimators=n_estimators,  # number of boosting stages
-                        max_depth=max_depth,  # max depth of any tree
-                        max_features=max_features,  # how many features to test when splitting
-                    )
-                    result_key = ResultKeyRfr(
-                        n_months_back,
-                        n_estimators,
-                        max_features,
-                        max_depth,
-                    )
-                    if already_exists(result_key):
-                        print 'already exists'
-                    else:
-                        print
-                        save(result_key, fit_and_run(avm))
-                        if control.test:
-                            return
-
     def search_en(samples_test, samples_train):
         'search over ElasticNet HPs, appending to result'
         for units_X in control.grid.units_X_seq:
@@ -296,10 +187,9 @@ def do_val(control, samples, save, already_exists):
                 for alpha in control.grid.alpha_seq:
                     for l1_ratio in control.grid.l1_ratio_seq:
                         print (
-                            '%6d %3s %1d %3s %3s %4.2f %4.2f' %
-                            (control.arg.test_month, 'en', n_months_back, units_X[:3], units_y[:3],
-                             alpha, l1_ratio)
-                        ),
+                            control.arg.test_month, 'en', n_months_back, units_X[:3], units_y[:3],
+                            alpha, l1_ratio,
+                        )
                         avm = AVM.AVM(
                             model_name='ElasticNet',
                             random_state=control.random_seed,
@@ -332,10 +222,9 @@ def do_val(control, samples, save, already_exists):
                     for loss in control.grid.loss_seq:
                         for learning_rate in control.grid.learning_rate_seq:
                             print (
-                                '%6d %3s %1d %4d %4s %3d %8s %4.2f' %
-                                (control.arg.test_month, 'gbr', n_months_back,
-                                 n_estimators, max_features_s(max_features), max_depth, loss, learning_rate)
-                            ),
+                                control.arg.test_month, 'gbr', n_months_back,
+                                n_estimators, max_features_s(max_features), max_depth, loss, learning_rate,
+                            )
                             avm = AVM.AVM(
                                 model_name='GradientBoostingRegressor',
                                 random_state=control.random_seed,
@@ -369,10 +258,9 @@ def do_val(control, samples, save, already_exists):
             for max_features in control.grid.max_features_seq:
                 for max_depth in control.grid.max_depth_seq:
                     print (
-                        '%6d %3s %1d %4d %4s %3d' %
-                        (control.arg.test_month, 'rfr', n_months_back,
-                         n_estimators, max_features_s(max_features), max_depth)
-                    ),
+                        control.arg.test_month, 'rfr', n_months_back,
+                        n_estimators, max_features_s(max_features), max_depth
+                    )
                     avm = AVM.AVM(
                         model_name='RandomForestRegressor',
                         random_state=control.random_seed,
