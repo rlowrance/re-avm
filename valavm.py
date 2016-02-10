@@ -2,11 +2,14 @@
 for AVMs based on 3 models (linear, random forests, gradient boosting regression)
 
 INVOCATION
-  python valavm.py YYYYMM [--in PATH_IN] [--out PATH_OUT] [--test]
+  python valavm.py test_month [--in PATH_IN] [--out PATH_OUT] [--test]
+  where
+   testingMonth: yyyymm  Month of test data; training uses months just prior
   defaults:
       PATH_IN  ../data/working/samples-train.csv
       PATH_OUT ../data/working/valavm/YYYYYMM.pickle
   Note: If PATH_OUT exists, extend it (providing checkpoint-restart)
+
 '''
 
 from __future__ import division
@@ -26,8 +29,10 @@ from Bunch import Bunch
 from columns_contain import columns_contain
 import layout_transactions
 from Logger import Logger
+from Month import Month
 from ParseCommandLine import ParseCommandLine
 from Path import Path
+from SampleSelector import SampleSelector
 from Timer import Timer
 # from TimeSeriesCV import TimeSeriesCV
 cc = columns_contain
@@ -53,13 +58,19 @@ def make_grid():
         units_y_seq=('natural', 'log'),
 
         # HP settings to test for tree-based models
-        n_estimators_seq=(10, 30, 100, 300),
-        max_features_seq=(1, 'log2', 'sqrt', 'auto'),
-        max_depth_seq=(1, 3, 10, 30, 100, 300),
+        # settings based on Anil Kocak's recommendations
+        # n_estimators_seq=(10, 30, 100, 300),
+        n_estimators_seq=(300,),  # largest should be best, except for noise in the signal
+        # max_features_seq=(1, 'log2', 'sqrt', 'auto'),
+        max_features_seq=('log2', 'sqrt', 'auto'),  # auto --> max features
+        # max_depth_seq=(1, 3, 10, 30, 100, 300),
+        max_depth_seq=(None,),  # None --> leaves are split until pure
 
         # HP setting to test for GradientBoostingRegression models
         learning_rate_seq=(.10, .25, .50, .75, .99),
-        loss_seq=('ls', 'quantile'),
+        # experiments demonstrated that the best loss is seldom quantile
+        # loss_seq=('ls', 'quantile'),
+        loss_seq=('ls',),
     )
 
 
@@ -77,7 +88,7 @@ def make_control(argv):
     pcl = ParseCommandLine(argv)
     arg = Bunch(
         base_name='valavm',
-        yyyymm=argv[1],
+        test_month=argv[1],
         path_in=pcl.get_arg('--in'),
         path_out=pcl.get_arg('--out'),
         test=pcl.has_arg('--test'),
@@ -87,15 +98,15 @@ def make_control(argv):
     if arg.path_in is None:
         arg.path_in = '../data/working/samples-train.csv'
     if arg.path_out is None:
-        arg.path_out = '../data/working/valavm/' + arg.yyyymm + '.pickle'
+        arg.path_out = '../data/working/valavm/' + arg.test_month + '.pickle'
 
     check_is_string(arg.path_in, 'PATH_IN')
     check_is_string(arg.path_out, 'PATH_OUT')
 
     try:
-        arg.yyyymm = int(arg.yyyymm)
+        arg.test_month = int(arg.test_month)
     except:
-        usage('YYYYMM not an integer')
+        usage('test_month not an integer like YYYYMM')
 
     random_seed = 123
     random.seed(random_seed)
@@ -159,19 +170,17 @@ def do_val(control, samples, save, already_exists):
 
     result = {}
 
-    def fit_and_run(avm):
+    def fit_and_run(avm, samples_test, samples_train):
         'return a ResultValue'
-        avm.fit(samples)
-        mask = samples[layout_transactions.yyyymm] == control.arg.yyyymm
-        samples_yyyymm = samples[mask]
-        predictions = avm.predict(samples_yyyymm)
+        avm.fit(samples_train)
+        predictions = avm.predict(samples_test)
         if predictions is None:
             print 'no predictions!'
             pdb.set_trace()
-        actuals = samples_yyyymm[layout_transactions.price]
+        actuals = samples_test[layout_transactions.price]
         return ResultValue(actuals, predictions)
 
-    def search_en(n_months_back):
+    def search_enOLD(n_months_back):
         'search over ElasticNet HPs, appending to result'
         for units_X in control.grid.units_X_seq:
             for units_y in control.grid.units_y_seq:
@@ -207,7 +216,7 @@ def do_val(control, samples, save, already_exists):
                             if control.test:
                                 return
 
-    def search_gbr(n_months_back):
+    def search_gbrOLD(n_months_back):
         'search over GradientBoostingRegressor HPs, appending to result'
         for n_estimators in control.grid.n_estimators_seq:
             for max_features in control.grid.max_features_seq:
@@ -247,7 +256,7 @@ def do_val(control, samples, save, already_exists):
                                 if control.test:
                                     return
 
-    def search_rf(n_months_back):
+    def search_rfOLD(n_months_back):
         'search over RandomForestRegressor HPs, appending to result'
         for n_estimators in control.grid.n_estimators_seq:
             for max_features in control.grid.max_features_seq:
@@ -280,11 +289,127 @@ def do_val(control, samples, save, already_exists):
                         if control.test:
                             return
 
+    def search_en(samples_test, samples_train):
+        'search over ElasticNet HPs, appending to result'
+        for units_X in control.grid.units_X_seq:
+            for units_y in control.grid.units_y_seq:
+                for alpha in control.grid.alpha_seq:
+                    for l1_ratio in control.grid.l1_ratio_seq:
+                        print (
+                            '%6d %3s %1d %3s %3s %4.2f %4.2f' %
+                            (control.arg.test_month, 'en', n_months_back, units_X[:3], units_y[:3],
+                             alpha, l1_ratio)
+                        ),
+                        avm = AVM.AVM(
+                            model_name='ElasticNet',
+                            random_state=control.random_seed,
+                            units_X=units_X,
+                            units_y=units_y,
+                            alpha=alpha,
+                            l1_ratio=l1_ratio,
+                        )
+                        result_key = ResultKeyEn(
+                            n_months_back,
+                            units_X,
+                            units_y,
+                            alpha,
+                            l1_ratio,
+                        )
+                        if already_exists(result_key):
+                            print 'already exists'
+                        else:
+                            print
+                            save(result_key,
+                                 fit_and_run(avm, samples_test, samples_train))
+                            if control.test:
+                                return
+
+    def search_gbr(samples_test, samples_train):
+        'search over GradientBoostingRegressor HPs, appending to result'
+        for n_estimators in control.grid.n_estimators_seq:
+            for max_features in control.grid.max_features_seq:
+                for max_depth in control.grid.max_depth_seq:
+                    for loss in control.grid.loss_seq:
+                        for learning_rate in control.grid.learning_rate_seq:
+                            print (
+                                '%6d %3s %1d %4d %4s %3d %8s %4.2f' %
+                                (control.arg.test_month, 'gbr', n_months_back,
+                                 n_estimators, max_features_s(max_features), max_depth, loss, learning_rate)
+                            ),
+                            avm = AVM.AVM(
+                                model_name='GradientBoostingRegressor',
+                                random_state=control.random_seed,
+                                learning_rate=learning_rate,
+                                loss=loss,
+                                alpha=.5 if loss == 'quantile' else None,
+                                n_estimators=n_estimators,  # number of boosting stages
+                                max_depth=max_depth,  # max depth of any tree
+                                max_features=max_features,  # how many features to test whenBoosting splitting
+                            )
+                            result_key = ResultKeyGbr(
+                                n_months_back,
+                                n_estimators,
+                                max_features,
+                                max_depth,
+                                loss,
+                                learning_rate,
+                            )
+                            if already_exists(result_key):
+                                print 'already exists'
+                            else:
+                                print
+                                save(result_key,
+                                     fit_and_run(avm, samples_test, samples_train))
+                                if control.test:
+                                    return
+
+    def search_rf(samples_test, samples_train):
+        'search over RandomForestRegressor HPs, appending to result'
+        for n_estimators in control.grid.n_estimators_seq:
+            for max_features in control.grid.max_features_seq:
+                for max_depth in control.grid.max_depth_seq:
+                    print (
+                        '%6d %3s %1d %4d %4s %3d' %
+                        (control.arg.test_month, 'rfr', n_months_back,
+                         n_estimators, max_features_s(max_features), max_depth)
+                    ),
+                    avm = AVM.AVM(
+                        model_name='RandomForestRegressor',
+                        random_state=control.random_seed,
+                        n_estimators=n_estimators,  # number of boosting stages
+                        max_depth=max_depth,  # max depth of any tree
+                        max_features=max_features,  # how many features to test when splitting
+                    )
+                    result_key = ResultKeyRfr(
+                        n_months_back,
+                        n_estimators,
+                        max_features,
+                        max_depth,
+                    )
+                    if already_exists(result_key):
+                        print 'already exists'
+                    else:
+                        print
+                        save(result_key,
+                             fit_and_run(avm, samples_test, samples_train))
+                        if control.test:
+                            return
+
     # grid search for all model types
     for n_months_back in control.grid.n_months_back_seq:
-        search_en(n_months_back)
-        search_gbr(n_months_back)
-        search_rf(n_months_back)
+        print n_months_back
+        test_month = Month(control.arg.test_month)
+        ss = SampleSelector(samples)
+        samples_test = ss.in_month(test_month)
+        samples_train = ss.between_months(
+            test_month.decrement(n_months_back),
+            test_month.decrement(1),
+        )
+        print n_months_back, test_month.decrement(n_months_back), test_month.decrement(1)
+        print len(samples_test), len(samples_train)
+        search_en(samples_test, samples_train)
+        search_gbr(samples_test, samples_train)
+        search_rf(samples_test, samples_train)
         if control.test:
             break
 
