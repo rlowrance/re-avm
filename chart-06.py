@@ -459,6 +459,12 @@ class ChartEReport(object):
     def ensemble_detail(self, ensemble_mae):
         self.report.append(self.format_ensemble % (' ', 'ensemble', 'na', 'na', ensemble_mae))
 
+    def write(self, path):
+        self.report.write(path)
+
+    def append(self, line):
+        self.report.append(line)
+
 
 def model_to_str(k):
     if isinstance(k, ResultKeyEn):
@@ -541,6 +547,8 @@ def make_chart_e(actuals_d, predictions_d, mae_d, control, sorted_hpsOLD):
         ensemble_predictions = make_ensemble_predictions(predictions, weights)
         ensemble_rmse, ensemble_mae = errors(ensemble_actuals, ensemble_predictions)
         r.ensemble_detail(ensemble_mae)
+        r.append(' ')
+    r.write(control.path_out_e)
 
 
 def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, median_prices):
