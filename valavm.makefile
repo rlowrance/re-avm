@@ -5,37 +5,37 @@ PYTHON = ~/anaconda/bin/python
 all: a b c d e f g h i j k l
 
 a:
-	$(PYTHON) valavm.py 200612 --out ../data/working/valavm-anil/200612.pickle
+	$(PYTHON) valavm.py 200612 anil
 
 b:
-	$(PYTHON) valavm.py 200701 --out ../data/working/valavm-anil/200701.pickle
+	$(PYTHON) valavm.py 200701 anil
 
 c:
-	$(PYTHON) valavm.py 200702 --out ../data/working/valavm-anil/200702.pickle
+	$(PYTHON) valavm.py 200702 anil
 
 d:
-	$(PYTHON) valavm.py 200703 --out ../data/working/valavm-anil/200703.pickle
+	$(PYTHON) valavm.py 200703 anil
 
 e:
-	$(PYTHON) valavm.py 200704 --out ../data/working/valavm-anil/200704.pickle
+	$(PYTHON) valavm.py 200704 anil
 
 f:
-	$(PYTHON) valavm.py 200705 --out ../data/working/valavm-anil/200705.pickle
+	$(PYTHON) valavm.py 200705 anil
 
 g:
-	$(PYTHON) valavm.py 200706 --out ../data/working/valavm-anil/200706.pickle
+	$(PYTHON) valavm.py 200706 anil
 
 h:
-	$(PYTHON) valavm.py 200707 --out ../data/working/valavm-anil/200707.pickle
+	$(PYTHON) valavm.py 200707 anil
 
 i:
-	$(PYTHON) valavm.py 200708 --out ../data/working/valavm-anil/200708.pickle
+	$(PYTHON) valavm.py 200708 anil
 
 j:
-	$(PYTHON) valavm.py 200709 --out ../data/working/valavm-anil/200709.pickle
+	$(PYTHON) valavm.py 200709 anil
 
 k:
-	$(PYTHON) valavm.py 200710 --out ../data/working/valavm-anil/200710.pickle
+	$(PYTHON) valavm.py 200710 anil
 
 l:
-	$(PYTHON) valavm.py 200711 --out ../data/working/valavm-anil/200711.pickle
+	$(PYTHON) valavm.py 200711 anil
