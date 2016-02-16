@@ -6,7 +6,7 @@ INVOCATION
 INPUT FILES
  WORKING/chart-01/data.pickle
  WORKING/samples-train.csv
- WORKING/valavm-IN_DIRECTORY/YYYYMM.pickle
+ WORKING/valavm-VALAVM/YYYYMM.pickle
 
 OUTPUT FILES
  WORKING/chart-06-VALAVM/[test-]data.pickle    | reduced data
@@ -16,7 +16,7 @@ OUTPUT FILES
  WORKING/chart-06-VALAVM/[test-]d.pdf          | best & 50th best each month
  WORKING/chart-06-VALAVM/[test-]e.pdf          | best 50 models each month (was chart-07)
  WORKING/chart-06-VALAVM/[test-]best.pickle    | dataframe with best choices each month
- WORKING/chart-06-VALAVM/[test-]log.txt        | log file (created by print statements)
+ WORKING/chart-06-VALAVM/[test-]log[-data].txt        | log file (created by print statements)
 '''
 
 from __future__ import division
@@ -85,6 +85,9 @@ def make_control(argv):
         valavm=pcl.get_arg('--valavm'),
     )
 
+    if arg.valavm is None:
+        usage("must supply --valavm argument")
+
     random_seed = 123
     random.seed(random_seed)
 
@@ -111,7 +114,7 @@ def make_control(argv):
         path_out_e=dir_out + test + 'e.txt',
         path_data=dir_out + test + 'data.pickle',
         path_out_best=dir_out + test + 'best.pickle',
-        path_out_log=dir_out + 'log.txt',
+        path_out_log=dir_out + 'log' + ('-data' if arg.data else '') + '.txt',
         path_in_median_prices=dir_working + 'chart-01/data.pickle',
         random_seed=random_seed,
         test=arg.test,
