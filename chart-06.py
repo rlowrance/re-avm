@@ -246,7 +246,7 @@ def make_chart_b(reduction, control):
             called_out_indices = set(('mae', 'model', 'yyyymm', 'n_months_back',
                                       'max_depth', 'n_estimators', 'max_features'))
             for index, value in series.iteritems():
-                print index, value
+                # print index, value
                 if index in called_out_indices:
                     # not a hyperparameter collected into "Other HPs"
                     continue
@@ -292,14 +292,11 @@ def make_chart_b(reduction, control):
         r = Report()
         header(r)
         detail_line_number = 0
-        previous_row_series = None
         for row in subset_sorted.iterrows():
-            print row
+            # print row
             row_series = row[1]
-            print previous_row_series, row_series
             detail_line_number += 1
             append_detail_line(r, row_series)
-            previous_row_series = row_series
             if detail_line_number == n_detail_lines:
                 break
         footer(r)
@@ -442,9 +439,10 @@ def make_median_prices(medians):
 class ChartEReport(object):
     def __init__(self, k, ensemble_weighting):
         self.report = Report()
-        self.format_header = '%6s %20s %6s %6s %6s'
-        self.format_model = '%6d %20s %6.0f %6.4f %6.0f'
-        self.format_ensemble = '%6s %20s %6s %6s %6.0f'
+        self.format_header = '%6s %20s %5s %6s %6s %6s'
+        self.format_model = '%6d %20s %5d %6.0f %6.4f %6.0f'
+        self.format_best = '%6d %20s %5d %6.0f %6s %6.0f best'
+        self.format_ensemble = '%6s %20s %5s %6s %6s %6.0f'
         self._header(k, ensemble_weighting)
 
     def _header(self, k, ensemble_weighting):
@@ -453,14 +451,20 @@ class ChartEReport(object):
         self.report.append('Consider best %d models' % k)
         self.report.append('Ensemble weighting: %s' % ensemble_weighting)
         self.report.append(' ')
-        self.report.append(self.format_header % ('test', 'best', 'test', '', 'next'))
-        self.report.append(self.format_header % ('month', 'model', 'MAE', 'weight', 'MAE'))
+        self.report.append(self.format_header % ('test', 'best', 'rank', 'test', '', 'next'))
+        self.report.append(self.format_header % ('month', 'model', 'index', 'MAE', 'weight', 'MAE'))
 
-    def model_detail(self, month, model_s, test_mae, weight, next_mae):
-        self.report.append(self.format_model % (month, model_s, test_mae, weight, next_mae))
+    def model_detail(self, month, model_s, rank, test_mae, weight, next_mae):
+        self.report.append(self.format_model % (month, model_s, rank, test_mae, weight, next_mae))
+
+    def model_best(self, month, model_s, rank, test_mae, next_mae):
+        self.report.append(self.format_best % (month, model_s, rank, test_mae, ' ', next_mae))
 
     def ensemble_detail(self, ensemble_mae):
-        self.report.append(self.format_ensemble % (' ', 'ensemble', 'na', 'na', ensemble_mae))
+        self.report.append(self.format_ensemble % (' ', 'ensemble', 'na', 'na', 'na', ensemble_mae))
+
+    def regret(self, amount):
+        self.report.append(self.format_ensemble % (' ', 'regret', 'na', 'na', 'na', amount))
 
     def write(self, path):
         self.report.write(path)
@@ -529,34 +533,62 @@ def make_chart_e(actuals_d, predictions_d, mae_d, control, sorted_hpsOLD):
             # we didn't test a model on 200712
             break
         test_month_mae = mae_d[test_month]
-        models_sorted = sorted(test_month_mae, key=test_month_mae.get)  # keys in order of mae
+        models_sorted_test_month = sorted(test_month_mae, key=test_month_mae.get)  # keys in order of mae
         weights = []
         actuals = []
         predictions = []
+        next_month = Month(test_month).increment(1).as_int()
         for index in xrange(k):
-            model = models_sorted[index]
-            next_month = Month(test_month).increment(1).as_int()
+            model = models_sorted_test_month[index]
             test_mae = mae_d[test_month][model]
             next_mae = mae_d[next_month][model]
             weight = math.exp(-test_mae / 100000.0)
-            r.model_detail(test_month, model_to_str(model), test_mae, weight, next_mae)
+            r.model_detail(test_month, model_to_str(model), index, test_mae, weight, next_mae)
             weights.append(weight)
             actuals.append(actuals_d[test_month][model])
             predictions.append(predictions_d[test_month][model])
             if control.test:
                 break
         check_actuals(actuals)
+        # determine ensemble predictions (first k) and regret vs. best model
         ensemble_actuals = actuals[0]  # they are all the same, so pick one
         ensemble_predictions = make_ensemble_predictions(predictions, weights)
         ensemble_rmse, ensemble_mae = errors(ensemble_actuals, ensemble_predictions)
         r.ensemble_detail(ensemble_mae)
+        # pick the best models in test_month + 1
+
+        def find_test_month_index(model, model_list):
+            index = 0
+            while True:
+                if model == model_list[index]:
+                    return index
+                index += 1
+            return None  # should not get here
+
+        next_month_mae = mae_d[next_month]
+        models_sorted_next_month = sorted(next_month_mae, key=next_month_mae.get)
+        first_best_model = models_sorted_next_month[0]
+        best_mae = mae_d[next_month][first_best_model]
+        for next_month_index in xrange(k):
+            a_best_model = models_sorted_next_month[next_month_index]
+            test_month_index = find_test_month_index(a_best_model, models_sorted_test_month)
+            r.model_best(
+                test_month,
+                model_to_str(a_best_model),
+                test_month_index,
+                mae_d[test_month][a_best_model],
+                mae_d[next_month][a_best_model],
+            )
+        # determine regret
+        r.regret(best_mae - ensemble_mae)
         r.append(' ')
     r.write(control.path_out_e)
 
 
 def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, median_prices):
-    make_chart_a(reduction_df, control)
-    make_chart_b(reduction_df, control)
+    if False:
+        make_chart_a(reduction_df, control)
+        make_chart_b(reduction_df, control)
 
     def make_sorted_hps(reduction):
         'return dict; key = test_month; value = df of HPs, sorted by MAE'
@@ -582,8 +614,9 @@ def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, median_p
         result.append(len(sorted_hps_test_month) - 1)
         return result
 
-    make_chart_cd(reduction_df, control, median_prices, sorted_hps, detail_lines_c, 'c')
-    make_chart_cd(reduction_df, control, median_prices, sorted_hps, detail_lines_d, 'd')
+    if False:
+        make_chart_cd(reduction_df, control, median_prices, sorted_hps, detail_lines_c, 'c')
+        make_chart_cd(reduction_df, control, median_prices, sorted_hps, detail_lines_d, 'd')
     make_chart_e(actuals_d, predictions_d, mae_d, control, sorted_hps)
 
 
