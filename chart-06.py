@@ -95,8 +95,6 @@ def make_control(argv):
 
     debug = False
 
-    test = 'test-' if arg.test else ''
-
     # assure output directory exists
     dir_out = dir_working + arg.base_name + '-' + arg.valavm + '/'
     if not os.path.exists(dir_out):
@@ -107,13 +105,14 @@ def make_control(argv):
         debug=debug,
         path_in_ege=dir_working + 'valavm-' + arg.valavm + '/??????.pickle',
         path_in_samples=dir_working + 'samples-train.csv',
-        path_out_a=dir_out + test + 'a.pdf',
-        path_out_b=dir_out + test + 'b-%d.txt',
-        path_out_cd=dir_out + test + '%s.txt',
-        path_out_d=dir_out + test + 'd.txt',
-        path_out_e=dir_out + test + 'e.txt',
-        path_data=dir_out + test + 'data.pickle',
-        path_out_best=dir_out + test + 'best.pickle',
+        path_out_a=dir_out + 'a.pdf',
+        path_out_b=dir_out + 'b-%d.txt',
+        path_out_cd=dir_out + '%s.txt',
+        path_out_d=dir_out + 'd.txt',
+        path_out_e=dir_out + 'e-%04d.txt',
+        path_out_f=dir_out + 'f.txt',
+        path_data=dir_out + 'data.pickle',
+        path_out_best=dir_out + 'best.pickle',
         path_out_log=dir_out + 'log' + ('-data' if arg.data else '') + '.txt',
         path_in_median_prices=dir_working + 'chart-01/data.pickle',
         random_seed=random_seed,
@@ -437,21 +436,24 @@ def make_median_prices(medians):
 
 
 class ChartEReport(object):
-    def __init__(self, k, ensemble_weighting):
+    def __init__(self, k, ensemble_weighting, valavm):
         self.report = Report()
         self.format_header = '%6s %20s %5s %6s %6s %6s'
         self.format_model = '%6d %20s %5d %6.0f %6.4f %6.0f'
         self.format_best = '%6d %20s %5d %6.0f %6s %6.0f best'
         self.format_ensemble = '%6s %20s %5s %6s %6s %6.0f'
-        self._header(k, ensemble_weighting)
+        self.format_relative_error = '%6s %20s %5s %6s %6s %5.3f%%'
+        self.format_marr = '%6s %20s %5s %6s %6s %6.2%%'
+        self._header(k, ensemble_weighting, valavm)
 
-    def _header(self, k, ensemble_weighting):
+    def _header(self, k, ensemble_weighting, valavm):
         self.report.append('Performance of Best Models Separately and as an Ensemble')
         self.report.append(' ')
         self.report.append('Consider best %d models' % k)
         self.report.append('Ensemble weighting: %s' % ensemble_weighting)
+        self.report.append('Hyperparameter set: %s' % valavm)
         self.report.append(' ')
-        self.report.append(self.format_header % ('test', 'best', 'rank', 'test', '', 'next'))
+        self.report.append(self.format_header % ('test', ' ', 'rank', 'test', '', 'next'))
         self.report.append(self.format_header % ('month', 'model', 'index', 'MAE', 'weight', 'MAE'))
 
     def model_detail(self, month, model_s, rank, test_mae, weight, next_mae):
@@ -463,10 +465,59 @@ class ChartEReport(object):
     def ensemble_detail(self, ensemble_mae):
         self.report.append(self.format_ensemble % (' ', 'ensemble', 'na', 'na', 'na', ensemble_mae))
 
+    def marr(self, amount):
+        self.report.append(self.format_relative_error % (' ', 'med abs rel regret', 'na', 'na', 'na', amount * 100.0))
+
+    def median_price(self, amount):
+        self.report.append(self.format_ensemble % (' ', 'median price', 'na', 'na', 'na', amount))
+
     def regret(self, amount):
         self.report.append(self.format_ensemble % (' ', 'regret', 'na', 'na', 'na', amount))
 
+    def relative_error(self, amount):
+        self.report.append(self.format_relative_error % (' ', 'relative regret', 'na', 'na', 'na', amount * 100.0))
+
     def write(self, path):
+        'append legend and write the file'
+        def a(line):
+            self.report.append(line)
+
+        a(' ')
+        a('Legend for columns:')
+        a('test month --> validation month for selecting models')
+        a('               parameters are trained starting in bk prior month')
+        a('               where bk is part of the best model description')
+        a('model      --> description of the model (see below)')
+        a('rank index --> performance of model on test month data')
+        a('               the best model has index 0')
+        a('               the second best model has index 1')
+        a('test MAE   --> the median absolute error of the model in the test month')
+        a('weight     --> the weight of the model in the ensemble method')
+        a('next MAE   --> the median absolute error of the model in the month after the test month')
+        a(' ')
+        a('Legend for model descriptions:')
+        a('model descriptions is one of')
+        a('rf-A-B-C          --> model is random forests, where')
+        a('                    A = number of months of training data used')
+        a('                        example: A = 3 for test month 200612 means')
+        a('                        that the model was trained on data from months')
+        a('                        200609, 200610, and 200612')
+        a('                    B = the n_estimators value from scikit learn, which is')
+        a('                        the number of trees in the forest')
+        a('                    C = the max_features value from scikit learn, which is')
+        a('                        the number of features considered when splitting a')
+        a('                        node in the tree, where')
+        a('                        auto means use all the features when splitting a node')
+        a('                        sqrt means use the sqrt of the number of features,')
+        a('                        log2 means use the log_s of the number of features')
+        a('gb-A-B-D        --> model is gradient boosting,  where')
+        a('                    D = the learning rate for shrinking the contribution of')
+        a('                        each tree')
+        a('ensemble        --> next MAE contains median absolute error of the ensemble')
+        a('regret          --> (MAE of best model in next month) - (MAE of the ensemble)')
+        a('median price    --> the median price in the next month after the test period')
+        a('relative regret --> next MAE contains regret / median price in the next month')
+
         self.report.write(path)
 
     def append(self, line):
@@ -479,19 +530,13 @@ def model_to_str(k):
             k.n_months_back, k.units_X, k.units_y, k.alpha, k.l1_ratio)
     elif isinstance(k, ResultKeyGbr):
         assert k.loss == 'ls', k
-        if k.max_depth is None:
-            return 'gb-%0d-%d-%s-%.1f' % (
-                k.n_months_back, k.n_estimators, 'None', k.learning_rate)
-        else:
-            return 'gb-%0d-%d-%d-%.1f' % (
-                k.n_months_back, k.n_estimators, k.max_depth, k.learning_rate)
+        assert k.max_depth is None, k
+        return 'gb-%d-%d-%.1f' % (
+            k.n_months_back, k.n_estimators, k.learning_rate)
     elif isinstance(k, ResultKeyRfr):
-        if k.max_depth is None:
-            return 'rf-%0d-%d-%s' % (
-                k.n_months_back, k.n_estimators, 'None')
-        else:
-            return 'rf-%0d-%d-%d' % (
-                k.n_months_back, k.n_estimators, k.max_depth)
+        assert(k.max_depth is None), k
+        return 'rf-%d-%d-%s' % (
+            k.n_months_back, k.n_estimators, str(k.max_features))
     else:
         print type(k)
         pdb.set_trace()
@@ -522,12 +567,12 @@ def make_ensemble_predictions(predictions, weights):
     return result
 
 
-def make_chart_e(actuals_d, predictions_d, mae_d, control, sorted_hpsOLD):
+def make_chart_e(k, actuals_d, predictions_d, mae_d, control, median_prices):
     if len(actuals_d) != len(predictions_d) != len(mae_d):
         pdb.trace()
-    k = 10  # use k best models
     ensemble_weighting = 'exp(-MAE/100000)'
-    r = ChartEReport(k, ensemble_weighting)
+    r = ChartEReport(k, ensemble_weighting, control.arg.valavm)
+    relative_errors = []
     for test_month in test_months():
         if test_month == 200711:
             # we didn't test a model on 200712
@@ -580,13 +625,69 @@ def make_chart_e(actuals_d, predictions_d, mae_d, control, sorted_hpsOLD):
                 mae_d[next_month][a_best_model],
             )
         # determine regret
-        r.regret(best_mae - ensemble_mae)
+        regret = best_mae - ensemble_mae
+        r.regret(regret)
+        median_price = median_prices[next_month]
+        r.median_price(median_price)
+        relative_regret = regret / median_price
+        r.relative_error(relative_regret)
+        relative_errors.append(relative_regret)
         r.append(' ')
-    r.write(control.path_out_e)
+    r.append(' ')
+    median_absolute_relative_regret = np.median(np.abs(relative_errors))
+    r.marr(median_absolute_relative_regret)
+    return r, median_absolute_relative_regret
+
+
+class ChartFReport():
+    def __init__(self, valavm):
+        self.report = Report()
+        self.format_header = '%4s %7s'
+        self.format_detail = '%4d %6.3f%%'
+        self._header(valavm)
+
+    def detail(self, k, marr):
+        self.report.append(
+            self.format_detail % (k, marr * 100.0)
+        )
+
+    def _header(self, valavm):
+        self.report.append('Hyperparameter K')
+        self.report.append(' ')
+        self.report.append('Hyperparameter set: %s' % valavm)
+        self.report.append('K: number of models in ensemble')
+        self.report.append('MARR: Median Absolute Relative Regret')
+        self.report.append(' ')
+        self.report.append(
+            self.format_header % ('K', 'MARR')
+        )
+
+    def write(self, path):
+        self.report.write(path)
+
+    def append(self, line):
+        self.report.append(line)
+
+
+def make_charts_ef(actuals_d, predictions_d, mae_d, control, median_prices):
+    r = ChartFReport(control.arg.valavm)
+    ks = range(1, 31, 1)
+    ks.extend([40, 50, 60, 70, 80, 90, 100])
+    if control.arg.test:
+        ks = [10]
+    for k in ks:
+        report_e, median_absolute_relative_regret = make_chart_e(
+            k,
+            actuals_d, predictions_d, mae_d, control, median_prices,
+        )
+        report_e.write(control.path_out_e % k)
+        r.detail(k, median_absolute_relative_regret)
+    r.write(control.path_out_f)
 
 
 def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, median_prices):
-    if False:
+    only_e = True
+    if only_e:
         make_chart_a(reduction_df, control)
         make_chart_b(reduction_df, control)
 
@@ -614,10 +715,10 @@ def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, median_p
         result.append(len(sorted_hps_test_month) - 1)
         return result
 
-    if False:
+    if only_e:
         make_chart_cd(reduction_df, control, median_prices, sorted_hps, detail_lines_c, 'c')
         make_chart_cd(reduction_df, control, median_prices, sorted_hps, detail_lines_d, 'd')
-    make_chart_e(actuals_d, predictions_d, mae_d, control, sorted_hps)
+    make_charts_ef(actuals_d, predictions_d, mae_d, control, median_prices)
 
 
 def errors(actuals, predictions):
