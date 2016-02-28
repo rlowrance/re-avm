@@ -26,6 +26,7 @@ VALAVM_ANIL += $(WORKING)/valavm-anil/200708.pickle
 VALAVM_ANIL += $(WORKING)/valavm-anil/200709.pickle
 VALAVM_ANIL += $(WORKING)/valavm-anil/200710.pickle
 VALAVM_ANIL += $(WORKING)/valavm-anil/200711.pickle
+VALAVM_ANIL += $(WORKING)/valavm-anil/200712.pickle
 VALAVM_ROY += $(WORKING)/valavm-roy/200612.pickle
 VALAVM_ROY += $(WORKING)/valavm-roy/200701.pickle
 VALAVM_ROY += $(WORKING)/valavm-roy/200702.pickle
@@ -38,6 +39,7 @@ VALAVM_ROY += $(WORKING)/valavm-roy/200708.pickle
 VALAVM_ROY += $(WORKING)/valavm-roy/200709.pickle
 VALAVM_ROY += $(WORKING)/valavm-roy/200710.pickle
 VALAVM_ROY += $(WORKING)/valavm-roy/200711.pickle
+VALAVM_ROY += $(WORKING)/valavm-roy/200712.pickle
 ALL += $(VALAVM_ANIL) $(VALAVM_ROY)
 
 VALGBR += $(WORKING)/valgbr/200402.pickle
@@ -246,6 +248,9 @@ $(WORKING)/valavm-anil/200710.pickle: $(valavm_dep)
 $(WORKING)/valavm-anil/200711.pickle: $(valavm_dep)
 	$(PYTHON) valavm.py 200711 anil
 
+$(WORKING)/valavm-anil/200712.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200712 anil
+
 # valavm-roy
 $(WORKING)/valavm-roy/200612.pickle: $(valavm_dep)
 	$(PYTHON) valavm.py 200612 roy
@@ -282,6 +287,9 @@ $(WORKING)/valavm-roy/200710.pickle: $(valavm_dep)
 
 $(WORKING)/valavm-roy/200711.pickle: $(valavm_dep)
 	$(PYTHON) valavm.py 200711 roy
+
+$(WORKING)/valavm-roy/200712.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200712 roy
 
 
 # valgbr
