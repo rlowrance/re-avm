@@ -8,8 +8,9 @@ INPUT FILES
 
 OUTPUT FILES
  WORKING/chart-01/data.pickle
- WORKING/chart-01/txt
- WORKING/chart-01/pdf
+ WORKING/chart-01/median-price.pdf
+ WORKING/chart-01/median-price.txt
+ WORKING/chart-01/median-price_2006_2007.txt
 '''
 
 from __future__ import division
