@@ -7,6 +7,7 @@ usage
   if point.squared > threshold:
       point.is_ok = True
 '''
+import argparse
 import pdb
 import unittest
 
@@ -16,7 +17,7 @@ class Bunch(object):
         self.__dict__.update(kwds)
 
     def values(self, d, basename):
-        # return string of values basename.key = value
+        # return list of values basename.key = value
         result = []
         for k in sorted(d):
             v = d[k]
@@ -24,6 +25,9 @@ class Bunch(object):
                 vs = self.values(v.__dict__, k)
                 for v in vs:
                     result.append(v)
+            elif isinstance(v, argparse.Namespace):
+                for k2, v2 in v.__dict__.items():
+                    result.append('%s.%s = %s' % (str(k), str(k2), str(v2)))
             elif basename == '':
                 result.append('%s = %s' % (k, v))
             else:
