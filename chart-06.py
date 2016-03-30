@@ -225,6 +225,27 @@ def differ(a, b):
     return False
 
 
+def make_hp_string(series):
+    ignored_indices = set(('mae', 'model', 'yyyymm', 'n_months_back',
+                           'max_depth', 'n_estimators', 'max_features',
+                           'test_month', 'loss'))
+    result = ''
+    for index, value in series.iteritems():
+        # check that index == 'loss' has no information
+        assert (value in ('ls', None) if index == 'loss' else True), (index, value)
+        if index in ignored_indices:
+            continue
+        if (isinstance(value, float) and np.isnan(value)) or value is None:
+            # value is missing
+            continue
+        if index == 'units_X' and value == 'natural':
+            continue
+        if index == 'units_y' and value == 'natural':
+            continue
+        result += '%s=%s ' % (index, value)
+    return result
+
+
 def make_chart_b(reduction, control):
     '''MAE for best-performing models by training period
     NOTE: This code knows that en is never the best model '''
@@ -244,24 +265,8 @@ def make_chart_b(reduction, control):
 
         def append_detail_line(r, series):
             'append detail line to report r'
-            hp_string = ''
+            hp_string = make_hp_string(series)
             # accumulate non-missing hyperparameters
-            called_out_indices = set(('mae', 'model', 'yyyymm', 'n_months_back',
-                                      'max_depth', 'n_estimators', 'max_features',
-                                      'test_month', 'loss'))
-            for index, value in series.iteritems():
-                assert (value in ('ls', None) if index == 'loss' else True), (index, value)
-                if index in called_out_indices:
-                    # not a hyperparameter collected into "Other HPs"
-                    continue
-                if (isinstance(value, float) and np.isnan(value)) or value is None:
-                    # value is missing
-                    continue
-                if index == 'units_X' and value == 'natural':
-                    continue
-                if index == 'units_y' and value == 'natural':
-                    continue
-                hp_string += '%s=%s ' % (index, value)
             assert series.model != 'en', series
             if series.max_depth is None:
                 r.append(format_detail_no_max_depth % (
@@ -370,28 +375,6 @@ class ChartCReport(object):
         legend('mxft', 'max number of features considered when selecting new split variable')
 
     def detail_line(self, sorted_index, test_month, sorted_df, median_price):
-        def make_hp_string(series):
-            'accumulate HPs not printed in columns'
-            # the common HPs are printed in columns
-            hp_string = ''
-            called_out_indices = set(('mae', 'model', 'yyyymm', 'n_months_back',
-                                      'max_depth', 'n_estimators', 'max_features',
-                                      'test_month',
-                                      ))
-            for index, value in series.iteritems():
-                if index in called_out_indices:
-                    # not a hyperparameter collected into "Other HPs"
-                    continue
-                if (isinstance(value, float) and np.isnan(value)) or value is None:
-                    # value is missing
-                    continue
-                if series.model != 'en' and index == 'units_X' and value == 'natural':
-                    continue
-                if series.model != 'en' and index == 'units_y' and value == 'natural':
-                    continue
-                hp_string += '%s=%s ' % (index, value)
-            return hp_string
-
         assert len(sorted_df) > 0, (test_month, sorted_index)
         series = sorted_df.iloc[sorted_index]
         if series.model == 'en':
@@ -777,14 +760,10 @@ def make_charts_efg(actuals_d, predictions_d, mae_d, control, median_prices):
 
 def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, median_prices):
     print 'making charts'
-    only_b = control.debug and False
-    only_efg = control.debug and False
-    if only_b:
-        make_chart_b(reduction_df, control)
-        return
-    if not only_efg:
-        make_chart_a(reduction_df, control)
-        make_chart_b(reduction_df, control)
+    only_abcd = control.debug
+
+    make_chart_a(reduction_df, control)
+    make_chart_b(reduction_df, control)
 
     def make_sorted_hps(reduction):
         'return dict; key = test_month; value = df of HPs, sorted by MAE'
@@ -809,10 +788,12 @@ def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, median_p
         result.append(len(sorted_hps_test_month) - 1)
         return result
 
-    if not only_efg:
+    if only_abcd:
+        make_chart_cd(reduction_df, control, median_prices, sorted_hps, detail_lines_c, 'c')
+    else:
         make_chart_cd(reduction_df, control, median_prices, sorted_hps, detail_lines_c, 'c')
         make_chart_cd(reduction_df, control, median_prices, sorted_hps, detail_lines_d, 'd')
-    make_charts_efg(actuals_d, predictions_d, mae_d, control, median_prices)
+        make_charts_efg(actuals_d, predictions_d, mae_d, control, median_prices)
 
 
 def errors(actuals, predictions):
@@ -902,7 +883,6 @@ def main(argv):
     control = make_control(argv)
     sys.stdout = Logger(logfile_path=control.path_out_log)
     print control
-    pdb.set_trace()
 
     if control.arg.data:
         df, actuals_d, predictions_d, mae_d = make_data(control)
@@ -920,6 +900,8 @@ def main(argv):
     print control
     if control.test:
         print 'DISCARD OUTPUT: test'
+    if control.debug:
+        print 'DISCARD OUTPUT: debug'
     print 'done'
 
     return
