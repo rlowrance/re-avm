@@ -27,30 +27,31 @@ VALAVM_ANIL += $(WORKING)/valavm-anil/200709.pickle
 VALAVM_ANIL += $(WORKING)/valavm-anil/200710.pickle
 VALAVM_ANIL += $(WORKING)/valavm-anil/200711.pickle
 VALAVM_ANIL += $(WORKING)/valavm-anil/200712.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200612.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200701.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200702.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200703.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200704.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200705.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200706.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200707.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200708.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200709.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200710.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200711.pickle
-VALAVM_ROY += $(WORKING)/valavm-roy/200712.pickle
-# Build these on the Carmen system
+# Build these on the Elektra system; it has 12 hypercores
+VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200612.pickle
+VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200701.pickle
+VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200702.pickle
+VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200703.pickle
+VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200704.pickle
+VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200705.pickle
+VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200706.pickle
+VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200707.pickle
+VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200708.pickle
+VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200709.pickle
+VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200710.pickle
+VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200711.pickle
+# Build these on the Carmen system; it has 8 hypercores
+VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200712.pickle
 VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200801.pickle
 VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200802.pickle
 VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200803.pickle
 VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200804.pickle
 VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200805.pickle
-VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200806.pickle
-ALL += $(VALAVM_ANIL) $(VALAVM_ROY) $(VALAVM_ROY_CARMEN)
+VALAVM += $(VALAVM_ROY_ELEKTRA) $(VALAVM_ROY_CARMEN)
+ALL += $(VALAVM)
 
 .PHONY : elektra
-elektra: $(VALAVM_ROY)
+elektra: $(VALAVM_ROY_ELEKTRA)
 
 .PHONY : carmen
 carmen: $(VALAVM_ROY_CARMEN)
