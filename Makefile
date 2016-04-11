@@ -40,7 +40,20 @@ VALAVM_ROY += $(WORKING)/valavm-roy/200709.pickle
 VALAVM_ROY += $(WORKING)/valavm-roy/200710.pickle
 VALAVM_ROY += $(WORKING)/valavm-roy/200711.pickle
 VALAVM_ROY += $(WORKING)/valavm-roy/200712.pickle
-ALL += $(VALAVM_ANIL) $(VALAVM_ROY)
+# Build these on the Carmen system
+VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200801.pickle
+VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200802.pickle
+VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200803.pickle
+VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200804.pickle
+VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200805.pickle
+VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200806.pickle
+ALL += $(VALAVM_ANIL) $(VALAVM_ROY) $(VALAVM_ROY_CARMEN)
+
+.PHONY : elektra
+elektra: $(VALAVM_ROY)
+
+.PHONY : carmen
+carmen: $(VALAVM_ROY_CARMEN)
 
 VALGBR += $(WORKING)/valgbr/200402.pickle
 VALGBR += $(WORKING)/valgbr/200405.pickle
@@ -290,6 +303,24 @@ $(WORKING)/valavm-roy/200711.pickle: $(valavm_dep)
 
 $(WORKING)/valavm-roy/200712.pickle: $(valavm_dep)
 	$(PYTHON) valavm.py 200712 roy
+
+$(WORKING)/valavm-roy/200801.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200801 roy
+
+$(WORKING)/valavm-roy/200802.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200802 roy
+
+$(WORKING)/valavm-roy/200803.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200803 roy
+
+$(WORKING)/valavm-roy/200804.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200804 roy
+
+$(WORKING)/valavm-roy/200805.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200805 roy
+
+$(WORKING)/valavm-roy/200806.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200806 roy
 
 
 # valgbr
