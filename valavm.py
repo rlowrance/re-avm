@@ -55,7 +55,7 @@ def make_grid_anil():
         n_months_back_seq=(1, 2, 3, 6, 12),
 
         # HP settings to test for ElasticNet models
-        alpha_seq=(1.01, 0.03, 0.1, 0.3, 1.0),  # multiplies the penalty term
+        alpha_seq=(0.01, 0.03, 0.1, 0.3, 1.0),  # multiplies the penalty term
         l1_ratio_seq=(0.0, 0.25, 0.50, 0.75, 1.0),  # 0 ==> L2 penalty, 1 ==> L1 penalty
         units_X_seq=('natural', 'log'),
         units_y_seq=('natural', 'log'),
