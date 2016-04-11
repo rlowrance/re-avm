@@ -2,17 +2,15 @@
 for AVMs based on 3 models (linear, random forests, gradient boosting regression)
 
 INVOCATION
-  python valavm.py TEST_MONTH SWEEP [--test]
+  python valavm.py TEST_MONTH --test]
   where
    TEST_MONTH: yyyymm  Month of test data; training uses months just prior
-   GRID_NAME : name    Name of hyperparameter grid used; one of {"roy", "anil"}
 
 INPUTS
  WORKING/samples-train.csv
 
 OUTPUTS
- WORKING/valavm-GRID_NAME/TEST_MONTH.pickle
- WORKING/valavm-GRID_NAME/log-TEST_MONTH.txt  # NOT PRODUCED
+ WORKING/valavm/TEST_MONTH.pickle
 '''
 
 from __future__ import division
@@ -48,33 +46,33 @@ def usage(msg=None):
     sys.exit(1)
 
 
-def make_grid_anil():
-    # return Bunch of hyperparameter settings
-    return Bunch(
-        # HP settings to test across all models
-        n_months_back_seq=(1, 2, 3, 6, 12),
+# def make_grid_anil():
+#    # return Bunch of hyperparameter settings
+#    return Bunch(
+#        # HP settings to test across all models
+#        n_months_back_seq=(1, 2, 3, 6, 12),
+#
+#        # HP settings to test for ElasticNet models
+#        alpha_seq=(0.01, 0.03, 0.1, 0.3, 1.0),  # multiplies the penalty term
+#        l1_ratio_seq=(0.0, 0.25, 0.50, 0.75, 1.0),  # 0 ==> L2 penalty, 1 ==> L1 penalty
+#        units_X_seq=('natural', 'log'),
+#        units_y_seq=('natural', 'log'),
+#
+#        # HP settings to test for tree-based models
+#        # settings based on Anil Kocak's recommendations
+#        n_estimators_seq=(300,),  # largest should be best, except for noise in the signal
+#        max_features_seq=('log2', 'sqrt', 'auto'),  # auto --> max features
+#        max_depth_seq=(None,),  # None --> leaves are split until pure
+#
+#        # HP setting to test for GradientBoostingRegression models
+#        learning_rate_seq=(.10, .25, .50, .75, .99),
+#        # experiments demonstrated that the best loss is seldom quantile
+#        # loss_seq=('ls', 'quantile'),
+#        loss_seq=('ls',),
+#    )
 
-        # HP settings to test for ElasticNet models
-        alpha_seq=(0.01, 0.03, 0.1, 0.3, 1.0),  # multiplies the penalty term
-        l1_ratio_seq=(0.0, 0.25, 0.50, 0.75, 1.0),  # 0 ==> L2 penalty, 1 ==> L1 penalty
-        units_X_seq=('natural', 'log'),
-        units_y_seq=('natural', 'log'),
 
-        # HP settings to test for tree-based models
-        # settings based on Anil Kocak's recommendations
-        n_estimators_seq=(300,),  # largest should be best, except for noise in the signal
-        max_features_seq=('log2', 'sqrt', 'auto'),  # auto --> max features
-        max_depth_seq=(None,),  # None --> leaves are split until pure
-
-        # HP setting to test for GradientBoostingRegression models
-        learning_rate_seq=(.10, .25, .50, .75, .99),
-        # experiments demonstrated that the best loss is seldom quantile
-        # loss_seq=('ls', 'quantile'),
-        loss_seq=('ls',),
-    )
-
-
-def make_grid_roy():
+def make_grid():
     # return Bunch of hyperparameter settings
     return Bunch(
         # HP settings to test across all models
@@ -108,32 +106,22 @@ def make_control(argv):
             usage('%s is not a string' % name)
 
     print argv
-    if not(2 <= len(argv) <= 7):
+    if not(2 <= len(argv) <= 3):
         usage('invalid number of arguments')
 
     pcl = ParseCommandLine(argv)
     arg = Bunch(
         base_name='valavm',
         test_month=argv[1],
-        grid_name=argv[2],
         test=pcl.has_arg('--test'),
     )
 
     assert len(arg.test_month) > 0, argv
-    assert len(arg.grid_name) > 0, argv
 
     try:
         arg.test_month = int(arg.test_month)
     except:
         usage('test_month not an integer like YYYYMM')
-
-    the_grid = None
-    if arg.grid_name == 'anil':
-        the_grid = make_grid_anil()
-    elif arg.grid_name == 'roy':
-        the_grid = make_grid_roy()
-    else:
-        usage('GRID_NAME must be one of {"anil", "roy"}')
 
     random_seed = 123
     random.seed(random_seed)
@@ -143,7 +131,7 @@ def make_control(argv):
     debug = False
 
     # assure output directory exists
-    dir_path = dir_working + arg.base_name + '-' + arg.grid_name + '/'
+    dir_path = dir_working + arg.base_name + '/'
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
@@ -153,7 +141,7 @@ def make_control(argv):
         path_in=dir_working + 'samples-train.csv',
         path_out_file=dir_path + str(arg.test_month) + '.pickle',
         path_out_log=dir_path + 'log-' + str(arg.test_month) + '.txt',
-        grid=the_grid,
+        grid=make_grid(),
         random_seed=random_seed,
         test=arg.test,
     )

@@ -265,63 +265,61 @@ $(WORKING)/valavm-anil/200711.pickle: $(valavm_dep)
 $(WORKING)/valavm-anil/200712.pickle: $(valavm_dep)
 	$(PYTHON) valavm.py 200712 anil
 
-# valavm-roy
-$(WORKING)/valavm-roy/200612.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200612 roy
+# valavm
+$(WORKING)/valavm/200612.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200612
 
-$(WORKING)/valavm-roy/200701.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200701 roy
+$(WORKING)/valavm/200701.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200701
 
-$(WORKING)/valavm-roy/200702.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200702 roy
+$(WORKING)/valavm/200702.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200702 
 
-$(WORKING)/valavm-roy/200703.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200703 roy
+$(WORKING)/valavm/200703.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200703 
 
-$(WORKING)/valavm-roy/200704.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200704 roy
+$(WORKING)/valavm/200704.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200704 
 
-$(WORKING)/valavm-roy/200705.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200705 roy
+$(WORKING)/valavm/200705.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200705 
 
-$(WORKING)/valavm-roy/200706.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200706 roy
+$(WORKING)/valavm/200706.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200706 
 
-$(WORKING)/valavm-roy/200707.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200707 roy
+$(WORKING)/valavm/200707.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200707 
 
-$(WORKING)/valavm-roy/200708.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200708 roy
+$(WORKING)/valavm/200708.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200708 
 
-$(WORKING)/valavm-roy/200709.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200709 roy
+$(WORKING)/valavm/200709.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200709 
 
-$(WORKING)/valavm-roy/200710.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200710 roy
+$(WORKING)/valavm/200710.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200710 
 
-$(WORKING)/valavm-roy/200711.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200711 roy
+$(WORKING)/valavm/200711.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200711 
 
-$(WORKING)/valavm-roy/200712.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200712 roy
+$(WORKING)/valavm/200712.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200712 
 
-$(WORKING)/valavm-roy/200801.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200801 roy
+$(WORKING)/valavm/200801.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200801 
 
-$(WORKING)/valavm-roy/200802.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200802 roy
+$(WORKING)/valavm/200802.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200802 
 
-$(WORKING)/valavm-roy/200803.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200803 roy
+$(WORKING)/valavm/200803.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200803 
 
-$(WORKING)/valavm-roy/200804.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200804 roy
+$(WORKING)/valavm/200804.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200804 
 
-$(WORKING)/valavm-roy/200805.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200805 roy
+$(WORKING)/valavm/200805.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py 200805 
 
-$(WORKING)/valavm-roy/200806.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py 200806 roy
 
 
 # valgbr
