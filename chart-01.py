@@ -15,6 +15,7 @@ OUTPUT FILES
 
 from __future__ import division
 
+import argparse
 import collections
 import cPickle as pickle
 import matplotlib.pyplot as plt
@@ -29,33 +30,22 @@ import sys
 from Bunch import Bunch
 from columns_contain import columns_contain
 from Logger import Logger
-from ParseCommandLine import ParseCommandLine
 from Path import Path
 from Report import Report
 import layout_transactions as t
 cc = columns_contain
 
 
-def usage(msg=None):
-    print __doc__
-    if msg is not None:
-        print msg
-    sys.exit(1)
-
-
 def make_control(argv):
     # return a Bunch
 
     print argv
-    if len(argv) not in (1, 2, 3):
-        usage('invalid number of arguments')
-
-    pcl = ParseCommandLine(argv)
-    arg = Bunch(
-        base_name='chart-01',
-        data=pcl.has_arg('--data'),
-        test=pcl.has_arg('--test'),
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument('invocation')
+    parser.add_argument('--data', help='reduce input and create data file in WORKING', action='store_true')
+    parser.add_argument('--test', help='set internal test flag', action='store_true')
+    arg = Bunch.from_namespace(parser.parse_args(argv))
+    base_name = arg.invocation.split('.')[0]
 
     random_seed = 123
     random.seed(random_seed)
@@ -64,15 +54,16 @@ def make_control(argv):
 
     debug = False
 
-    reduced_file_name = ('test-' if arg.test else '') + 'data.pickle'
+    reduced_file_name = 'data.pickle'
 
     # assure output directory exists
-    dir_path = dir_working + arg.base_name + '/'
+    dir_path = dir_working + base_name + '/'
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
     return Bunch(
         arg=arg,
+        base_name=base_name,
         debug=debug,
         path_in_samples=dir_working + 'samples-train-validate.csv',
         path_out_pdf=dir_path + 'median-price.pdf',
@@ -165,28 +156,38 @@ def make_chart_txt_2006_2007(data, control):
     r.write(control.path_out_txt_2006_2007)
 
 
+ReductionValue = collections.namedtuple('ReductionValue', 'count mean median standarddeviation')
+
+
 def make_data(control):
     transactions = pd.read_csv(control.path_in_samples,
                                nrows=1000 if control.test else None,
                                )
+    # accumulate prices of transactions in each period into dict
+    # key = yyyymm (the period), an
+    # value = list of prices
     prices = collections.defaultdict(list)
     for index, row in transactions.iterrows():
         yyyymm = row[t.yyyymm]
         prices[yyyymm].append(row[t.price])
-    counts = {}
-    means = {}
-    medians = {}
-    for k, v in prices.iteritems():
-        a = np.array(v)
-        counts[k] = len(a)
-        means[k] = np.mean(a)
-        medians[k] = np.median(a)
-    return counts, means, medians, prices
+
+    # build dictionary of statistics of prices in each period
+    # key = yyyymm (an int)
+    # value = ReductionValue(...)
+    reduction = {}
+    for yyyymm, prices in prices.iteritems():
+        reduction[yyyymm] = ReductionValue(
+            count=len(prices),
+            mean=np.mean(prices),
+            median=np.median(prices),
+            standarddeviation=np.std(prices),
+        )
+    return reduction
 
 
 def main(argv):
     control = make_control(argv)
-    sys.stdout = Logger(base_name=control.arg.base_name)
+    sys.stdout = Logger(base_name=control.base_name)
     print control
 
     if control.arg.data:
@@ -196,7 +197,7 @@ def main(argv):
     else:
         with open(control.path_reduction, 'rb') as f:
             data, reduction_control = pickle.load(f)
-        make_chart_txt_2006_2007(data, control)
+        make_chart_txt_2006_2008(data, control)
         make_chart_txt(data, control)
         make_chart_pdf(data, control)
 
