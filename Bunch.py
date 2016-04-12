@@ -6,6 +6,7 @@ usage
   point = Bunch(datum=y, squared=y*y)
   if point.squared > threshold:
       point.is_ok = True
+  b = Bunch(namespace)
 '''
 import argparse
 import pdb
@@ -13,6 +14,13 @@ import unittest
 
 
 class Bunch(object):
+    @staticmethod
+    def from_namespace(namespace):
+        b = Bunch()
+        for attr, value in namespace.__dict__.iteritems():
+            b.__dict__[attr] = value
+        return b
+
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
 
@@ -43,16 +51,35 @@ class Bunch(object):
                 s += '\n'
         return s
 
+    def __repr__(self):
+        s = 'Bunch('
+        first = True
+        for k, v in self.__dict__.iteritems():
+            if first:
+                first = False
+            else:
+                s += ', '
+            s += '%s=%s' % (k, v)
+        s += ')'
+        return s
+
 
 class Test(unittest.TestCase):
     def setUp(self):
-        self.verbose = True
+        self.verbose = False
 
     def test_construction(self):
         struct = Bunch(x=10, y=20)
         struct.total = struct.x + struct.y
         self.assertEqual(struct.x, 10)
         self.assertEqual(struct.total, 30)
+
+    def test_construction_from_namespace(self):
+        ns = argparse.Namespace(x=10, y=20)
+        b = Bunch.from_namespace(ns)
+        if self.verbose:
+            pdb.set_trace()
+            print b
 
     def test_print(self):
         inner = Bunch(a=10, b=20)
