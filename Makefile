@@ -13,48 +13,34 @@ ALL += $(WORKING)/census-features-derived.csv
 # CHART02 and RFBOUND are obsoleted by RFVAL
 # their rules and recipes are in rfbound.mk
 
-# make -j 12 runs OK to make all the valavm objects
-VALAVM_ANIL += $(WORKING)/valavm-anil/200612.pickle
-VALAVM_ANIL += $(WORKING)/valavm-anil/200701.pickle
-VALAVM_ANIL += $(WORKING)/valavm-anil/200702.pickle
-VALAVM_ANIL += $(WORKING)/valavm-anil/200703.pickle
-VALAVM_ANIL += $(WORKING)/valavm-anil/200704.pickle
-VALAVM_ANIL += $(WORKING)/valavm-anil/200705.pickle
-VALAVM_ANIL += $(WORKING)/valavm-anil/200706.pickle
-VALAVM_ANIL += $(WORKING)/valavm-anil/200707.pickle
-VALAVM_ANIL += $(WORKING)/valavm-anil/200708.pickle
-VALAVM_ANIL += $(WORKING)/valavm-anil/200709.pickle
-VALAVM_ANIL += $(WORKING)/valavm-anil/200710.pickle
-VALAVM_ANIL += $(WORKING)/valavm-anil/200711.pickle
-VALAVM_ANIL += $(WORKING)/valavm-anil/200712.pickle
 # Build these on the Elektra system; it has 12 hypercores
-VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200612.pickle
-VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200701.pickle
-VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200702.pickle
-VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200703.pickle
-VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200704.pickle
-VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200705.pickle
-VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200706.pickle
-VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200707.pickle
-VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200708.pickle
-VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200709.pickle
-VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200710.pickle
-VALAVM_ROY_ELEKTRA += $(WORKING)/valavm-roy/200711.pickle
+VALAVM_ELEKTRA += $(WORKING)/valavm/200612.pickle
+VALAVM_ELEKTRA += $(WORKING)/valavm/200701.pickle
+VALAVM_ELEKTRA += $(WORKING)/valavm/200702.pickle
+VALAVM_ELEKTRA += $(WORKING)/valavm/200703.pickle
+VALAVM_ELEKTRA += $(WORKING)/valavm/200704.pickle
+VALAVM_ELEKTRA += $(WORKING)/valavm/200705.pickle
+VALAVM_ELEKTRA += $(WORKING)/valavm/200706.pickle
+VALAVM_ELEKTRA += $(WORKING)/valavm/200707.pickle
+VALAVM_ELEKTRA += $(WORKING)/valavm/200708.pickle
+VALAVM_ELEKTRA += $(WORKING)/valavm/200709.pickle
+VALAVM_ELEKTRA += $(WORKING)/valavm/200710.pickle
+VALAVM_ELEKTRA += $(WORKING)/valavm/200711.pickle
 # Build these on the Carmen system; it has 8 hypercores
-VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200712.pickle
-VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200801.pickle
-VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200802.pickle
-VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200803.pickle
-VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200804.pickle
-VALAVM_ROY_CARMEN += $(WORKING)/valavm-roy/200805.pickle
-VALAVM += $(VALAVM_ROY_ELEKTRA) $(VALAVM_ROY_CARMEN)
+VALAVM_CARMEN += $(WORKING)/valavm/200712.pickle
+VALAVM_CARMEN += $(WORKING)/valavm/200801.pickle
+VALAVM_CARMEN += $(WORKING)/valavm/200802.pickle
+VALAVM_CARMEN += $(WORKING)/valavm/200803.pickle
+VALAVM_CARMEN += $(WORKING)/valavm/200804.pickle
+VALAVM_CARMEN += $(WORKING)/valavm/200805.pickle
+VALAVM += $(VALAVM_ELEKTRA) $(VALAVM_CARMEN)
 ALL += $(VALAVM)
 
 .PHONY : elektra
-elektra: $(VALAVM_ROY_ELEKTRA)
+elektra: $(VALAVM_ELEKTRA)
 
 .PHONY : carmen
-carmen: $(VALAVM_ROY_CARMEN)
+carmen: $(VALAVM_CARMEN)
 
 VALGBR += $(WORKING)/valgbr/200402.pickle
 VALGBR += $(WORKING)/valgbr/200405.pickle
