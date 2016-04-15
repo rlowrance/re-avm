@@ -1,24 +1,24 @@
 '''create charts showing results of valgbr.py
 
 INVOCATION
-  python chart-06.py --valavm VALAVM [--data] [--test]
+  python chart-06.py [--data] [--test VALAVM]
 where
   VALAVM in {roy, anil}
 
 INPUT FILES
  WORKING/chart-01/data.pickle
  WORKING/samples-train.csv
- WORKING/valavm-VALAVM[--test]/YYYYMM.pickle
+ WORKING/valavm[-VALAVM-test]/YYYYMM.pickle
 
 OUTPUT FILES
- WORKING/chart-06-VALAVM/data.pickle    | reduced data
- WORKING/chart-06-VALAVM/a.pdf          | range of losses by model (graph)
- WORKING/chart-06-VALAVM/b-YYYYMM.txt   | HPs with lowest losses
- WORKING/chart-06-VALAVM/c.pdf          | best model each month
- WORKING/chart-06-VALAVM/d.pdf          | best & 50th best each month
- WORKING/chart-06-VALAVM/e.pdf          | best 50 models each month (was chart-07)
- WORKING/chart-06-VALAVM/best.pickle    | dataframe with best choices each month
- WORKING/chart-06-VALAVM/log[-data].txt        | log file (created by print statements)
+ WORKING/chart-06[-VALAVM]/data.pickle    | reduced data
+ WORKING/chart-06[-VALAVM]/a.pdf          | range of losses by model (graph)
+ WORKING/chart-06[-VALAVM]/b-YYYYMM.txt   | HPs with lowest losses
+ WORKING/chart-06[-VALAVM]/c.pdf          | best model each month
+ WORKING/chart-06[-VALAVM]/d.pdf          | best & 50th best each month
+ WORKING/chart-06[-VALAVM]/e.pdf          | best 50 models each month (was chart-07)
+ WORKING/chart-06[-VALAVM]/best.pickle    | dataframe with best choices each month
+ WORKING/chart-06[-VALAVM]/log[-data].txt | log file (created by print statements)
 '''
 
 from __future__ import division
@@ -65,38 +65,30 @@ Value = collections.namedtuple(
 ModelResult = collections.namedtuple('ModelResult', 'mae')
 
 
-def usage(msg=None):
-    print __doc__
-    if msg is not None:
-        print msg
-    sys.exit(1)
-
-
 def make_control(argv):
     # return a Bunch
 
     print argv
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
-    parser.add_argument('--valavm', type=str)
     parser.add_argument('--data', action='store_true')
-    parser.add_argument('--test', action='store_true')
+    parser.add_argument('--test')  # arg.test is None or a str
     arg = parser.parse_args(argv)  # arg.__dict__ contains the bindings
     arg.base_name = 'chart-06'
 
     random_seed = 123
     random.seed(random_seed)
 
-    dir_working = Path().dir_working()
-
     debug = False
 
     # assure output directory exists
+    dir_working = Path().dir_working()
     dir_out = (
         dir_working +
-        arg.base_name + '-' +
-        arg.valavm +
-        '/')
+        'chart-06' +
+        ('' if arg.test is None else ('-' + arg.test)) +
+        '/'
+    )
     if not os.path.exists(dir_out):
         os.makedirs(dir_out)
 
@@ -105,8 +97,8 @@ def make_control(argv):
         debug=debug,
         path_in_ege=(
             dir_working +
-            'valavm-' + arg.valavm +
-            ('-test' if arg.test else '') +
+            'valavm' +
+            ('' if arg.test is None else ('-' + arg.test + '-test')) +
             '/??????.pickle'),
         path_in_samples=dir_working + 'samples-train.csv',
         path_out_a=dir_out + 'a.pdf',
@@ -803,7 +795,72 @@ def extract_yyyymm(path):
     return path.split('/')[4].split('.')[0]
 
 
+ReductionKey = collections.namedtuple('ReductionKey', 'validation_month result_key')
+ReductionValue = collections.namedtuple('ReductionValue', 'value')
+
+
+class Reduction(object):
+    'emulate a dict container, with special lazy retrieval methods'
+    def __init__(self):
+        self._d = {}
+
+    def __setitem__(self, key, value):
+        self._d[key] = value
+
+    def __getitem__(self, key):
+        return self._d[key]
+
+    def __len__(self):
+        return len(self._d)
+
+    def __str__(self):
+        return 'Reduction(len=%d)' % len(self._d)
+
+    def __iter__(self):
+        return self._d.__iter__()
+
+    def update(self, other):
+        return self._d.update(other)
+
+
 def make_data(control):
+    'return a Reduction containing all of the data'
+    def reduce(path):
+        'return a Reduction containing the data for one validation month'
+        reduction = Reduction()
+        validation_month = extract_yyyymm(path)
+        n_read = 0
+        with open(path, 'rb') as f:
+            while True:
+                try:
+                    record = pickle.load(f)  # read until EOF
+                    n_read += 1
+                    assert isinstance(record, tuple), type(record)
+                    key, value = record
+                    reduction[ReductionKey(validation_month, key)] = ReductionValue(value)
+                except ValueError as e:
+                    print 'ValueError', e  # ignore error
+                    if key is not None:
+                        print key
+                    if key is not None:
+                        print value
+                    print 'ValueError %s on record %d ignored; record discarded' % (e, n_read + 1)
+                except EOFError:
+                    break
+        return reduction
+
+    reduction = Reduction()
+    paths = sorted(glob.glob(control.path_in_ege))
+    for path in paths:
+        print 'reducing', path
+        path_reduction = reduce(path)
+        print 'created %d records from path %s' % (len(path_reduction), path)
+        reduction.update(path_reduction)
+    print 'create %d records from all paths' % len(reduction)
+    return reduction
+
+
+def make_data_old(control):
     'return reduction data frame, reduction dict, ege_control'
 
     actuals_d = collections.defaultdict(dict)
@@ -811,7 +868,7 @@ def make_data(control):
     mae_d = collections.defaultdict(dict)
 
     def make_row(test_month, k, v):
-        'return nex row of dataframe; add to reduction dictionaries'
+        'return a dict, that will be the next row of dataframe in the form of a dict'
         is_en = isinstance(k, ResultKeyEn)
         is_gbr = isinstance(k, ResultKeyGbr)
         is_rfr = isinstance(k, ResultKeyRfr)
@@ -846,6 +903,7 @@ def make_data(control):
 
     def process_records(path, rows_list):
         'mutate rows_list, a list of dictionaries, to include objects at path'
+        pdb.set_trace()
         print 'reducing', path
         test_month = extract_yyyymm(path)
         n = 0
@@ -879,17 +937,30 @@ def main(argv):
     sys.stdout = Logger(logfile_path=control.path_out_log)
     print control
 
+#    if control.arg.data:
+#        df, actuals_d, predictions_d, mae_d = make_data(control)
+#        with open(control.path_data, 'wb') as f:
+#            pickle.dump((df, actuals_d, predictions_d, mae_d, control), f)
+#        print 'wrote reduction data file'
+#    else:
+#        with open(control.path_data, 'rb') as f:
+#            reduction_df, actuals_d, predictions_d, mae_d, reduction_control = pickle.load(f)
+#            with open(control.path_in_median_prices, 'rb') as g:
+#                data, reduction_control = pickle.load(g)
+#                counts, means, medians, prices = data
+#                make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, medians)
     if control.arg.data:
-        df, actuals_d, predictions_d, mae_d = make_data(control)
+        d = make_data(control)
         with open(control.path_data, 'wb') as f:
-            pickle.dump((df, actuals_d, predictions_d, mae_d, control), f)
+            pickle.dump((d, control), f)
         print 'wrote reduction data file'
     else:
         with open(control.path_data, 'rb') as f:
-            reduction_df, actuals_d, predictions_d, mae_d, reduction_control = pickle.load(f)
+            d, reduction_control = pickle.load(f)
             with open(control.path_in_median_prices, 'rb') as g:
                 data, reduction_control = pickle.load(g)
                 counts, means, medians, prices = data
+                # TODO: already load trading volumes (from chart01)
                 make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, medians)
 
     print control
