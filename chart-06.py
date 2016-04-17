@@ -132,7 +132,7 @@ def select_and_sort(df, year, month, model):
     return subset.sort_values('mae')
 
 
-def make_chart_a_OLD(reduction, control):
+def make_chart_a(reduction, control):
     'graph range of errors by month by method'
     print 'make_chart_a'
 
@@ -190,7 +190,7 @@ def make_chart_a_OLD(reduction, control):
     return
 
 
-def make_chart_a(reduction, control):
+def make_chart_aDELETE(reduction, control):
     'graph range of errors by month by method'
     print 'make_chart_a'
     pdb.set_trace()
@@ -817,7 +817,7 @@ def make_charts_efg(actuals_d, predictions_d, mae_d, control, median_prices):
     g.write(control.path_out_g)
 
 
-def make_charts_OLD(reduction_df, actuals_d, predictions_d, mae_d, control, median_prices):
+def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, median_prices):
     print 'making charts'
 
     make_chart_a(reduction_df, control)
@@ -854,7 +854,7 @@ def make_charts_OLD(reduction_df, actuals_d, predictions_d, mae_d, control, medi
     make_charts_efg(actuals_d, predictions_d, mae_d, control, median_prices)
 
 
-def make_charts(avm_results, market_results, control):
+def make_chartsDELETE(avm_results, market_results, control):
     print 'making charts'
 
     make_chart_a(avm_results, control)
@@ -882,23 +882,24 @@ def make_charts(avm_results, market_results, control):
 
 def errors(actuals, predictions):
     'return root_mean_squared_error, median_absolute_error'
+    def make_ci95(v):
+        'return tuple with 95 percent confidence interval for the value in np.array v'
+        n_samples = 10000
+        samples = np.random.choice(v, size=n_samples, replace=True)  # draw with replacement
+        sorted_samples = np.sort(samples)
+        ci = (sorted_samples[int(n_samples * 0.025) - 1], sorted_samples[int(n_samples * 0.975) - 1])
+        return ci
+
     errors = actuals - predictions
-    root_mean_squared_error = np.sqrt(np.sum(errors * errors) / (1.0 * len(errors)))
+    mse = np.sum(errors * errors) / len(errors)
+    root_mean_squared_error = np.sqrt(mse)
     median_absolute_error = np.median(np.abs(errors))
-    return root_mean_squared_error, median_absolute_error
+    ci95_low, ci95_high = make_ci95(errors)
+    return root_mean_squared_error, median_absolute_error, ci95_low, ci95_high
 
 
 def extract_yyyymm(path):
     return path.split('/')[4].split('.')[0]
-
-
-def make_ci95(v):
-    'return tuple with 95 percent confidence interval for the value in np.array v'
-    n_samples = 10000
-    samples = np.random.choice(v, size=n_samples, replace=True)  # draw with replacement
-    sorted_samples = np.sort(samples)
-    ci = (sorted_samples[int(n_samples * 0.025) - 1], sorted_samples[int(n_samples * 0.975) - 1])
-    return ci
 
 
 ReductionKey = collections.namedtuple(
@@ -911,7 +912,7 @@ ReductionValue = collections.namedtuple(
 )
 
 
-class Reduction(collections.MutableMapping):  # use Abstract Base Class mixin
+class ReductionDELETE(collections.MutableMapping):  # use Abstract Base Class mixin
     'emulate a dict container with added selection functions'
     def __init__(self):
         self._d = {}
@@ -980,7 +981,7 @@ class Reduction(collections.MutableMapping):  # use Abstract Base Class mixin
         return result
 
 
-def make_data(control):
+def make_dataDELETE(control):
     'return a Reduction containing all of the data'
     def reduce_path(path):
         'return a Reduction containing the data for one validation month'
@@ -1025,15 +1026,16 @@ def make_data(control):
     return reduction
 
 
-def make_data_old(control):
+def make_data(control):
     'return reduction data frame, reduction dict, ege_control'
 
     actuals_d = collections.defaultdict(dict)
     predictions_d = collections.defaultdict(dict)
     mae_d = collections.defaultdict(dict)
 
-    def make_row(test_month, k, v):
-        'return a dict, that will be the next row of dataframe in the form of a dict'
+    def make_row(validation_month, k, v):
+        '''return a dict, that will be the next row of dataframe in the form of a dict
+        also update actuals_d, predictions_d, and mae_d'''
         is_en = isinstance(k, ResultKeyEn)
         is_gbr = isinstance(k, ResultKeyGbr)
         is_rfr = isinstance(k, ResultKeyRfr)
@@ -1046,13 +1048,13 @@ def make_data_old(control):
             print k
             print 'predictions is missing'
             pdb.set_trace()
-        rmse, mae = errors(actuals, predictions)
-        mae_d[int(test_month)][k] = mae
-        actuals_d[int(test_month)][k] = actuals
-        predictions_d[int(test_month)][k] = predictions
+        rmse, mae, ci95_low, ci95_high = errors(actuals, predictions)
+        mae_d[int(validation_month)][k] = mae
+        actuals_d[int(validation_month)][k] = actuals
+        predictions_d[int(validation_month)][k] = predictions
         return {
             'model': model,
-            'test_month': test_month,
+            'validation_month': validation_month,
             'n_months_back': k.n_months_back,
             'units_X': k.units_X if is_en else 'natural',
             'units_y': k.units_y if is_en else 'natural',
@@ -1063,14 +1065,16 @@ def make_data_old(control):
             'max_depth': k.max_depth if is_tree else None,
             'loss': k.loss if is_gbr else None,
             'learning_rate': k.learning_rate if is_gbr else None,
+            'rmse': rmse,
             'mae': mae,
+            'ci95_low': ci95_low,
+            'ci95_high': ci95_high,
         }
 
     def process_records(path, rows_list):
         'mutate rows_list, a list of dictionaries, to include objects at path'
-        pdb.set_trace()
         print 'reducing', path
-        test_month = extract_yyyymm(path)
+        validation_month = extract_yyyymm(path)
         n = 0
         with open(path, 'rb') as f:
             while True:
@@ -1079,16 +1083,14 @@ def make_data_old(control):
                     assert isinstance(record, tuple), type(record)
                     key, value = record
                     n += 1
-                    rows_list.append(make_row(test_month, key, value))
+                    rows_list.append(make_row(validation_month, key, value))
                 except ValueError as e:
-                    if key is not None:
-                        print key
-                    if key is not None:
-                        print value
-                    print 'ValueError', e  # ignore error
+                    if record is not None:
+                        print record
+                    print 'ignoring ValueError in record %d: %s' % (n, e)
                 except EOFError:
                     break
-        print 'number of records', n
+        print 'number of records retained', n
 
     rows_list = []
     paths = sorted(glob.glob(control.path_in_ege))
@@ -1107,31 +1109,31 @@ def main(argv):
     sys.stdout = Logger(logfile_path=control.path_out_log)
     print control
 
-#    if control.arg.data:
-#        df, actuals_d, predictions_d, mae_d = make_data(control)
-#        with open(control.path_data, 'wb') as f:
-#            pickle.dump((df, actuals_d, predictions_d, mae_d, control), f)
-#        print 'wrote reduction data file'
-#    else:
-#        with open(control.path_data, 'rb') as f:
-#            reduction_df, actuals_d, predictions_d, mae_d, reduction_control = pickle.load(f)
-#            with open(control.path_in_median_prices, 'rb') as g:
-#                data, reduction_control = pickle.load(g)
-#                counts, means, medians, prices = data
-#                make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, medians)
     if control.arg.data:
-        d = make_data(control)
+        df, actuals_d, predictions_d, mae_d = make_data(control)
         with open(control.path_data, 'wb') as f:
-            pickle.dump((d, control), f)
+            pickle.dump((df, actuals_d, predictions_d, mae_d, control), f)
         print 'wrote reduction data file'
     else:
         with open(control.path_data, 'rb') as f:
-            chart_06_reduction, reduction_control = pickle.load(f)
-            with open(control.path_in_chart_01_reduction, 'rb') as g:
-                chart_01_data, reduction_control = pickle.load(g)
-                # TODO: already load trading volumes (from chart01)
-                make_charts(chart_06_reduction, Market(chart_01_data), control)
-                # make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, medians)
+            reduction_df, actuals_d, predictions_d, mae_d, reduction_control = pickle.load(f)
+            with open(control.path_in_median_prices, 'rb') as g:
+                data, reduction_control = pickle.load(g)
+                counts, means, medians, prices = data
+                make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, medians)
+#    if control.arg.data:
+#        d = make_data(control)
+#        with open(control.path_data, 'wb') as f:
+#            pickle.dump((d, control), f)
+#        print 'wrote reduction data file'
+#    else:
+#        with open(control.path_data, 'rb') as f:
+#            chart_06_reduction, reduction_control = pickle.load(f)
+#            with open(control.path_in_chart_01_reduction, 'rb') as g:
+#                chart_01_data, reduction_control = pickle.load(g)
+#                # TODO: already load trading volumes (from chart01)
+#                make_charts(chart_06_reduction, Market(chart_01_data), control)
+#                # make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, medians)
 
     print control
     if control.test:
