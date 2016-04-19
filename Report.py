@@ -4,12 +4,14 @@ import pdb
 
 
 class Report(object):
-    def __init__(self):
-        self.lines = []
+    def __init__(self, also_print=True):
+        self._also_print = also_print
+        self._lines = []
 
     def append(self, line):
-        self.lines.append(line)
-        print line
+        self._lines.append(line)
+        if self._also_print:
+            print line
 
     def extend(self, lines):
         for line in lines:
@@ -17,7 +19,7 @@ class Report(object):
 
     def write(self, path):
         f = open(path, 'w')
-        for line in self.lines:
+        for line in self._lines:
             try:
                 f.write(str(line))
             except:
@@ -28,4 +30,4 @@ class Report(object):
         f.close()
 
     def lines(self):
-        return self.lines
+        return self._lines
