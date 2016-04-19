@@ -45,6 +45,7 @@ from Logger import Logger
 from Month import Month
 from Path import Path
 from Report import Report
+from Timer import Timer
 from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 cc = columns_contain
 
@@ -79,8 +80,6 @@ def make_control(argv):
     random_seed = 123
     random.seed(random_seed)
 
-    debug = False
-
     # assure output directory exists
     dir_working = Path().dir_working()
     dir_out = (
@@ -94,7 +93,7 @@ def make_control(argv):
 
     return Bunch(
         arg=arg,
-        debug=debug,
+        debug=True,
         path_in_ege=(
             dir_working +
             'valavm' +
@@ -114,6 +113,7 @@ def make_control(argv):
         path_in_chart_01_reduction=dir_working + 'chart-01/data.pickle',
         random_seed=random_seed,
         test=arg.test,
+        timer=Timer(),
     )
 
 
@@ -122,12 +122,12 @@ def select_and_sort(df, year, month, model):
     yyyymm = str(year * 100 + month)
     mask = (
         (df.model == model) &
-        (df.test_month == yyyymm)
+        (df.validation_month == yyyymm)
     )
     subset = df.loc[mask]
     if len(subset) == 0:
         print 'empty subset'
-        print year, month, model, sum(df.model == model), sum(df.test_month == yyyymm)
+        print year, month, model, sum(df.model == model), sum(df.validation_month == yyyymm)
         pdb.set_trace()
     return subset.sort_values('mae')
 
@@ -161,77 +161,7 @@ def make_chart_a(reduction, control):
         plt.figure()  # new figure
         # plt.suptitle('Loss by Test Period, Tree Max Depth, N Trees')  # overlays the subplots
         axes_number = 0
-        year_months = ((2006, 12), (2007, 1), (2007, 2),
-                       (2007, 3), (2007, 4), (2007, 5),
-                       (2007, 6), (2007, 7), (2007, 8),
-                       (2007, 9), (2007, 10), (2007, 11),
-                       )
-        row_seq = (1, 2, 3, 4)
-        col_seq = (1, 2, 3)
-        for row in row_seq:
-            for col in col_seq:
-                year, month = year_months[axes_number]
-                axes_number += 1  # count across rows
-                plt.subplot(len(row_seq), len(col_seq), axes_number)
-                make_subplot(year, month)
-                # annotate the bottom row only
-                if row == 4:
-                    if col == 1:
-                        plt.xlabel('hp set')
-                        plt.ylabel('mae x $1000')
-                    if col == 3:
-                        plt.legend(loc='best', fontsize=5)
-
-        plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-        plt.savefig(control.path_out_a)
-        plt.close()
-
-    make_figure()
-    return
-
-
-def make_chart_aDELETE(reduction, control):
-    'graph range of errors by month by method'
-    print 'make_chart_a'
-    pdb.set_trace()
-
-    def make_subplot(year, month):
-        'mutate the default axes'
-        print 'make_subplot month', month
-        pdb.set_trace()
-        for model in ('en', 'rf', 'gb'):
-            y = reduction.select_maes_model_year_month(model, year, month).sort()
-            plt.plot(y, label=model)
-            plt.yticks(size='xx-small')
-            plt.title(
-                '%4d-%02d' % (year, month),
-                loc='right',
-                fontdict={'fontsize': 'xx-small', 'style': 'italic'}
-            )
-            plt.xticks([])  # no ticks on x axis
-        return
-        for model in set(reduction.model):
-            subset_sorted = select_and_sort(reduction, year, month, model)
-            y = (subset_sorted.mae / 1000.0)
-            plt.plot(
-                y,
-                label=model,
-            )
-            plt.yticks(size='xx-small')
-            plt.title(
-                '%4d-%02d' % (year, month),
-                loc='right',
-                fontdict={'fontsize': 'xx-small', 'style': 'italic'},
-            )
-            plt.xticks([])  # no ticks on x axis
-        return
-
-    def make_figure():
-        # make and save figure
-
-        plt.figure()  # new figure
-        # plt.suptitle('Loss by Test Period, Tree Max Depth, N Trees')  # overlays the subplots
-        axes_number = 0
+        # TODO: add first 6 months in 2008
         year_months = ((2006, 12), (2007, 1), (2007, 2),
                        (2007, 3), (2007, 4), (2007, 5),
                        (2007, 6), (2007, 7), (2007, 8),
@@ -292,7 +222,8 @@ def differ(a, b):
 def make_hp_string(series):
     ignored_indices = set(('mae', 'model', 'yyyymm', 'n_months_back',
                            'max_depth', 'n_estimators', 'max_features',
-                           'test_month', 'loss'))
+                           'validation_month', 'loss', 'rmse',
+                           'ci95_low', 'ci95_high'))
     result = ''
     for index, value in series.iteritems():
         # check that index == 'loss' has no information
@@ -312,9 +243,10 @@ def make_hp_string(series):
 
 def make_chart_b(reduction, control):
     '''MAE for best-performing models by training period
-    NOTE: This code knows that en is never the best model '''
-    def report(year, month):
-        print 'make_chart_b::report', year, month
+    NOTE: This code knows that en is never among the best models'''
+
+    def make_report(year, month):
+        print 'chart b: year %d month %d' % (year, month)
         format_header = '%6s %5s %2s %4s %4s %4s %-20s'
         format_detail = '%6d %5s %2d %4d %4d %4s %-20s'
         format_detail_no_max_depth = '%6d %5s %2d %4s %4d %4s %-20s'
@@ -357,12 +289,12 @@ def make_chart_b(reduction, control):
 
         yyyymm = str(year * 100 + month)
         mask = (
-            reduction.test_month == yyyymm
+            reduction.validation_month == yyyymm
         )
         subset = reduction.loc[mask]
         assert len(subset) > 0, (subset.shape, yyyymm)
         subset_sorted = subset.sort_values('mae')
-        r = Report()
+        r = Report(also_print=False)
         header(r)
         detail_line_number = 0
         for row in subset_sorted.iterrows():
@@ -378,10 +310,10 @@ def make_chart_b(reduction, control):
     for year in (2006, 2007):
         months = (12,) if year == 2006 else (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
         for month in months:
-            report(year, month)
+            make_report(year, month)
 
 
-def test_months():
+def validation_months():
     return (200612, 200701, 200702, 200703, 200704, 200705,
             200706, 200707, 200708, 200709, 200710, 200711,
             )
@@ -391,11 +323,11 @@ def make_best_dictOLD(reduction, median_prices):
     'return dict st key=test_date, value=(median_price, sorted_hps)'
     best = {}
     median_prices = {}
-    for test_month in test_months():
-        mask = reduction.test_month == test_month.as_str()
+    for validation_month in validation_months():
+        mask = reduction.validation_month == validation_month.as_str()
         subset = reduction.loc[mask]
         subset_sorted = subset.sort_values('mae')
-        best[test_month] = (median_prices[test_month.as_int()], subset_sorted)
+        best[validation_month] = (median_prices[validation_month.as_int()], subset_sorted)
     return best
 
 
@@ -438,12 +370,12 @@ class ChartCDReport(object):
         legend('nest', 'n_estimators (number of trees)')
         legend('mxft', 'max number of features considered when selecting new split variable')
 
-    def detail_line(self, sorted_index, test_month, sorted_df, median_price):
-        assert len(sorted_df) > 0, (test_month, sorted_index)
+    def detail_line(self, sorted_index, validation_month, sorted_df, median_price):
+        assert len(sorted_df) > 0, (validation_month, sorted_index)
         series = sorted_df.iloc[sorted_index]
         if series.model == 'en':
             self.report.append(self.format_detail % (
-                test_month, sorted_index + 1,
+                validation_month, sorted_index + 1,
                 series.mae, median_price,
                 series.model, series.n_months_back,
                 0, 0, 0,   # these are tree-oriented HPs
@@ -451,7 +383,7 @@ class ChartCDReport(object):
         else:
             if series.max_depth is None:
                 self.report.append(self.format_detail_no_max_depth % (
-                    test_month, sorted_index + 1,
+                    validation_month, sorted_index + 1,
                     series.mae, median_price,
                     series.model, series.n_months_back,
                     'None',
@@ -460,7 +392,7 @@ class ChartCDReport(object):
                     make_hp_string(series)))
             else:
                 self.report.append(self.format_detail % (
-                    test_month, sorted_index + 1,
+                    validation_month, sorted_index + 1,
                     series.mae, median_price,
                     series.model, series.n_months_back,
                     series.max_depth,
@@ -469,21 +401,23 @@ class ChartCDReport(object):
                     make_hp_string(series)))
 
 
-def make_chart_cd(reduction, control, median_prices, sorted_hps, detail_lines, report_id):
+def make_chart_cd(reduction, control, time_period_stats, sorted_hps, detail_lines, report_id):
     '''write report: mae, model, HPs for month'''
     r = ChartCDReport()
-    for test_month in test_months():
-        median_price = median_prices[test_month]
-        sorted_hps_test_month = sorted_hps[test_month]
-        for dl in detail_lines(sorted_hps_test_month):
-            r.detail_line(dl, test_month, sorted_hps_test_month, median_price)
+    pdb.set_trace()
+    for validation_month in validation_months():
+        pdb.set_trace()
+        median_price = time_period_stats[validation_month].median
+        sorted_hps_validation_month = sorted_hps[validation_month]
+        for dl in detail_lines(sorted_hps_validation_month):
+            r.detail_line(dl, validation_month, sorted_hps_validation_month, median_price)
     r.write(control.path_out_cd % report_id)
     return
 
 
 def make_median_prices(medians):
-    return {test_month: medians[test_month.as_int()]
-            for test_month in test_months()
+    return {validation_month: medians[validation_month.as_int()]
+            for validation_month in validation_months()
             }
 
 
@@ -602,25 +536,25 @@ class ChartFReport(object):
             self.format_header % (
                 'month', 'model', 'MAE'))
 
-    def ensemble_detail(self, test_month, mae):
+    def ensemble_detail(self, validation_month, mae):
         self.report.append(
             self.format_ensemble % (
-                test_month, 'ensemble', mae))
+                validation_month, 'ensemble', mae))
 
-    def median_price(self, test_month, amount):
+    def median_price(self, validation_month, amount):
         self.report.append(
             self.format_ensemble % (
-                test_month, 'median price', amount))
+                validation_month, 'median price', amount))
 
-    def regret(self, test_month, amount):
+    def regret(self, validation_month, amount):
         self.report.append(
             self.format_regret % (
-                test_month, 'regret', amount))
+                validation_month, 'regret', amount))
 
-    def relative_error(self, test_month, amount):
+    def relative_error(self, validation_month, amount):
         self.report.append(
             self.format_relative_error % (
-                test_month, 'relative regret', amount * 100.0))
+                validation_month, 'relative regret', amount * 100.0))
 
     def marr(self, amount):
         self.report.append(
@@ -696,40 +630,42 @@ def make_ensemble_predictions(predictions, weights):
     return result
 
 
-def make_charts_ef(k, actuals_d, predictions_d, mae_d, control, median_prices):
+def make_charts_ef(k, actuals_d, predictions_d, mae_d, control, time_period_stats):
     '''Write charts e and f, return median-absolute-relative_regret object'''
     if len(actuals_d) != len(predictions_d) != len(mae_d):
         pdb.trace()
     ensemble_weighting = 'exp(-MAE/100000)'
     relative_errors = []
     f = ChartFReport(k, ensemble_weighting, control.arg.valavm)
-    for test_month in test_months():
+    for validation_month in validation_months():
         e = ChartEReport(k, ensemble_weighting, control.arg.valavm)
-        test_month_mae = mae_d[test_month]
-        models_sorted_test_month = sorted(test_month_mae, key=test_month_mae.get)  # keys in order of mae
+        validation_month_mae = mae_d[validation_month]
+        models_sorted_validation_month = sorted(
+            validation_month_mae,
+            key=validation_month_mae.get)  # keys in order of mae
         weights = []
         actuals = []
         predictions = []
-        next_month = Month(test_month).increment(1).as_int()
+        next_month = Month(validation_month).increment(1).as_int()
         for index in xrange(k):
-            model = models_sorted_test_month[index]
-            test_mae = mae_d[test_month][model]
+            model = models_sorted_validation_month[index]
+            test_mae = mae_d[validation_month][model]
             next_mae = mae_d[next_month][model]
             weight = math.exp(-test_mae / 100000.0)
-            e.model_detail(test_month, model_to_str(model), index, test_mae, weight, next_mae)
+            e.model_detail(validation_month, model_to_str(model), index, test_mae, weight, next_mae)
             weights.append(weight)
-            actuals.append(actuals_d[test_month][model])
-            predictions.append(predictions_d[test_month][model])
+            actuals.append(actuals_d[validation_month][model])
+            predictions.append(predictions_d[validation_month][model])
         check_actuals(actuals)
         # determine ensemble predictions (first k) and regret vs. best model
         ensemble_actuals = actuals[0]  # they are all the same, so pick one
         ensemble_predictions = make_ensemble_predictions(predictions, weights)
         ensemble_rmse, ensemble_mae = errors(ensemble_actuals, ensemble_predictions)
         e.ensemble_detail(ensemble_mae)
-        f.ensemble_detail(test_month, ensemble_mae)
-        # pick the best models in test_month + 1
+        f.ensemble_detail(validation_month, ensemble_mae)
+        # pick the best models in validation_month + 1
 
-        def find_test_month_index(model, model_list):
+        def find_validation_month_index(model, model_list):
             index = 0
             while True:
                 if model == model_list[index]:
@@ -743,27 +679,27 @@ def make_charts_ef(k, actuals_d, predictions_d, mae_d, control, median_prices):
         best_mae = mae_d[next_month][first_best_model]
         for next_month_index in xrange(k):
             a_best_model = models_sorted_next_month[next_month_index]
-            test_month_index = find_test_month_index(a_best_model, models_sorted_test_month)
+            validation_month_index = find_validation_month_index(a_best_model, models_sorted_validation_month)
             e.model_best(
-                test_month,
+                validation_month,
                 model_to_str(a_best_model),
-                test_month_index,
-                mae_d[test_month][a_best_model],
+                validation_month_index,
+                mae_d[validation_month][a_best_model],
                 mae_d[next_month][a_best_model],
             )
         # determine regret
         regret = ensemble_mae - best_mae
         e.regret(regret)
-        f.regret(test_month, regret)
-        median_price = median_prices[next_month]
+        f.regret(validation_month, regret)
+        median_price = time_period_stats[next_month].median
         e.median_price(median_price)
-        f.median_price(test_month, median_price)
+        f.median_price(validation_month, median_price)
         relative_regret = regret / median_price
         e.relative_error(relative_regret)
-        f.relative_error(test_month, relative_regret)
+        f.relative_error(validation_month, relative_regret)
         relative_errors.append(relative_regret)
         e.append(' ')
-        e.write(control.path_out_e % (k, test_month))
+        e.write(control.path_out_e % (k, validation_month))
     e.append(' ')
     f.append(' ')
     median_absolute_relative_regret = np.median(np.abs(relative_errors))
@@ -804,80 +740,55 @@ class ChartGReport():
         self.report.append(line)
 
 
-def make_charts_efg(actuals_d, predictions_d, mae_d, control, median_prices):
+def make_charts_efg(actuals_d, predictions_d, mae_d, control, time_period_stats):
     g = ChartGReport(control.arg.valavm)
     ks = range(1, 31, 1)
     ks.extend([40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200])
     for k in ks:
         median_absolute_relative_regret = make_charts_ef(
             k,
-            actuals_d, predictions_d, mae_d, control, median_prices,
+            actuals_d, predictions_d, mae_d, control, time_period_stats,
         )
         g.detail(k, median_absolute_relative_regret)
     g.write(control.path_out_g)
 
 
-def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, median_prices):
+def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, time_period_stats):
     print 'making charts'
 
     make_chart_a(reduction_df, control)
     make_chart_b(reduction_df, control)
 
     def make_sorted_hps(reduction):
-        'return dict; key = test_month; value = df of HPs, sorted by MAE'
-        def subset_sorted(test_month):
-            mask = reduction.test_month == str(test_month)
+        'return dict; key = validation_month; value = df of HPs, sorted by MAE'
+        def subset_sorted(validation_month):
+            mask = reduction.validation_month == str(validation_month)
             return reduction.loc[mask].sort_values('mae')
-        return {test_month: subset_sorted(test_month)
-                for test_month in test_months()
+        return {validation_month: subset_sorted(validation_month)
+                for validation_month in validation_months()
                 }
 
     sorted_hps = make_sorted_hps(reduction_df)
 
-    def detail_lines_c(sorted_hps_test_month):
+    def detail_lines_c(sorted_hps_validation_month):
         return [0]  # the one with the lowest MAE (the best set of HPs)
 
-    make_chart_cd(reduction_df, control, median_prices, sorted_hps, detail_lines_c, 'c')
+    pdb.set_trace()
+    make_chart_cd(reduction_df, control, time_period_stats, sorted_hps, detail_lines_c, 'c')
     for n_best in (5, 100):
         report_id = 'd-%0d' % n_best
 
-        def detail_lines_d(sorted_hps_test_month):
+        def detail_lines_d(sorted_hps_validation_month):
             result = []
-            for k in xrange(len(sorted_hps_test_month)):
+            for k in xrange(len(sorted_hps_validation_month)):
                 result.append(k)
                 if k == (n_best - 1):
                     break
-            result.append(len(sorted_hps_test_month) - 1)
+            result.append(len(sorted_hps_validation_month) - 1)
             return result
 
-        make_chart_cd(reduction_df, control, median_prices, sorted_hps, detail_lines_d, report_id)
-    make_charts_efg(actuals_d, predictions_d, mae_d, control, median_prices)
-
-
-def make_chartsDELETE(avm_results, market_results, control):
-    print 'making charts'
-
-    make_chart_a(avm_results, control)
-    make_chart_b(avm_results, control)
-
-    def detail_lines_c(sorted_hps_test_month):
-        return [0]  # the one with the lowest MAE (the best set of HPs)
-
-    make_chart_cd(avm_results, market_results, control, detail_lines_c, 'c')
-    for n_best in (5, 100):
-        report_id = 'd-%0d' % n_best
-
-        def detail_lines_d(sorted_hps_test_month):
-            result = []
-            for k in xrange(len(sorted_hps_test_month)):
-                result.append(k)
-                if k == (n_best - 1):
-                    break
-            result.append(len(sorted_hps_test_month) - 1)
-            return result
-
-        make_chart_cd(avm_results, market_results, control, detail_lines_d, report_id)
-    make_charts_efg(avm_results, market_results, control)
+        make_chart_cd(reduction_df, control, time_period_stats, sorted_hps, detail_lines_d, report_id)
+    make_charts_efg(actuals_d, predictions_d, mae_d, control, time_period_stats)
 
 
 def errors(actuals, predictions):
@@ -910,120 +821,6 @@ ReductionValue = collections.namedtuple(
     'ReductionValue',
     'ci95 mae'
 )
-
-
-class ReductionDELETE(collections.MutableMapping):  # use Abstract Base Class mixin
-    'emulate a dict container with added selection functions'
-    def __init__(self):
-        self._d = {}
-
-    def __setitem__(self, key, value):
-        'key:(year_month, avm_reduction_key)  value:avm_value'
-        validation_year_month, validation_key = key
-
-        # build key
-        model = ('en' if isinstance(validation_key, ResultKeyEn) else
-                 'rf' if isinstance(validation_key, ResultKeyRfr) else
-                 'gb'
-                 )
-        validation_year = validation_year_month // 100
-        validation_month = validation_year_month - 100 * validation_year
-        n_months_back = validation_key.n_months_back
-        # del validation_key['n_months_back']
-        # hps = tuple(sorted(validation_key))  # re-create with dict(hps)
-        key = ReductionKey(
-            model=model,
-            validation_year=validation_year,
-            validation_month=validation_month,
-            n_months_back=n_months_back,
-            hps=validation_key,
-        )
-
-        # build value
-        actuals = np.array(value.actuals)
-        predictions = np.array(value.predictions)
-        errors = actuals - predictions
-        mae = np.median(np.abs(errors))
-        ci95 = make_ci95(errors)
-        value = ReductionValue(
-            ci95=ci95,
-            mae=mae,
-        )
-
-        self._d[key] = value
-
-    def __getitem__(self, key):
-        return self._d[key]
-
-    def __delitem__(self, key):
-        del self._d[key]
-
-    def __len__(self):
-        return len(self._d)
-
-    def __str__(self):
-        return 'Reduction(len=%d)' % len(self._d)
-
-    def __iter__(self):
-        return self._d.__iter__()
-
-    def update(self, other):
-        return self._d.update(other)
-
-    def select_maes_where_model_year_month(self, model, year, month):
-        'return list of median absolute errors for specified model, year, and month'
-        pdb.set_trace()
-        result = []
-        for key, value in self._d.iteritems():
-            if (key.model == model) and (key.validation_year == year) and (key.validation_month == month):
-                result.append(value.mae)
-        pdb.set_trace()
-        return result
-
-
-def make_dataDELETE(control):
-    'return a Reduction containing all of the data'
-    def reduce_path(path):
-        'return a Reduction containing the data for one validation month'
-        debug = False
-        reduction = Reduction()
-        validation_year_month = int(extract_yyyymm(path))
-        n_read = 0
-        with open(path, 'rb') as f:
-            while True:
-                if debug and (n_read > 5):
-                    break
-                try:
-                    validation_record = pickle.load(f)  # read until EOF
-                    n_read += 1
-                    assert isinstance(validation_record, tuple), type(validation_record)
-                    validation_key, validation_value = validation_record
-                    reduction_key = (validation_year_month, validation_key)
-                    if reduction_key in reduction:
-                        print 'duplicate key: should not happen'
-                        print reduction_key
-                        pdb.set_trace()
-                    reduction[(validation_year_month, validation_key)] = validation_value
-                except ValueError as e:
-                    print 'ValueError', e  # ignore error
-                    if validation_key is not None:
-                        print validation_key
-                    if validation_value is not None:
-                        print validation_value
-                    print 'ValueError %s on record %d ignored; record discarded' % (e, n_read + 1)
-                except EOFError:
-                    break
-        return reduction
-
-    reduction = Reduction()
-    paths = sorted(glob.glob(control.path_in_ege))
-    for path in paths:
-        print 'reducing', path
-        path_reduction = reduce_path(path)
-        print 'created %d records from path %s' % (len(path_reduction), path)
-        reduction.update(path_reduction)
-    print 'create %d records from all paths' % len(reduction)
-    return reduction
 
 
 def make_data(control):
@@ -1110,30 +907,31 @@ def main(argv):
     print control
 
     if control.arg.data:
+        control.timer.lap('starting to make data')
         df, actuals_d, predictions_d, mae_d = make_data(control)
+        control.timer.lap('completed make_data()')
         with open(control.path_data, 'wb') as f:
+            if control.debug:
+                # the dictionaries take a long time to write and read
+                # so eliminate them for now
+                # TODO: are these dictionaries really needed?
+                actuals_d = {}
+                predictions_d = {}
+                mae_d = {}
             pickle.dump((df, actuals_d, predictions_d, mae_d, control), f)
+            control.timer.lap('wrote all reduced data')
         print 'wrote reduction data file'
     else:
         with open(control.path_data, 'rb') as f:
+            print 'reading reduction data file'
             reduction_df, actuals_d, predictions_d, mae_d, reduction_control = pickle.load(f)
-            with open(control.path_in_median_prices, 'rb') as g:
-                data, reduction_control = pickle.load(g)
-                counts, means, medians, prices = data
-                make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, medians)
-#    if control.arg.data:
-#        d = make_data(control)
-#        with open(control.path_data, 'wb') as f:
-#            pickle.dump((d, control), f)
-#        print 'wrote reduction data file'
-#    else:
-#        with open(control.path_data, 'rb') as f:
-#            chart_06_reduction, reduction_control = pickle.load(f)
-#            with open(control.path_in_chart_01_reduction, 'rb') as g:
-#                chart_01_data, reduction_control = pickle.load(g)
-#                # TODO: already load trading volumes (from chart01)
-#                make_charts(chart_06_reduction, Market(chart_01_data), control)
-#                # make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, medians)
+            control.timer.lap('read input')
+            with open(control.path_in_chart_01_reduction, 'rb') as g:
+                print 'reading time period stats'
+                time_period_stats, reduction_control = pickle.load(g)
+                control.timer.lap('read time period stats')
+                pdb.set_trace()
+                make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, time_period_stats)
 
     print control
     if control.test:
