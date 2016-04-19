@@ -1,16 +1,16 @@
 '''create charts showing median and mean prices each month
 
 INVOCATION
-  python chart-01.py [--data] [--test]
+  python chart01.py [--data] [--test]
 
 INPUT FILES
  INPUT/samples-train-validate.csv
 
 OUTPUT FILES
- WORKING/chart-01/data.pickle   # dict: keys=ReductionKey values=ReductionValue
- WORKING/chart-01/median-price.pdf
- WORKING/chart-01/median-price.txt
- WORKING/chart-01/median-price_2006_2007.txt
+ WORKING/chart01/data.pickle   # dict: keys=ReductionKey values=ReductionValue
+ WORKING/chart01/median-price.pdf
+ WORKING/chart01/median-price.txt
+ WORKING/chart01/median-price_2006_2007.txt
 '''
 
 from __future__ import division
@@ -35,8 +35,27 @@ from Report import Report
 import layout_transactions as t
 cc = columns_contain
 
-ReductionKey = collections.namedtuple('ReductionKey', 'year month')
-ReductionValue = collections.namedtuple('ReductionValue', 'count mean median standarddeviation')
+# ReductionKey = collections.namedtuple('ReductionKey', 'year month')
+# ReductionValue = collections.namedtuple('ReductionValue', 'count mean median standarddeviation')
+
+
+def make_reduction_key(yyyy, mm):
+    return (yyyy, mm)
+
+
+def make_reduction_key1(yyyymm):
+    yyyy = yyyymm // 100
+    mm = yyyymm % 100
+    return make_reduction_key(yyyy, mm)
+
+
+def make_reduction_value(prices):
+    return {
+        'count': len(prices),
+        'mean': np.mean(prices),
+        'median': np.median(prices),
+        'standarddeviation': np.std(prices),
+    }
 
 
 def make_control(argv):
@@ -90,7 +109,7 @@ def make_chart_graph(data, control):
     y = []
     for year in years:
         for month in (months_2009 if year == 2009 else months):
-            y.append(data[ReductionKey(year, month)].median)
+            y.append(data[make_reduction_key(year, month)]['median'])
     plt.plot(x, y)
     x_ticks = [year_month[i] if i % 12 == 0 else ' '
                for i in xrange(len(year_month))
@@ -123,14 +142,14 @@ def make_chart_stats(data, control, filter):
     for year in xrange(2003, 2010):
         for month in xrange(1, 13):
             if filter(year, month):
-                value = data[ReductionKey(year, month)]
+                value = data[make_reduction_key(year, month)]
                 r.append(format_detail % (
                     year,
                     month,
-                    value.mean,
-                    value.median,
-                    value.count,
-                    value.standarddeviation,
+                    value['mean'],
+                    value['median'],
+                    value['count'],
+                    value['standarddeviation'],
                 ))
     return r
 
@@ -169,19 +188,9 @@ def make_data(control):
     # build dictionary of statistics of prices in each period
     # key = yyyymm (an int)
     # value = ReductionValue(...)
-    def make_reduction_key(yyyymm):
-        yyyy = yyyymm // 100
-        mm = yyyymm % 100
-        return ReductionKey(yyyy, mm)
-
     reduction = {}
     for yyyymm, prices in prices.iteritems():
-        reduction[make_reduction_key(yyyymm)] = ReductionValue(
-            count=len(prices),
-            mean=np.mean(prices),
-            median=np.median(prices),
-            standarddeviation=np.std(prices),
-        )
+        reduction[make_reduction_key1(yyyymm)] = make_reduction_value(prices)
     return reduction
 
 

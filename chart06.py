@@ -1,24 +1,24 @@
 '''create charts showing results of valgbr.py
 
 INVOCATION
-  python chart-06.py [--data] [--test VALAVM]
+  python chart06.py [--data] [--test VALAVM]
 where
   VALAVM in {roy, anil}
 
 INPUT FILES
- WORKING/chart-01/data.pickle
+ WORKING/chart01/data.pickle
  WORKING/samples-train.csv
  WORKING/valavm[-VALAVM-test]/YYYYMM.pickle
 
 OUTPUT FILES
- WORKING/chart-06[-VALAVM]/data.pickle    | reduced data
- WORKING/chart-06[-VALAVM]/a.pdf          | range of losses by model (graph)
- WORKING/chart-06[-VALAVM]/b-YYYYMM.txt   | HPs with lowest losses
- WORKING/chart-06[-VALAVM]/c.pdf          | best model each month
- WORKING/chart-06[-VALAVM]/d.pdf          | best & 50th best each month
- WORKING/chart-06[-VALAVM]/e.pdf          | best 50 models each month (was chart-07)
- WORKING/chart-06[-VALAVM]/best.pickle    | dataframe with best choices each month
- WORKING/chart-06[-VALAVM]/log[-data].txt | log file (created by print statements)
+ WORKING/chart06[-VALAVM]/data.pickle    | reduced data
+ WORKING/chart06[-VALAVM]/a.pdf          | range of losses by model (graph)
+ WORKING/chart06[-VALAVM]/b-YYYYMM.txt   | HPs with lowest losses
+ WORKING/chart06[-VALAVM]/c.pdf          | best model each month
+ WORKING/chart06[-VALAVM]/d.pdf          | best & 50th best each month
+ WORKING/chart06[-VALAVM]/e.pdf          | best 50 models each month (was chart07)
+ WORKING/chart06[-VALAVM]/best.pickle    | dataframe with best choices each month
+ WORKING/chart06[-VALAVM]/log[-data].txt | log file (created by print statements)
 '''
 
 from __future__ import division
@@ -39,7 +39,6 @@ import sys
 
 from AVM import AVM
 from Bunch import Bunch
-# from chart_01_datakey import DataKey
 from columns_contain import columns_contain
 from Logger import Logger
 from Month import Month
@@ -75,7 +74,7 @@ def make_control(argv):
     parser.add_argument('--data', action='store_true')
     parser.add_argument('--test')  # arg.test is None or a str
     arg = parser.parse_args(argv)  # arg.__dict__ contains the bindings
-    arg.base_name = 'chart-06'
+    arg.base_name = 'chart06'
 
     random_seed = 123
     random.seed(random_seed)
@@ -84,7 +83,7 @@ def make_control(argv):
     dir_working = Path().dir_working()
     dir_out = (
         dir_working +
-        'chart-06' +
+        'chart06' +
         ('' if arg.test is None else ('-' + arg.test)) +
         '/'
     )
@@ -110,7 +109,7 @@ def make_control(argv):
         path_data=dir_out + 'data.pickle',
         path_out_best=dir_out + 'best.pickle',
         path_out_log=dir_out + 'log' + ('-data' if arg.data else '') + '.txt',
-        path_in_chart_01_reduction=dir_working + 'chart-01/data.pickle',
+        path_in_chart_01_reduction=dir_working + 'chart01/data.pickle',
         random_seed=random_seed,
         test=arg.test,
         timer=Timer(),
