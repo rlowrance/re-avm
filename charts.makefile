@@ -4,21 +4,21 @@ PYTHON = ~/anaconda/bin/python
 WORKING = ../data/working
 # name one chart from each set of used chart
 # Note: many charts supported preliminary analysis not in the final paper
-CHARTS += $(WORKING)/chart-01/median-price.pdf
-CHARTS += $(WORKING)/chart-06/a.pdf
+CHARTS += $(WORKING)/chart01/median-price.pdf
+CHARTS += $(WORKING)/chart06/a.pdf
 
 .PHONY : all-charts
 all-charts: $(CHARTS)
 
 
-# chart-01
-$(WORKING)/chart-01/data.pickle: chart-01.py $(WORKING)/samples-train-validate.csv
-	$(PYTHON) chart-01.py --data
+# chart01
+$(WORKING)/chart01/data.pickle: chart01.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) chart01.py --data
 
-$(WORKING)/chart-01/median-price.pdf: chart-01.py $(WORKING)/chart-01/data.pickle
-	$(PYTHON) chart-01.py
+$(WORKING)/chart01/median-price.pdf: chart01.py $(WORKING)/chart01/data.pickle
+	$(PYTHON) chart01.py
 	
-# chart-06 
+# chart06 
 DEPS =
 DEPS += $(WORKING)/valavm/200612.pickle
 DEPS += $(WORKING)/valavm/200701.pickle
@@ -39,12 +39,13 @@ DEPS += $(WORKING)/valavm/200803.pickle
 DEPS += $(WORKING)/valavm/200804.pickle
 DEPS += $(WORKING)/valavm/200805.pickle
 
-$(WORKING)/chart-06/data.pickle: chart-06.py $(WORKING)/chart-01/data.pickle $(DEPS)
-	$(PYTHON) chart-06.py  --data
+$(WORKING)/chart06/data.pickle: chart06.py $(WORKING)/chart01/data.pickle $(DEPS)
+	$(PYTHON) chart06.py  --data
 
-$(WORKING)/chart-06/a.pdf: chart-06.py $(WORKING)/chart-06/data.pickle
-	$(PYTHON) chart-06.py 
+$(WORKING)/chart06/a.pdf: chart06.py $(WORKING)/chart06/data.pickle
+	$(PYTHON) chart06.py 
 
+# BELOW ME ARE HISTORIC CHARTS
 # chart-06 anil (HISTORIC)
 CHART06REDUCTION_ANIL = $(WORKING)/chart-06-anil/data.pickle
 
@@ -63,7 +64,6 @@ $(CHART06REDUCTION_ROY): chart-06.py $(VALAVM_ROY)
 $(WORKING)/chart-06-roy/a.pdf: chart-06.py $(CHART06REDUCTION_ANIL) $(WORKING)/chart-06-roy/data.pickle
 	$(PYTHON) chart-06.py --valavm roy
 	
-# BELOW ME ARE HISTORIC CHARTS
 
 # chart-03
 #    max_depth is a proxy for both max_depth and max_features
