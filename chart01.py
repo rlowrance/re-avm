@@ -40,13 +40,11 @@ cc = columns_contain
 
 
 def make_reduction_key(yyyy, mm):
-    return (yyyy, mm)
+    return yyyy * 100 + mm
 
 
 def make_reduction_key1(yyyymm):
-    yyyy = yyyymm // 100
-    mm = yyyymm % 100
-    return make_reduction_key(yyyy, mm)
+    return yyyymm
 
 
 def make_reduction_value(prices):
