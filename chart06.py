@@ -92,7 +92,7 @@ def make_control(argv):
 
     return Bunch(
         arg=arg,
-        debug=True,
+        debug=False,
         path_in_ege=(
             dir_working +
             'valavm' +
@@ -313,21 +313,11 @@ def make_chart_b(reduction, control):
 
 
 def validation_months():
-    return (200612, 200701, 200702, 200703, 200704, 200705,
-            200706, 200707, 200708, 200709, 200710, 200711,
-            )
-
-
-def make_best_dictOLD(reduction, median_prices):
-    'return dict st key=test_date, value=(median_price, sorted_hps)'
-    best = {}
-    median_prices = {}
-    for validation_month in validation_months():
-        mask = reduction.validation_month == validation_month.as_str()
-        subset = reduction.loc[mask]
-        subset_sorted = subset.sort_values('mae')
-        best[validation_month] = (median_prices[validation_month.as_int()], subset_sorted)
-    return best
+    return (
+        200612,
+        200701, 200702, 200703, 200704, 200705, 200706,
+        200707, 200708, 200709, 200710, 200711,
+    )
 
 
 class ChartCDReport(object):
@@ -403,10 +393,8 @@ class ChartCDReport(object):
 def make_chart_cd(reduction, control, time_period_stats, sorted_hps, detail_lines, report_id):
     '''write report: mae, model, HPs for month'''
     r = ChartCDReport()
-    pdb.set_trace()
     for validation_month in validation_months():
-        pdb.set_trace()
-        median_price = time_period_stats[validation_month].median
+        median_price = time_period_stats[validation_month]['median']
         sorted_hps_validation_month = sorted_hps[validation_month]
         for dl in detail_lines(sorted_hps_validation_month):
             r.detail_line(dl, validation_month, sorted_hps_validation_month, median_price)
@@ -421,7 +409,7 @@ def make_median_prices(medians):
 
 
 class ChartEReport(object):
-    def __init__(self, k, ensemble_weighting, valavm):
+    def __init__(self, k, ensemble_weighting):
         self.report = Report()
         self.format_header = '%6s %20s %5s %6s %6s %6s'
         self.format_model = '%6d %20s %5d %6.0f %6.4f %6.0f'
@@ -429,14 +417,13 @@ class ChartEReport(object):
         self.format_ensemble = '%6s %20s %5s %6s %6s %6.0f'
         self.format_relative_error = '%6s %20s %5s %6s %6s %5.3f%%'
         self.format_marr = '%6s %20s %5s %6s %6s %6.2%%'
-        self._header(k, ensemble_weighting, valavm)
+        self._header(k, ensemble_weighting)
 
-    def _header(self, k, ensemble_weighting, valavm):
+    def _header(self, k, ensemble_weighting):
         self.report.append('Performance of Best Models Separately and as an Ensemble')
         self.report.append(' ')
         self.report.append('Consider best K = %d models' % k)
         self.report.append('Ensemble weighting: %s' % ensemble_weighting)
-        self.report.append('Hyperparameter set: %s' % 'all' if valavm == 'roy' else valavm)
 
         self.report.append(' ')
         self.report.append(self.format_header % ('vald.', ' ', 'rank', 'vald.', '', 'next'))
@@ -512,21 +499,20 @@ class ChartEReport(object):
 
 
 class ChartFReport(object):
-    def __init__(self, k, ensemble_weighting, valavm):
+    def __init__(self, k, ensemble_weighting):
         self.report = Report()
         self.format_header = '%6s %20s %6s'
         self.format_ensemble = '%6d %20s  %6.0f'
         self.format_relative_error = '%6d %20s %5.3f%%'
         self.format_regret = '%6d %20s %6.0f'
         self.format_marr = '%6s %20s %5.3f%%'
-        self._header(k, ensemble_weighting, valavm)
+        self._header(k, ensemble_weighting)
 
-    def _header(self, k, ensemble_weighting, valavm):
+    def _header(self, k, ensemble_weighting):
         self.report.append('Regret of Ensemble Models')
         self.report.append(' ')
         self.report.append('Consider best %d models' % k)
         self.report.append('Ensemble weighting: %s' % ensemble_weighting)
-        self.report.append('Hyperparameter set: %s' % 'all' if valavm == 'roy' else valavm)
         self.report.append(' ')
         self.report.append(
             self.format_header % (
@@ -632,12 +618,12 @@ def make_ensemble_predictions(predictions, weights):
 def make_charts_ef(k, actuals_d, predictions_d, mae_d, control, time_period_stats):
     '''Write charts e and f, return median-absolute-relative_regret object'''
     if len(actuals_d) != len(predictions_d) != len(mae_d):
-        pdb.trace()
+        pdb.set_trace()
     ensemble_weighting = 'exp(-MAE/100000)'
     relative_errors = []
-    f = ChartFReport(k, ensemble_weighting, control.arg.valavm)
+    f = ChartFReport(k, ensemble_weighting)
     for validation_month in validation_months():
-        e = ChartEReport(k, ensemble_weighting, control.arg.valavm)
+        e = ChartEReport(k, ensemble_weighting)
         validation_month_mae = mae_d[validation_month]
         models_sorted_validation_month = sorted(
             validation_month_mae,
@@ -659,7 +645,10 @@ def make_charts_ef(k, actuals_d, predictions_d, mae_d, control, time_period_stat
         # determine ensemble predictions (first k) and regret vs. best model
         ensemble_actuals = actuals[0]  # they are all the same, so pick one
         ensemble_predictions = make_ensemble_predictions(predictions, weights)
-        ensemble_rmse, ensemble_mae = errors(ensemble_actuals, ensemble_predictions)
+        ensemble_rmse, ensemble_mae, ensemble_ci95_low, ensemble_ci95_high = errors(
+            ensemble_actuals,
+            ensemble_predictions,
+        )
         e.ensemble_detail(ensemble_mae)
         f.ensemble_detail(validation_month, ensemble_mae)
         # pick the best models in validation_month + 1
@@ -690,7 +679,7 @@ def make_charts_ef(k, actuals_d, predictions_d, mae_d, control, time_period_stat
         regret = ensemble_mae - best_mae
         e.regret(regret)
         f.regret(validation_month, regret)
-        median_price = time_period_stats[next_month].median
+        median_price = time_period_stats[next_month]['median']
         e.median_price(median_price)
         f.median_price(validation_month, median_price)
         relative_regret = regret / median_price
@@ -709,21 +698,19 @@ def make_charts_ef(k, actuals_d, predictions_d, mae_d, control, time_period_stat
 
 
 class ChartGReport():
-    def __init__(self, valavm):
+    def __init__(self):
         self.report = Report()
         self.format_header = '%4s %7s'
         self.format_detail = '%4d %6.3f%%'
-        self._header(valavm)
+        self._header()
 
     def detail(self, k, marr):
         self.report.append(
             self.format_detail % (k, marr * 100.0)
         )
 
-    def _header(self, valavm):
+    def _header(self):
         self.report.append('Hyperparameter K')
-        self.report.append(' ')
-        self.report.append('Hyperparameter set: %s' % 'all' if valavm == 'roy' else valavm)
         self.report.append(' ')
         self.report.append(
             self.format_header % ('K', 'MARR')
@@ -740,7 +727,7 @@ class ChartGReport():
 
 
 def make_charts_efg(actuals_d, predictions_d, mae_d, control, time_period_stats):
-    g = ChartGReport(control.arg.valavm)
+    g = ChartGReport()
     ks = range(1, 31, 1)
     ks.extend([40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200])
     for k in ks:
@@ -772,7 +759,6 @@ def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, time_per
     def detail_lines_c(sorted_hps_validation_month):
         return [0]  # the one with the lowest MAE (the best set of HPs)
 
-    pdb.set_trace()
     make_chart_cd(reduction_df, control, time_period_stats, sorted_hps, detail_lines_c, 'c')
     for n_best in (5, 100):
         report_id = 'd-%0d' % n_best
@@ -895,11 +881,6 @@ def make_data(control):
     return pd.DataFrame(rows_list), actuals_d, predictions_d, mae_d
 
 
-class Market(object):
-    def __init__(self, chart_01_reduction):
-        self._r = chart_01_reduction
-
-
 def main(argv):
     control = make_control(argv)
     sys.stdout = Logger(logfile_path=control.path_out_log)
@@ -910,13 +891,6 @@ def main(argv):
         df, actuals_d, predictions_d, mae_d = make_data(control)
         control.timer.lap('completed make_data()')
         with open(control.path_data, 'wb') as f:
-            if control.debug:
-                # the dictionaries take a long time to write and read
-                # so eliminate them for now
-                # TODO: are these dictionaries really needed?
-                actuals_d = {}
-                predictions_d = {}
-                mae_d = {}
             pickle.dump((df, actuals_d, predictions_d, mae_d, control), f)
             control.timer.lap('wrote all reduced data')
         print 'wrote reduction data file'
@@ -929,7 +903,6 @@ def main(argv):
                 print 'reading time period stats'
                 time_period_stats, reduction_control = pickle.load(g)
                 control.timer.lap('read time period stats')
-                pdb.set_trace()
                 make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, time_period_stats)
 
     print control
