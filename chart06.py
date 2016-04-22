@@ -240,77 +240,149 @@ def make_hp_string(series):
     return result
 
 
-def make_chart_b(reduction, control):
-    '''MAE for best-performing models by training period
-    NOTE: This code knows that en is never among the best models'''
+class ChartB(object):
+    def __init__(self, year, month, k):
+        self._report = Report()
+        self._format_header = '%6s %5s %2s %4s %4s %4s %4s'
+        self._format_detail_with_lr = '%6d %5s %2d %4d %4d %4s %4.1f'
+        self._format_detail_without_lr = '%6d %5s %2d %4d %4d %4s'
+        self._header(year, month, k)
 
-    def make_report(year, month):
-        print 'chart b: year %d month %d' % (year, month)
-        format_header = '%6s %5s %2s %4s %4s %4s %-20s'
-        format_detail = '%6d %5s %2d %4d %4d %4s %-20s'
-        format_detail_no_max_depth = '%6d %5s %2d %4s %4d %4s %-20s'
+    def detail(self, mae=None, model=None, bk=None, mxd=None, nest=None, mxft=None, lr=None):
+        if lr is None:
+            line = self._format_detail_without_lr % (mae, model, bk, mxd, nest, mxft)
+        else:
+            line = self._format_detail_with_lr % (mae, model, bk, mxd, nest, mxft, lr)
+        self._report.append(line)
 
-        n_detail_lines = 50
+    def write(self, path):
+        self._footer()
+        self._report.write(path)
 
-        def header(r):
-            r.append('MAE for %d best-performing models and their hyperparameters' % n_detail_lines)
-            r.append('Validation month: %d-%0d' % (year, month))
-            r.append(' ')
-            r.append(format_header % ('MAE', 'Model', 'bk', 'mxd', 'nest', 'mxft', 'Other HPs'))
+    def _header(self, year, month, k):
+        def a(line):
+            self._report.append(line)
 
-        def append_detail_line(r, series):
-            'append detail line to report r'
-            hp_string = make_hp_string(series)
-            # accumulate non-missing hyperparameters
-            assert series.model != 'en', series
-            if series.max_depth is None:
-                r.append(format_detail_no_max_depth % (
-                    series.mae, series.model, series.n_months_back,
-                    'None',
-                    series.n_estimators,
-                    series.max_features,
-                    hp_string))
-            else:
-                r.append(format_detail % (
-                    series.mae, series.model, series.n_months_back,
-                    series.max_depth,
-                    series.n_estimators,
-                    series.max_features,
-                    hp_string))
+        a('MAE for %d best-performing models and their hyperparameters' % k)
+        a('Validation month: %d-%0d' % (year, month))
+        a(' ')
+        a(self._format_header % ('MAE', 'model', 'bk', 'mxd', 'nest', 'mxft', 'lr'))
 
-        def footer(r):
-            r.append(' ')
-            r.append('column legend:')
-            r.append('bk -> number of months back for training')
-            r.append('mxd -> max depth of individual tree')
-            r.append('nest -> n_estimators (number of trees)')
-            r.append('mxft -> max number of features considered when selecting new split variable')
+    def _footer(self):
+        def a(line):
+            self._report.append(line)
 
-        yyyymm = str(year * 100 + month)
-        mask = (
-            reduction.validation_month == yyyymm
+        a(' ')
+        a('column legend:')
+        a('MAE   -> median absolute error')
+        a('model -> model name (gb = gradient boosting, rf = random forests)')
+        a('bk    -> number of months back for training')
+        a('mxd   -> max depth of individual tree')
+        a('nest  -> n_estimators (number of trees)')
+        a('mxft  -> max number of features considered when selecting new split variable')
+        a('lr    -> learning rate, when the model was gradient boosting')
+
+
+def make_chart_b_year_month(reduction, year, month, control):
+    def append_detail_line(report, series):
+        print series
+        assert series.model in ('en', 'gb', 'rf'), series
+        assert series.model != 'en', series
+        report.detail(
+            mae=series.mae,
+            model=series.model,
+            bk=series.n_months_back,
+            mxd=series.max_depth,
+            nest=series.n_estimators,
+            mxft=series.max_features,
+            lr=None if series.model == 'rf' else series.learning_rate,
         )
-        subset = reduction.loc[mask]
-        assert len(subset) > 0, (subset.shape, yyyymm)
-        subset_sorted = subset.sort_values('mae')
-        r = Report(also_print=False)
-        header(r)
-        detail_line_number = 0
-        for row in subset_sorted.iterrows():
-            # print row
-            row_series = row[1]
-            detail_line_number += 1
-            append_detail_line(r, row_series)
-            if detail_line_number == n_detail_lines:
-                break
-        footer(r)
-        r.write(control.path_out_b % int(yyyymm))
 
+    def create_subset(yyyymm):
+        mask = reduction.validation_month == yyyymm
+        subset = reduction.loc[mask]
+        if len(subset) == 0:
+            print subset.shape, yyyymm
+            pdb.set_trace()
+        return subset
+
+    def write_report(subset, yyyymm):
+        k = 50  # report on the first k models in the sorted subset
+        report = ChartB(year, month, k)
+        detail_line_number = 0
+        for index, row in subset_sorted.iterrows():
+            append_detail_line(report, row)
+            detail_line_number += 1
+            if detail_line_number == k:
+                break
+        report.write(control.path_out_b % int(yyyymm))
+
+    yyyymm = str(year * 100 + month)
+    subset_sorted = create_subset(yyyymm).sort_values('mae')
+    write_report(subset_sorted, yyyymm)
+
+
+def make_chart_b(reduction, control):
     for year in (2006, 2007):
         months = (12,) if year == 2006 else (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
         for month in months:
-            make_report(year, month)
+            make_chart_b_year_month(reduction, year, month, control)
 
+
+# def make_chart_bOLD(reduction, control):
+#    '''MAE for best-performing models by training period
+#    NOTE: This code knows that en is never among the best models'''
+#
+#    def make_report(year, month):
+#        print 'chart b: year %d month %d' % (year, month)
+#        format_detail_no_max_depth = '%6d %5s %2d %4s %4d %4s %-20s'
+#
+#        n_detail_lines = 50
+#
+#        def append_detail_line(r, series):
+#            'append detail line to report r'
+#            hp_string = make_hp_string(series)
+#            # accumulate non-missing hyperparameters
+#            assert series.model != 'en', series
+#            if series.max_depth is None:
+#                r.append(format_detail_no_max_depth % (
+#                    series.mae, series.model, series.n_months_back,
+#                    'None',
+#                    series.n_estimators,
+#                    series.max_features,
+#                    hp_string))
+#            else:
+#                r.append(format_detail % (
+#                    series.mae, series.model, series.n_months_back,
+#                    series.max_depth,
+#                    series.n_estimators,
+#                    series.max_features,
+#                    hp_string))
+#
+#        yyyymm = str(year * 100 + month)
+#        mask = (
+#            reduction.validation_month == yyyymm
+#        )
+#        subset = reduction.loc[mask]
+#        assert len(subset) > 0, (subset.shape, yyyymm)
+#        subset_sorted = subset.sort_values('mae')
+#        r = Report(also_print=False)
+#        header(r)
+#        detail_line_number = 0
+#        for row in subset_sorted.iterrows():
+#            # print row
+#            row_series = row[1]
+#            detail_line_number += 1
+#            append_detail_line(r, row_series)
+#            if detail_line_number == n_detail_lines:
+#                break
+#        footer(r)
+#        r.write(control.path_out_b % int(yyyymm))
+#
+#    for year in (2006, 2007):
+#        months = (12,) if year == 2006 else (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+#        for month in months:
+#            make_chart_b_year_month(reduction, year, month, control)
 
 def validation_months():
     return (
