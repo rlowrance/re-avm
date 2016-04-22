@@ -36,16 +36,21 @@ VALAVM_CARMEN += $(WORKING)/valavm/200805.pickle
 VALAVM += $(VALAVM_ELEKTRA) $(VALAVM_CARMEN)
 ALL += $(VALAVM)
 
+include charts.makefile  # yields variable CHARTS
+ALL += $(CHARTS)
+
+.PHONY : all
+all: $(ALL)
+
+# builds for VALAVM on separate systems
+# invocations
+#   make elektra
+#   make carmen
 .PHONY : elektra
 elektra: $(VALAVM_ELEKTRA)
 
 .PHONY : carmen
 carmen: $(VALAVM_CARMEN)
-
-
-
-.PHONY : all
-all: $(ALL)
 
 .PHONY : parcels-features
 parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcels-features-zip5.csv
