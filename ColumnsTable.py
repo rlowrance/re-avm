@@ -23,13 +23,19 @@ class ColumnsTable(object):
         self._column_defs = []
         self._number_of_header_lines = 0
         for column_def in column_defs:
+            cd3 = column_def[3]
+            header = cd3 if isinstance(cd3, list) else (cd3,)
             if self._number_of_header_lines != 0:
-                assert self._number_of_header_lines == len(column_def[3]), column_def[3]
-            self._number_of_header_lines = len(column_def[3])
+                if self._number_of_header_lines != len(header):
+                    print 'inconsistent number of lines in header'
+                    print 'have both %d and %d' % (self._number_of_header_lines, len(header))
+                    print 'found at header: %s' % header
+                    pdb.set_trace()
+            self._number_of_header_lines = len(header)
             self._column_defs.append(ColumnsTableFields(column_def[0],
                                                         column_def[1],
                                                         column_def[2],
-                                                        column_def[3],
+                                                        header,
                                                         column_def[4]))
         self._lines = []
         self._verbose = verbose
