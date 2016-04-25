@@ -1,24 +1,28 @@
 '''create charts showing results of valgbr.py
 
 INVOCATION
-  python chart06.py [--data] [--test VALAVM]
+  python chart06.py [--data] [--test]
 where
   VALAVM in {roy, anil}
 
 INPUT FILES
  WORKING/chart01/data.pickle
  WORKING/samples-train.csv
- WORKING/valavm[-VALAVM-test]/YYYYMM.pickle
+ WORKING/valavm/YYYYMM.pickle
+ WORKING/data.pickle or WORKING/data-test.pickle
+
+INPUT AND OUTPUT FILES (build with --data)
+ WORKING/chart06/data.pickle         | reduced data
+ WORKING/chart06/data-test.pickle    | reduced data test subset; always built, sometimes read
 
 OUTPUT FILES
- WORKING/chart06[-VALAVM]/data.pickle    | reduced data
- WORKING/chart06[-VALAVM]/a.pdf          | range of losses by model (graph)
- WORKING/chart06[-VALAVM]/b-YYYYMM.txt   | HPs with lowest losses
- WORKING/chart06[-VALAVM]/c.pdf          | best model each month
- WORKING/chart06[-VALAVM]/d.pdf          | best & 50th best each month
- WORKING/chart06[-VALAVM]/e.pdf          | best 50 models each month (was chart07)
- WORKING/chart06[-VALAVM]/best.pickle    | dataframe with best choices each month
- WORKING/chart06[-VALAVM]/log[-data].txt | log file (created by print statements)
+ WORKING/chart06/a.pdf          | range of losses by model (graph)
+ WORKING/chart06/b-YYYYMM.txt   | HPs with lowest losses
+ WORKING/chart06/c.pdf          | best model each month
+ WORKING/chart06/d.pdf          | best & 50th best each month
+ WORKING/chart06/e.pdf          | best 50 models each month (was chart07)
+ WORKING/chart06/best.pickle    | dataframe with best choices each month
+ WORKING/chart06/log[-data].txt | log file (created by print statements)
 '''
 
 from __future__ import division
@@ -39,6 +43,7 @@ import sys
 
 from AVM import AVM
 from Bunch import Bunch
+from ColumnsTable import ColumnsTable
 from columns_contain import columns_contain
 from Logger import Logger
 from Month import Month
@@ -72,7 +77,7 @@ def make_control(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
     parser.add_argument('--data', action='store_true')
-    parser.add_argument('--test')  # arg.test is None or a str
+    parser.add_argument('--test', action='store_true')
     arg = parser.parse_args(argv)  # arg.__dict__ contains the bindings
     arg.base_name = 'chart06'
 
@@ -81,12 +86,7 @@ def make_control(argv):
 
     # assure output directory exists
     dir_working = Path().dir_working()
-    dir_out = (
-        dir_working +
-        'chart06' +
-        ('' if arg.test is None else ('-' + arg.test)) +
-        '/'
-    )
+    dir_out = dir_working + 'chart06'
     if not os.path.exists(dir_out):
         os.makedirs(dir_out)
 
@@ -96,9 +96,9 @@ def make_control(argv):
         path_in_ege=(
             dir_working +
             'valavm' +
-            ('' if arg.test is None else ('-' + arg.test + '-test')) +
             '/??????.pickle'),
         path_in_samples=dir_working + 'samples-train.csv',
+        path_in_data=dir_out + ('data-test.pickle' if arg.test else 'data.pickle'),
         path_out_a=dir_out + 'a.pdf',
         path_out_b=dir_out + 'b-%d.txt',
         path_out_cd=dir_out + '%s.txt',
@@ -106,8 +106,8 @@ def make_control(argv):
         path_out_e=dir_out + 'e-%04d-%6d.txt',
         path_out_f=dir_out + 'f-%04d.txt',
         path_out_g=dir_out + 'g.txt',
-        path_data=dir_out + 'data.pickle',
-        path_out_best=dir_out + 'best.pickle',
+        path_out_data=dir_out + 'data.pickle',
+        path_out_data_test=dir_out + 'data-test.pickle',
         path_out_log=dir_out + 'log' + ('-data' if arg.data else '') + '.txt',
         path_in_chart_01_reduction=dir_working + 'chart01/data.pickle',
         random_seed=random_seed,
@@ -240,7 +240,14 @@ def make_hp_string(series):
     return result
 
 
-class ChartB(object):
+def nan_to_None(x):
+    print x, type(x)
+    if x is None:
+        return None
+    return None if np.isnan(x) else x
+
+
+class ChartBOLD(object):
     def __init__(self, year, month, k):
         self._report = Report()
         self._format_header = '%6s %5s %2s %4s %4s %4s %4s'
@@ -249,9 +256,17 @@ class ChartB(object):
         self._header(year, month, k)
 
     def detail(self, mae=None, model=None, bk=None, mxd=None, nest=None, mxft=None, lr=None):
+        print mae, model, bk, mxd, nest, mxft
+        # convert NaN to None
+        mxd = nan_to_None(mxd)
+        nest = nan_to_None(nest)
+        lr = nan_to_None(lr)
+
         if lr is None:
+            print mae, model, bk, mxd, nest, mxft
             line = self._format_detail_without_lr % (mae, model, bk, mxd, nest, mxft)
         else:
+            print mae, model, bk, mxd, nest, mxft, lr
             line = self._format_detail_with_lr % (mae, model, bk, mxd, nest, mxft, lr)
         self._report.append(line)
 
@@ -283,19 +298,53 @@ class ChartB(object):
         a('lr    -> learning rate, when the model was gradient boosting')
 
 
+class ChartB(object):
+    def __init__(self, year, month, k):
+        self._report = Report()
+        self._header(year, month, k)
+        self._t = ColumnsTable(
+            column_defs=(
+                ('mae', 6, '%6d', 'MAE', 'median absolute error'),
+                ('model', 5, '%5s', 'model',
+                 'model name (en = elastic net, gd = gradient boosting, rf = random forests'),
+                ('n_months_back', 2, '%2d', 'bk', 'number of months back for training)'),
+                ('max_depth', 4, '%4d', 'mxd', 'max depth of any individual decision tree'),
+                ('n_estimators', 4, '%4d', 'next', 'number of estimators (number of trees)'),
+                ('max_features', 4, '%4s', 'mxft', 'maximum number of features examine to split a node'),
+                ('learning_rate', 4, '%4.1f', 'lr', 'learning rate for gradient boosting'),
+            ),
+            verbose=True,
+        )
+
+    def _header(self, year, month, k):
+        def a(line):
+            self._report.append(line)
+
+        a('MAE for %d best-performing models and their hyperparameters' % k)
+        a('Validation month: %d-%0d' % (year, month))
+        a(' ')
+
+    def detail(self, **kwds):
+        self._t.append(kwds)
+
+    def write(self, path):
+        self._t.append_legend()
+        self._t.iterate_lines(lambda line, x: self._report.append(line))
+        self._report.write(path)
+
+
 def make_chart_b_year_month(reduction, year, month, control):
     def append_detail_line(report, series):
         print series
-        assert series.model in ('en', 'gb', 'rf'), series
-        assert series.model != 'en', series
+        # NOTE: while testing, an en can be selected here
         report.detail(
-            mae=series.mae,
+            median_absolute_error=series.mae,
             model=series.model,
-            bk=series.n_months_back,
-            mxd=series.max_depth,
-            nest=series.n_estimators,
-            mxft=series.max_features,
-            lr=None if series.model == 'rf' else series.learning_rate,
+            n_months_back=series.n_months_back,
+            max_depth=series.max_depth,
+            n_estimators=series.n_estimators,
+            max_features=series.max_features,
+            learning_rate=series.learning_rate,
         )
 
     def create_subset(yyyymm):
@@ -329,61 +378,6 @@ def make_chart_b(reduction, control):
             make_chart_b_year_month(reduction, year, month, control)
 
 
-# def make_chart_bOLD(reduction, control):
-#    '''MAE for best-performing models by training period
-#    NOTE: This code knows that en is never among the best models'''
-#
-#    def make_report(year, month):
-#        print 'chart b: year %d month %d' % (year, month)
-#        format_detail_no_max_depth = '%6d %5s %2d %4s %4d %4s %-20s'
-#
-#        n_detail_lines = 50
-#
-#        def append_detail_line(r, series):
-#            'append detail line to report r'
-#            hp_string = make_hp_string(series)
-#            # accumulate non-missing hyperparameters
-#            assert series.model != 'en', series
-#            if series.max_depth is None:
-#                r.append(format_detail_no_max_depth % (
-#                    series.mae, series.model, series.n_months_back,
-#                    'None',
-#                    series.n_estimators,
-#                    series.max_features,
-#                    hp_string))
-#            else:
-#                r.append(format_detail % (
-#                    series.mae, series.model, series.n_months_back,
-#                    series.max_depth,
-#                    series.n_estimators,
-#                    series.max_features,
-#                    hp_string))
-#
-#        yyyymm = str(year * 100 + month)
-#        mask = (
-#            reduction.validation_month == yyyymm
-#        )
-#        subset = reduction.loc[mask]
-#        assert len(subset) > 0, (subset.shape, yyyymm)
-#        subset_sorted = subset.sort_values('mae')
-#        r = Report(also_print=False)
-#        header(r)
-#        detail_line_number = 0
-#        for row in subset_sorted.iterrows():
-#            # print row
-#            row_series = row[1]
-#            detail_line_number += 1
-#            append_detail_line(r, row_series)
-#            if detail_line_number == n_detail_lines:
-#                break
-#        footer(r)
-#        r.write(control.path_out_b % int(yyyymm))
-#
-#    for year in (2006, 2007):
-#        months = (12,) if year == 2006 else (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
-#        for month in months:
-#            make_chart_b_year_month(reduction, year, month, control)
-
 def validation_months():
     return (
         200612,
@@ -392,74 +386,74 @@ def validation_months():
     )
 
 
+Col = collections.namedtuple('Col', 'name width formatter header1 header2 legend')
+
+
 class ChartCDReport(object):
     def __init__(self):
-        self.report = Report()
-        self.format_header = '%6s %4s %6s %8s %5s %2s %4s %4s %4s %-20s'
-        self.format_detail = '%6d %4d %6d %8d %5s %2d %4d %4d %4s %-20s'
-        self.format_detail_no_max_depth = '%6d %4d %6d %8d %5s %2d %4s %4d %4s %-20s'
+        self._report = Report()
+        self._columns = (
+            Col('validation_month', 6, '%6d', 'Vald.', 'Month', 'validation month in format year-month'),
+            Col('rank', 4, '%4d', ' ', 'rank', 'rank within month; 1 ==> lowest MAE'),
+            Col('MAE', 6, '%6d', ' ', 'MAE', 'median absolute error in the price estimate'),
+            Col('median_price', 6, '%6d', 'Median', 'Price', 'median price in the validation month'),
+            Col('model', 5, '%5s', ' ', 'Model',
+                'kind of model: en=elastic net; gb=gradient boosting; rf=random forests'),
+            Col('n_months_back', 2, '%2d', ' ', 'bk', 'number of months back for training'),
+            Col('max_depth', 3, '%3d', ' ', 'mxd', 'max depth of individual tree'),
+            Col('n_estimators', 3, '%3d', ' ', 'nest', 'number of estimators (number of trees)'),
+            Col('max_features', 4, '%4s', ' ', 'mxft',
+                'max number of features considered when selecting new split variable'),
+            Col('learning_rate', 4, '%4.1f', ' ', 'lr', 'learning rate for gradient boosting'),
+            Col('alpha', 4, '%4.2f', ' ', 'alpha', 'constant multiplying penalty term for elastic net'),
+            Col('l1_ratio', 4, '%4.2f', ' ', 'l1', 'l1_ratio mixing L1 and L2 penalties for elastic net'),
+            Col('units_X', 3, '%3s', ' ', 'unitsX', 'units for the x value; either natural (nat) or log'),
+        )
         self._header()
 
     def append(self, line):
-        self.report.append(line)
+        self._report.append(line)
 
     def write(self, path):
         self._footer()
-        self.report.write(path)
+        self._report.write(path)
 
     def _header(self):
-        self.report.append('Median Absolute Error (MAE) by month for best-performing models and their hyperparameters')
-        self.report.append(' ')
-        self.report.append(self.format_header % ('Vald.', '', '', 'Median', '', '', '', '', '', ''))
-        self.report.append(self.format_header % (
-            'Month', 'rank', 'MAE', 'Price',
-            'Model', 'bk', 'mxd', 'nest', 'mxft', 'Other HPs'))
+        self._report.append('Median Absolute Error (MAE) by month for best-performing models and their hyperparameters')
+        self._report.append(' ')
+
+        # first header line
+
+        def append_header(header_field_name):
+            line = ''
+            for col in self._columns:
+                formatter = '%' + str(col.width) + 's'
+                formatted = formatter % getattr(col, header_field_name)
+                line += (' ' if len(line) > 0 else '') + formatted
+            self._report.append(line)
+
+        append_header('header1')
+        append_header('header2')
 
     def _footer(self):
-        self.report.append(' ')
-        self.report.append('column legend:')
+        self._report.append(' ')
+        self._report.append('column legend:')
 
-        def legend(tag, meaning):
-            self.report.append('%12s -> %s' % (tag, meaning))
+        for col in self._columns:
+            line = '%12s -> %s' % ((col.header1 + col.header2).strip(), col.legend)
+            self._report.append(line)
 
-        legend('Vald. Month', 'validation month in format year-month')
-        legend('rank', 'rank within month; 1 ==> best/lowest MAE')
-        legend('MAE', 'median absolute error in the price estimate')
-        legend('Median Price', 'median price in the test month')
-        legend('bk', 'number of months back for training')
-        legend('mxd', 'max depth of individual tree')
-        legend('nest', 'n_estimators (number of trees)')
-        legend('mxft', 'max number of features considered when selecting new split variable')
-
-    def detail_line(self, sorted_index, validation_month, sorted_df, median_price):
-        assert len(sorted_df) > 0, (validation_month, sorted_index)
-        series = sorted_df.iloc[sorted_index]
-        if series.model == 'en':
-            self.report.append(self.format_detail % (
-                validation_month, sorted_index + 1,
-                series.mae, median_price,
-                series.model, series.n_months_back,
-                0, 0, 0,   # these are tree-oriented HPs
-                make_hp_string(series)))
-        else:
-            if series.max_depth is None:
-                self.report.append(self.format_detail_no_max_depth % (
-                    validation_month, sorted_index + 1,
-                    series.mae, median_price,
-                    series.model, series.n_months_back,
-                    'None',
-                    series.n_estimators,
-                    series.max_features,
-                    make_hp_string(series)))
+    def detail_line(self, **kwds):
+        line = ''
+        for col in self._columns:
+            if col.name in kwds:
+                glyph = col.formatter % kwds[col.name]
             else:
-                self.report.append(self.format_detail % (
-                    validation_month, sorted_index + 1,
-                    series.mae, median_price,
-                    series.model, series.n_months_back,
-                    series.max_depth,
-                    series.n_estimators,
-                    series.max_features,
-                    make_hp_string(series)))
+                glyph = ' ' * col.width
+            if len(line) > 0:
+                line += ' '
+            line += glyph
+        self._report.append(line)
 
 
 def make_chart_cd(reduction, control, time_period_stats, sorted_hps, detail_lines, report_id):
@@ -468,8 +462,51 @@ def make_chart_cd(reduction, control, time_period_stats, sorted_hps, detail_line
     for validation_month in validation_months():
         median_price = time_period_stats[validation_month]['median']
         sorted_hps_validation_month = sorted_hps[validation_month]
-        for dl in detail_lines(sorted_hps_validation_month):
-            r.detail_line(dl, validation_month, sorted_hps_validation_month, median_price)
+        rank = 0
+        for dl_index in detail_lines(sorted_hps_validation_month):
+            rank += 1
+            series = sorted_hps_validation_month.iloc[dl_index]
+            if series.model == 'en':
+                r.detail_line(validation_month=validation_month,
+                              rank=rank,
+                              mae=series.mae,
+                              median_price=median_price,
+                              model=series.model,
+                              alpha=series.alpha,
+                              l1=series.l1_ratio,
+                              unitsX=series.units_X,
+                              )
+                if series.units_y != 'nat':
+                    # TODO: add units_Y, as it can be log!
+                    print series
+                    print 'unexpected series.units_y', series.units_y
+                    pdb.set_trace()
+            elif series.model == 'gb':
+                r.detail_line(validation_month=validation_month,
+                              rank=rank,
+                              median_price=median_price,
+                              model=series.model,
+                              n_months_back=series.n_months_back,
+                              max_depth=series.max_depth,
+                              n_estimators=series.n_estimators,
+                              max_features=series.max_features,
+                              learning_rate=series.learning_rate,
+                              )
+            elif series.model == 'rf':
+                r.detail_line(validation_month=validation_month,
+                              rank=rank,
+                              median_price=median_price,
+                              model=series.model,
+                              n_months_back=series.n_months_back,
+                              max_depth=series.max_depth,
+                              n_estimators=series.n_estimators,
+                              max_features=series.max_features,
+                              )
+            else:
+                print series
+                print 'unexpected series.model', series.model
+                pdb.set_trace()
+
     r.write(control.path_out_cd % report_id)
     return
 
@@ -841,7 +878,8 @@ def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, time_per
                 result.append(k)
                 if k == (n_best - 1):
                     break
-            result.append(len(sorted_hps_validation_month) - 1)
+            # append index of worst month (it's last in the sorted list)
+            # result.append(len(sorted_hps_validation_month) - 1)
             return result
 
         make_chart_cd(reduction_df, control, time_period_stats, sorted_hps, detail_lines_d, report_id)
@@ -962,12 +1000,29 @@ def main(argv):
         control.timer.lap('starting to make data')
         df, actuals_d, predictions_d, mae_d = make_data(control)
         control.timer.lap('completed make_data()')
-        with open(control.path_data, 'wb') as f:
+        with open(control.path_out_data, 'wb') as f:
             pickle.dump((df, actuals_d, predictions_d, mae_d, control), f)
             control.timer.lap('wrote all reduced data')
+        with open(control.path_out_data_test, 'wb') as f:
+            sampling_rate = 0.02
+
+            def sample_dict(d):
+                'random sample from dictionary'
+                k = int(len(d) * sampling_rate)
+                keys = random.sample(list(d), k)
+                sample = {key: dict[key] for key in keys}
+                return sample
+
+            pickle.dump((df.sample(frac=sampling_rate, random_state=control.random_seed),
+                         sample_dict(actuals_d),
+                         sample_dict(predictions_d),
+                         sample_dict(mae_d),
+                         control),
+                        f)
+            control.timer.lap('wrote random subset of data')
         print 'wrote reduction data file'
     else:
-        with open(control.path_data, 'rb') as f:
+        with open(control.path_in_data, 'rb') as f:
             print 'reading reduction data file'
             reduction_df, actuals_d, predictions_d, mae_d, reduction_control = pickle.load(f)
             control.timer.lap('read input')
