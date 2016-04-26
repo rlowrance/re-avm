@@ -86,7 +86,7 @@ def make_control(argv):
 
     # assure output directory exists
     dir_working = Path().dir_working()
-    dir_out = dir_working + 'chart06'
+    dir_out = dir_working + 'chart06/'
     if not os.path.exists(dir_out):
         os.makedirs(dir_out)
 
@@ -325,7 +325,8 @@ class ChartB(object):
         a(' ')
 
     def detail(self, **kwds):
-        self._t.append(kwds)
+        pdb.set_trace()
+        self._t.append_detail(kwds)
 
     def write(self, path):
         self._t.append_legend()
