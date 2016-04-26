@@ -64,9 +64,19 @@ class ColumnsTable(object):
     def append_detail(self, **kwds):
         line = ''
         for cd in self._column_defs:
-            if cd.name in kwds:
-                glyph = cd.formatter % kwds[cd.name]
+            if cd.name in kwds and kwds[cd.name] is not None:
+                try:
+                    glyph = cd.formatter % kwds[cd.name]
+                except TypeError as e:
+                    print '+++++++++++++++++++++++++'
+                    print TypeError, e
+                    print 'formatter  : %s' % cd.formatter
+                    print 'field name : %s' % cd.name
+                    print 'field value: %s' % kwds[cd.name]
+                    print '+++++++++++++++++++++++++'
+                    pdb.set_trace()
             else:
+                # if missing or None, print spaces for the value
                 glyph = ' ' * cd.width
             if len(line) > 0:
                 line += ' '
