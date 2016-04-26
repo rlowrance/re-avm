@@ -42,7 +42,7 @@ class ColumnsTable(object):
         self._verbose = verbose
         self._header()
 
-    def append_legend_lines(self):
+    def append_legend(self):
         def cat_headers(headers):
             text = ''
             for header in headers:
@@ -61,7 +61,7 @@ class ColumnsTable(object):
         for line in self._lines:
             yield line
 
-    def append_detail_line(self, **kwds):
+    def append_detail(self, **kwds):
         line = ''
         for cd in self._column_defs:
             if cd.name in kwds:
@@ -111,9 +111,9 @@ class TestColumnsTable(unittest.TestCase):
 
     def test_append_detail_line(self):
         c = self.columns
-        c.append_detail_line(a=10, bcd=20)
-        c.append_detail_line(bcd=30)
-        c.append_detail_line(a=50)
+        c.append_detail(a=10, bcd=20)
+        c.append_detail(bcd=30)
+        c.append_detail(a=50)
         self.assertEqual(len(c._lines), 5)
         self.assertTrue(True)
 
@@ -130,7 +130,7 @@ class TestColumnsTable(unittest.TestCase):
 
     def test_append_legend_lines(self):
         c = self.columns
-        c.append_legend_lines()
+        c.append_legend()
         self.assertTrue(True)
 
 
