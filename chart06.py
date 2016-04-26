@@ -247,64 +247,13 @@ def nan_to_None(x):
     return None if np.isnan(x) else x
 
 
-class ChartBOLD(object):
-    def __init__(self, year, month, k):
-        self._report = Report()
-        self._format_header = '%6s %5s %2s %4s %4s %4s %4s'
-        self._format_detail_with_lr = '%6d %5s %2d %4d %4d %4s %4.1f'
-        self._format_detail_without_lr = '%6d %5s %2d %4d %4d %4s'
-        self._header(year, month, k)
-
-    def detail(self, mae=None, model=None, bk=None, mxd=None, nest=None, mxft=None, lr=None):
-        print mae, model, bk, mxd, nest, mxft
-        # convert NaN to None
-        mxd = nan_to_None(mxd)
-        nest = nan_to_None(nest)
-        lr = nan_to_None(lr)
-
-        if lr is None:
-            print mae, model, bk, mxd, nest, mxft
-            line = self._format_detail_without_lr % (mae, model, bk, mxd, nest, mxft)
-        else:
-            print mae, model, bk, mxd, nest, mxft, lr
-            line = self._format_detail_with_lr % (mae, model, bk, mxd, nest, mxft, lr)
-        self._report.append(line)
-
-    def write(self, path):
-        self._footer()
-        self._report.write(path)
-
-    def _header(self, year, month, k):
-        def a(line):
-            self._report.append(line)
-
-        a('MAE for %d best-performing models and their hyperparameters' % k)
-        a('Validation month: %d-%0d' % (year, month))
-        a(' ')
-        a(self._format_header % ('MAE', 'model', 'bk', 'mxd', 'nest', 'mxft', 'lr'))
-
-    def _footer(self):
-        def a(line):
-            self._report.append(line)
-
-        a(' ')
-        a('column legend:')
-        a('MAE   -> median absolute error')
-        a('model -> model name (gb = gradient boosting, rf = random forests)')
-        a('bk    -> number of months back for training')
-        a('mxd   -> max depth of individual tree')
-        a('nest  -> n_estimators (number of trees)')
-        a('mxft  -> max number of features considered when selecting new split variable')
-        a('lr    -> learning rate, when the model was gradient boosting')
-
-
 class ChartB(object):
     def __init__(self, year, month, k):
         self._report = Report()
         self._header(year, month, k)
         self._t = ColumnsTable(
             column_defs=(
-                ('mae', 6, '%6d', 'MAE', 'median absolute error'),
+                ('median_absolute_error', 6, '%6d', 'MAE', 'median absolute error'),
                 ('model', 5, '%5s', 'model',
                  'model name (en = elastic net, gd = gradient boosting, rf = random forests'),
                 ('n_months_back', 2, '%2d', 'bk', 'number of months back for training)'),
@@ -324,13 +273,19 @@ class ChartB(object):
         a('Validation month: %d-%0d' % (year, month))
         a(' ')
 
-    def detail(self, **kwds):
-        pdb.set_trace()
-        self._t.append_detail(kwds)
+    def append_detail(self, **kwds):
+        # replace NaN with None
+        print 'kwds', kwds
+        fixed = {k: (None if isinstance(v, float) and np.isnan(v) else v)
+                 for k, v in kwds.iteritems()
+                 }
+        print 'fixed', fixed
+        self._t.append_detail(**fixed)
 
     def write(self, path):
         self._t.append_legend()
-        self._t.iterate_lines(lambda line, x: self._report.append(line))
+        for line in self._t.iterlines():
+            self._report.append(line)
         self._report.write(path)
 
 
@@ -338,7 +293,7 @@ def make_chart_b_year_month(reduction, year, month, control):
     def append_detail_line(report, series):
         print series
         # NOTE: while testing, an en can be selected here
-        report.detail(
+        report.append_detail(
             median_absolute_error=series.mae,
             model=series.model,
             n_months_back=series.n_months_back,
