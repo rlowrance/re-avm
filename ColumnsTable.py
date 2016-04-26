@@ -25,7 +25,7 @@ class ColumnsTable(object):
         for column_def in column_defs:
             cd3 = column_def[3]
             # convert 'abc' to ('abc',)
-            headers = cd3 if isinstance(cd3, collections.Iterable) else (cd3,)
+            headers = (cd3,) if isinstance(cd3, str) else cd3
             if self._number_of_header_lines != 0:
                 if self._number_of_header_lines != len(headers):
                     print 'inconsistent number of lines in header'
@@ -132,6 +132,14 @@ class TestColumnsTable(unittest.TestCase):
         c = self.columns
         c.append_legend()
         self.assertTrue(True)
+
+    def test_one_header(self):
+        c = ColumnsTable(
+            (('a', 10, '%d', 'first', 'words'),
+             ('b', 20, '%d', 'second', 'more words'),
+             )
+        )
+        self.assertEqual(c._number_of_header_lines, 1)
 
 
 if __name__ == '__main__':
