@@ -50,7 +50,7 @@ from Logger import Logger
 from Month import Month
 from Path import Path
 from Report import Report
-from ReportWithColumnsTable import ReportWithColumnsTable
+# from ReportWithColumnsTable import ReportWithColumnsTable
 from Timer import Timer
 from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 cc = columns_contain
@@ -113,6 +113,7 @@ def make_control(argv):
         path_out_log=dir_out + 'log' + ('-data' if arg.data else '') + '.txt',
         path_in_chart_01_reduction=dir_working + 'chart01/data.pickle',
         random_seed=random_seed,
+        sampling_rate=0.02,
         test=arg.test,
         timer=Timer(),
     )
@@ -137,22 +138,22 @@ def make_chart_a(reduction, control):
     'graph range of errors by month by method'
     print 'make_chart_a'
 
-    def make_subplot(year, month):
+    def make_subplot(validation_month):
         'mutate the default axes'
-        print 'make_subplot month', month
-        for model in set(reduction.model):
-            subset_sorted = select_and_sort(reduction, year, month, model)
-            y = (subset_sorted.mae / 1000.0)
-            plt.plot(
-                y,
-                label=model,
-            )
+        # draw one line for each model family
+        for model in ('en', 'gb', 'rf'):
+            y = [v.mae
+                 for k, v in reduction[validation_month].iteritems()
+                 if k.model == model
+                 ]
+            plt.plot(y, label=model)  # the reduction is sorted by increasing mae
             plt.yticks(size='xx-small')
-            plt.title(
-                '%4d-%02d' % (year, month),
-                loc='right',
-                fontdict={'fontsize': 'xx-small', 'style': 'italic'},
-            )
+            plt.title('%s' % (validation_month),
+                      loc='right',
+                      fontdict={'fontsize': 'xx-small',
+                                'style': 'italic',
+                                },
+                      )
             plt.xticks([])  # no ticks on x axis
         return
 
@@ -162,20 +163,18 @@ def make_chart_a(reduction, control):
         plt.figure()  # new figure
         # plt.suptitle('Loss by Test Period, Tree Max Depth, N Trees')  # overlays the subplots
         axes_number = 0
-        # TODO: add first 6 months in 2008
-        year_months = ((2006, 12), (2007, 1), (2007, 2),
-                       (2007, 3), (2007, 4), (2007, 5),
-                       (2007, 6), (2007, 7), (2007, 8),
-                       (2007, 9), (2007, 10), (2007, 11),
-                       )
+        # MAYBE: add first 6 months in 2008
+        validation_months = ('200612', '200701', '200702', '200703', '200704', '200705',
+                             '200706', '200707', '200708', '200709', '200710', '200711',
+                             )
         row_seq = (1, 2, 3, 4)
         col_seq = (1, 2, 3)
         for row in row_seq:
             for col in col_seq:
-                year, month = year_months[axes_number]
+                validation_month = validation_months[axes_number]
                 axes_number += 1  # count across rows
                 plt.subplot(len(row_seq), len(col_seq), axes_number)
-                make_subplot(year, month)
+                make_subplot(validation_month)
                 # annotate the bottom row only
                 if row == 4:
                     if col == 1:
@@ -495,7 +494,7 @@ class ChartEReportOLD(object):
         self.report.append(line)
 
 
-class ChartEReport(ReportWithColumnsTable):
+class ChartEReport(object):
     'has 2 kinds of detail lines'
     def __init__(self, k, ensemble_weighting):
         self._report = Report()
@@ -603,6 +602,7 @@ class ChartFReport(object):
 
 
 def model_to_str(k):
+    pdb.set_trace()  # replace me
     if isinstance(k, ResultKeyEn):
         return 'en-%d-%s-%s-%d-%d' % (
             k.n_months_back, k.units_X, k.units_y, k.alpha, k.l1_ratio)
@@ -649,6 +649,10 @@ def make_ensemble_predictions(predictions, weights):
 
 def make_charts_ef(k, actuals_d, predictions_d, mae_d, control, time_period_stats):
     '''Write charts e and f, return median-absolute-relative_regret object'''
+    verbose = True
+    if verbose:
+        print mae_d.keys()
+        pdb.set_trace()
     if len(actuals_d) != len(predictions_d) != len(mae_d):
         pdb.set_trace()
     ensemble_weighting = 'exp(-MAE/100000)'
@@ -771,11 +775,11 @@ def make_charts_efg(actuals_d, predictions_d, mae_d, control, time_period_stats)
     g.write(control.path_out_g)
 
 
-def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, time_period_stats):
+def make_charts(reduction, median_prices, control):
     print 'making charts'
 
-    make_chart_a(reduction_df, control)
-    make_chart_b(reduction_df, control)
+    make_chart_a(reduction, control)
+    make_chart_b(reduction, control)
 
     def make_sorted_hps(reduction):
         'return dict; key = validation_month; value = df of HPs, sorted by MAE'
@@ -786,6 +790,7 @@ def make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, time_per
                 for validation_month in validation_months()
                 }
 
+    # NOTE: reduction[validation_month] is sorted by mae
     sorted_hps = make_sorted_hps(reduction_df)
 
     def detail_lines_c(sorted_hps_validation_month):
@@ -831,17 +836,19 @@ def extract_yyyymm(path):
     return path.split('/')[4].split('.')[0]
 
 
-ReductionKey = collections.namedtuple(
-    'ReductionKey',
-    'model validation_year validation_month n_months_back hps'
+ModelDescription = collections.namedtuple(
+    'ModelDescription',
+    'model n_months_back units_X units_y alpha l1_ratio ' +
+    'n_estimators max_features max_depth loss learning_rate'
 )
-ReductionValue = collections.namedtuple(
-    'ReductionValue',
-    'ci95 mae'
+
+ModelResults = collections.namedtuple(
+    'ModelResults',
+    'rmse mae ci95_low ci95_high'
 )
 
 
-def make_data(control):
+def make_dataOLD(control):
     'return reduction data frame, reduction dict, ege_control'
 
     actuals_d = collections.defaultdict(dict)
@@ -911,10 +918,94 @@ def make_data(control):
     paths = sorted(glob.glob(control.path_in_ege))
     for path in paths:
         process_records(path, rows_list)
+    pdb.set_trace()  # what is in the *_d dicts?
     return pd.DataFrame(rows_list), actuals_d, predictions_d, mae_d
 
 
-def main(argv):
+def make_data(control):
+    'return dict[validation_month][ModelDescription] = ModelResults, sorted by increasing MAE'
+
+    def append_to_result(validation_month, k, v, result):
+        'add entry to result'
+        is_en = isinstance(k, ResultKeyEn)
+        is_gbr = isinstance(k, ResultKeyGbr)
+        is_rfr = isinstance(k, ResultKeyRfr)
+        is_tree = is_gbr or is_rfr
+        model = 'en' if is_en else ('gb' if is_gbr else 'rf')
+        actuals = v.actuals.values
+        predictions = v.predictions
+
+        if predictions is None:
+            print '+++++++++++++++++++'
+            print k
+            print 'predictions is missing'
+            print '+++++++++++++++++++'
+            pdb.set_trace()
+        rmse, mae, ci95_low, ci95_high = errors(actuals, predictions)
+        key = ModelDescription(
+            model=model,
+            n_months_back=k.n_months_back,
+            units_X=k.units_X if is_en else 'natural',
+            units_y=k.units_y if is_en else 'natural',
+            alpha=k.alpha if is_en else None,
+            l1_ratio=k.l1_ratio if is_en else None,
+            n_estimators=k.n_estimators if is_tree else None,
+            max_features=k.max_features if is_tree else None,
+            max_depth=k.max_depth if is_tree else None,
+            loss=k.loss if is_gbr else None,
+            learning_rate=k.learning_rate if is_gbr else None,
+        )
+        value = ModelResults(
+            rmse=rmse,
+            mae=mae,
+            ci95_low=ci95_low,
+            ci95_high=ci95_high,
+        )
+        if key in result[validation_month]:
+            print '++++++++++++++++++++'
+            print validation_month
+            print key
+            print 'duplicate key in validation month'
+            print '++++++++++++++++++++'
+            pdb.set_trace()
+        result[validation_month][key] = value
+        return
+
+    def process_records(path, result):
+        'mutate result, a dict, to include objects at path'
+        print 'reducing', path
+        validation_month = extract_yyyymm(path)
+        n = 0
+        with open(path, 'rb') as f:
+            while True:
+                try:
+                    record = pickle.load(f)  # read until EOF
+                    assert isinstance(record, tuple), type(record)
+                    key, value = record
+                    n += 1
+                    append_to_result(validation_month, key, value, result)
+                except ValueError as e:
+                    if record is not None:
+                        print record
+                    print 'ignoring ValueError in record %d: %s' % (n, e)
+                except EOFError:
+                    break
+        print 'number of records retained', n
+
+    result = collections.defaultdict(dict)
+    paths = sorted(glob.glob(control.path_in_ege))
+    for path in paths:
+        process_records(path, result)
+
+    # sort by increasing mae
+    ordered = {}
+    for validation_month, results in result.iteritems():
+        sorted_results = collections.OrderedDict(sorted(results.items(), key=lambda t: t[1].mae))
+        ordered[validation_month] = sorted_results
+    return ordered
+
+
+def mainOLD(argv):
     control = make_control(argv)
     sys.stdout = Logger(logfile_path=control.path_out_log)
     print control
@@ -953,7 +1044,70 @@ def main(argv):
                 print 'reading time period stats'
                 time_period_stats, reduction_control = pickle.load(g)
                 control.timer.lap('read time period stats')
+                pdb.set_trace()
                 make_charts(reduction_df, actuals_d, predictions_d, mae_d, control, time_period_stats)
+
+    print control
+    if control.test:
+        print 'DISCARD OUTPUT: test'
+    if control.debug:
+        print 'DISCARD OUTPUT: debug'
+    print 'done'
+
+    return
+
+
+def make_samples(reduction, fraction):
+    'return a random sample of the reduction stratified by validation_month'
+    def sample_dict(d):
+        'random sample from dictionary'
+        k = int(len(d) * fraction)
+        keys = random.sample(list(d), k)
+        sample = {key: d[key] for key in keys}
+        return sample
+
+    samples = collections.defaultdict(dict)
+    for validation_month, validation_dict in reduction.iteritems():
+        selected = sample_dict(validation_dict)
+        for k, v in selected.iteritems():
+            samples[validation_month][k] = v
+    return samples
+
+
+def make_median_price(path):
+    with open(path, 'rb') as f:
+        d, reduction_control = pickle.load(f)
+        median_price = {}
+        for validation_month, v in d.iteritems():
+            median_price[validation_month] = v['median']
+        return median_price
+
+
+def main(argv):
+    control = make_control(argv)
+    sys.stdout = Logger(logfile_path=control.path_out_log)
+    print control
+    lap = control.timer.lap
+
+    if control.arg.data:
+        median_price = make_median_price(control.path_in_chart_01_reduction)
+        lap('make_median_price')
+        reduction = make_data(control)
+        lap('make_data')
+        samples = make_samples(reduction, control.sampling_rate)
+        lap('make_samples')
+        with open(control.path_out_data, 'wb') as f:
+            pickle.dump((reduction, median_price, control), f)
+            lap('write all data')
+        with open(control.path_out_data_test, 'wb') as f:
+            pickle.dump((samples, median_price, control), f)
+            lap('write samples')
+    else:
+        with open(control.path_in_data, 'rb') as f:
+            print 'reading reduction data file'
+            reduction, median_price, reduction_control = pickle.load(f)
+            lap('read input from %s' % control.path_in_data)
+        make_charts(reduction, median_price, control)
 
     print control
     if control.test:
