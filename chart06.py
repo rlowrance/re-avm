@@ -43,12 +43,14 @@ import sys
 
 from AVM import AVM
 from Bunch import Bunch
+import chart06columns
 from ColumnsTable import ColumnsTable
 from columns_contain import columns_contain
 from Logger import Logger
 from Month import Month
 from Path import Path
 from Report import Report
+from ReportWithColumnsTable import ReportWithColumnsTable
 from Timer import Timer
 from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 cc = columns_contain
@@ -246,36 +248,17 @@ def nan_to_None(x):
         return None
     return None if np.isnan(x) else x
 
-# shared definitions of the columns, how to format them, and their legends
-columns_defs_d = {
-    'median_absolute_error': [6, '%6d', (' ', 'MAE'), 'median absolute error'],
-    'model': [5, '%5s', (' ', 'model'),
-              'model name (en = elastic net, gd = gradient boosting, rf = random forests)'],
-    'n_months_back': [2, '%2d', (' ', 'bk'), 'number of mnths back for training'],
-    'max_depth': [4, '%4d', (' ', 'mxd'), 'max depth of any individual decision tree'],
-    'n_estimators': [4, '%4d', (' ', 'next'), 'number of estimators (= number of trees)'],
-    'max_features': [4, '%4s', (' ', 'mxft'), 'maximum number of features examined to split a node'],
-    'learning_rate': [4, '%4.1f', (' ', 'lr'), 'learning rate for gradient boosting'],
-    'alpha': [5, '%5.2f', (' ', 'alpha'), 'constant multiplying penalty term for elastic net'],
-    'l1_ratio': [4, '%4.2f', (' ', 'l1'), 'l1_ratio mixing L1 and L2 penalties for elastic net'],
-    'units_X': [6, '%6s', (' ', 'unitsX'), 'units for the x value; either natural (nat) or log'],
-    'units_y': [6, '%6s', (' ', 'unitsY'), 'units for the y value; either natural (nat) or log'],
-    'validation_month': [6, '%6d', ('vald.', 'month'), 'month used for validation'],
-    'rank': [4, '%4d', (' ', 'rank'), 'rank within validation month; 1 == lowest MAE'],
-    'median_price': [6, '%6d', ('median', 'price'), 'median price in the validation month'],
-}
-
 
 class ChartBReport(object):
     def __init__(self, year, month, k):
         self._report = Report()
         self._header(year, month, k)
-        cd = [[field_name] + columns_defs_d[field_name]
-              for field_name in ('median_absolute_error', 'model', 'n_months_back',
-                                 'max_depth', 'n_estimators', 'max_features',
-                                 'learning_rate')
-              ]
-        self._t = ColumnsTable(columns=cd, verbose=True)
+        cd = chart06columns.defs_for_columns(
+            'median_absolute_error', 'model', 'n_months_back',
+            'max_depth', 'n_estimators', 'max_features',
+            'learning_rate',
+        )
+        self._ct = ColumnsTable(columns=cd, verbose=True)
 
     def _header(self, year, month, k):
         def a(line):
@@ -287,14 +270,14 @@ class ChartBReport(object):
 
     def append_detail(self, **kwds):
         # replace NaN with None
-        fixed = {k: (None if isinstance(v, float) and np.isnan(v) else v)
-                 for k, v in kwds.iteritems()
-                 }
-        self._t.append_detail(**fixed)
+        with_spaces = {k: (None if chart06columns.replace_by_spaces(k, v) else v)
+                       for k, v in kwds.iteritems()
+                       }
+        self._ct.append_detail(**with_spaces)
 
     def write(self, path):
-        self._t.append_legend()
-        for line in self._t.iterlines():
+        self._ct.append_legend()
+        for line in self._ct.iterlines():
             self._report.append(line)
         self._report.write(path)
 
@@ -354,25 +337,24 @@ def validation_months():
 
 
 class ChartCDReport(object):
-    # TODO: Create class ReportWithColumnsTable(heading,col_defs,verbose)
     def __init__(self):
         self._report = Report()
-        cd = [[field_name] + columns_defs_d[field_name]
-              for field_name in ('validation_month', 'rank', 'median_absolute_error',
-                                 'median_price', 'model', 'n_months_back',
-                                 'max_depth', 'n_estimators', 'max_features',
-                                 'learning_rate', 'alpha', 'l1_ratio',
-                                 'units_X', 'units_y')
-              ]
-        self._t = ColumnsTable(columns=cd, verbose=True)
+        cd = chart06columns.defs_for_columns(
+            'validation_month', 'rank', 'median_absolute_error',
+            'median_price', 'model', 'n_months_back',
+            'max_depth', 'n_estimators', 'max_features',
+            'learning_rate', 'alpha', 'l1_ratio',
+            'units_X', 'units_y',
+        )
+        self._ct = ColumnsTable(columns=cd, verbose=True)
         self._header()
 
     def append(self, line):
         self._report.append(line)
 
     def write(self, path):
-        self._t.append_legend()
-        for line in self._t.iterlines():
+        self._ct.append_legend()
+        for line in self._ct.iterlines():
             self._report.append(line)
         self._report.write(path)
 
@@ -381,11 +363,10 @@ class ChartCDReport(object):
         self._report.append(' ')
 
     def append_detail(self, **kwds):
-        # replace NaN with None
-        fixed = {k: (None if isinstance(v, float) and np.isnan(v) else v)
-                 for k, v in kwds.iteritems()
-                 }
-        self._t.append_detail(**fixed)
+        with_spaces = {k: (None if chart06columns.replace_by_spaces(k, v) else v)
+                       for k, v in kwds.iteritems()
+                       }
+        self._ct.append_detail(**with_spaces)
 
 
 def make_chart_cd(reduction, control, time_period_stats, sorted_hps, detail_lines, report_id):
@@ -397,7 +378,6 @@ def make_chart_cd(reduction, control, time_period_stats, sorted_hps, detail_line
         for dl_index in detail_lines(sorted_hps_validation_month):
             rank += 1
             series = sorted_hps_validation_month.iloc[dl_index]
-            print series
             r.append_detail(
                 validation_month=validation_month,
                 rank=rank,
@@ -515,10 +495,39 @@ class ChartEReportOLD(object):
         self.report.append(line)
 
 
-class ChartEReport(object):
+class ChartEReport(ReportWithColumnsTable):
+    'has 2 kinds of detail lines'
     def __init__(self, k, ensemble_weighting):
         self._report = Report()
+        cd = chart06columns.defs_for_columns(
+            'validation_month', 'model', 'n_months_back',
+            'n_estimators', 'max_features', 'max_depth',
+            'learning_rate', 'rank_index', 'mae_validation',
+            'weight', 'mae_next', 'note'
+        )
+        self._ct = ColumnsTable(columns=cd, verbose=True)
         self._header(k, ensemble_weighting)
+
+    def write(self, path):
+        self._ct.append_legend()
+        for line in self._ct.iterlines():
+            self._report.append(line)
+        self._report.write(path)
+
+    def detail_line(self, **kwds):
+        with_spaces = {k: (None if chart06columns.replace_by_spaces(k, v) else v)
+                       for k, v in kwds.iteritems()
+                       }
+        self._ct_append_detail(**with_spaces)
+
+    def detail_note(self, value, text):
+        self._ct_append_detail({'mae_next': value, 'note': text})
+
+    def _header(self, k, ensemble_weighting):
+        self._report.append('Performance of Best Models Separately and as an Ensemble')
+        self._report.append(' ')
+        self._report.append('Considering Best K = %d models' % k)
+        self._report.append('Ensemble weighting: %s' % ensemble_weighting)
 
 
 class ChartFReport(object):
