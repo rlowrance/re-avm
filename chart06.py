@@ -275,11 +275,9 @@ class ChartB(object):
 
     def append_detail(self, **kwds):
         # replace NaN with None
-        print 'kwds', kwds
         fixed = {k: (None if isinstance(v, float) and np.isnan(v) else v)
                  for k, v in kwds.iteritems()
                  }
-        print 'fixed', fixed
         self._t.append_detail(**fixed)
 
     def write(self, path):
@@ -291,7 +289,6 @@ class ChartB(object):
 
 def make_chart_b_year_month(reduction, year, month, control):
     def append_detail_line(report, series):
-        print series
         # NOTE: while testing, an en can be selected here
         report.append_detail(
             median_absolute_error=series.mae,
@@ -307,7 +304,9 @@ def make_chart_b_year_month(reduction, year, month, control):
         mask = reduction.validation_month == yyyymm
         subset = reduction.loc[mask]
         if len(subset) == 0:
+            print '++++++++++++++++++'
             print subset.shape, yyyymm
+            print '++++++++++++++++++'
             pdb.set_trace()
         return subset
 
@@ -342,28 +341,32 @@ def validation_months():
     )
 
 
-Col = collections.namedtuple('Col', 'name width formatter header1 header2 legend')
-
-
 class ChartCDReport(object):
+    # TODO: Create class ReportWithColumnsTable(heading,col_defs,verbose)
     def __init__(self):
         self._report = Report()
-        self._columns = (
-            Col('validation_month', 6, '%6d', 'Vald.', 'Month', 'validation month in format year-month'),
-            Col('rank', 4, '%4d', ' ', 'rank', 'rank within month; 1 ==> lowest MAE'),
-            Col('MAE', 6, '%6d', ' ', 'MAE', 'median absolute error in the price estimate'),
-            Col('median_price', 6, '%6d', 'Median', 'Price', 'median price in the validation month'),
-            Col('model', 5, '%5s', ' ', 'Model',
-                'kind of model: en=elastic net; gb=gradient boosting; rf=random forests'),
-            Col('n_months_back', 2, '%2d', ' ', 'bk', 'number of months back for training'),
-            Col('max_depth', 3, '%3d', ' ', 'mxd', 'max depth of individual tree'),
-            Col('n_estimators', 3, '%3d', ' ', 'nest', 'number of estimators (number of trees)'),
-            Col('max_features', 4, '%4s', ' ', 'mxft',
-                'max number of features considered when selecting new split variable'),
-            Col('learning_rate', 4, '%4.1f', ' ', 'lr', 'learning rate for gradient boosting'),
-            Col('alpha', 4, '%4.2f', ' ', 'alpha', 'constant multiplying penalty term for elastic net'),
-            Col('l1_ratio', 4, '%4.2f', ' ', 'l1', 'l1_ratio mixing L1 and L2 penalties for elastic net'),
-            Col('units_X', 3, '%3s', ' ', 'unitsX', 'units for the x value; either natural (nat) or log'),
+        self._t = ColumnsTable(
+            column_defs=(
+                ('validation_month', 6, '%6d', ('Vald.', 'Month'), 'validation month in format year-month'),
+                ('rank', 4, '%4d', (' ', 'rank'), 'rank within month; 1 ==> lowest MAE'),
+                ('median_absolute_error', 6, '%6d', (' ', 'MAE'), 'median absolute error in the price estimate'),
+                ('median_price', 6, '%6d', ('Median', 'Price'), 'median price in the validation month'),
+                ('model', 5, '%5s', (' ', 'Model'),
+                 'kind of model: en=elastic net; gb=gradient boosting; rf=random forests'),
+                ('n_months_back', 2, '%2d', (' ', 'bk'), 'number of months back for training'),
+                ('max_depth', 3, '%3d', (' ', 'mxd'), 'max depth of individual tree'),
+                ('n_estimators', 4, '%4d', (' ', 'nest'), 'number of estimators (number of trees)'),
+                ('max_features', 4, '%4s', (' ', 'mxft'),
+                 'max number of features considered when selecting new split variable'),
+                ('learning_rate', 4, '%4.1f', (' ', 'lr'), 'learning rate for gradient boosting'),
+                ('alpha', 5, '%5.2f', (' ', 'alpha'), 'constant multiplying penalty term for elastic net'),
+                ('l1_ratio', 4, '%4.2f', (' ', 'l1'), 'l1_ratio mixing L1 and L2 penalties for elastic net'),
+                ('units_X', 6, '%6s', (' ', 'unitsX'),
+                 'units for the x value; either natural (nat) or log'),
+                ('units_y', 6, '%6s', (' ', 'unitsY'),
+                 'units for the y value; either natural (nat) or log'),
+            ),
+            verbose=True,
         )
         self._header()
 
@@ -371,49 +374,24 @@ class ChartCDReport(object):
         self._report.append(line)
 
     def write(self, path):
-        self._footer()
+        self._t.append_legend()
+        for line in self._t.iterlines():
+            self._report.append(line)
         self._report.write(path)
 
     def _header(self):
         self._report.append('Median Absolute Error (MAE) by month for best-performing models and their hyperparameters')
         self._report.append(' ')
 
-        # first header line
-
-        def append_header(header_field_name):
-            line = ''
-            for col in self._columns:
-                formatter = '%' + str(col.width) + 's'
-                formatted = formatter % getattr(col, header_field_name)
-                line += (' ' if len(line) > 0 else '') + formatted
-            self._report.append(line)
-
-        append_header('header1')
-        append_header('header2')
-
-    def _footer(self):
-        self._report.append(' ')
-        self._report.append('column legend:')
-
-        for col in self._columns:
-            line = '%12s -> %s' % ((col.header1 + col.header2).strip(), col.legend)
-            self._report.append(line)
-
-    def detail_line(self, **kwds):
-        line = ''
-        for col in self._columns:
-            if col.name in kwds:
-                glyph = col.formatter % kwds[col.name]
-            else:
-                glyph = ' ' * col.width
-            if len(line) > 0:
-                line += ' '
-            line += glyph
-        self._report.append(line)
+    def append_detail(self, **kwds):
+        # replace NaN with None
+        fixed = {k: (None if isinstance(v, float) and np.isnan(v) else v)
+                 for k, v in kwds.iteritems()
+                 }
+        self._t.append_detail(**fixed)
 
 
 def make_chart_cd(reduction, control, time_period_stats, sorted_hps, detail_lines, report_id):
-    '''write report: mae, model, HPs for month'''
     r = ChartCDReport()
     for validation_month in validation_months():
         median_price = time_period_stats[validation_month]['median']
@@ -422,46 +400,23 @@ def make_chart_cd(reduction, control, time_period_stats, sorted_hps, detail_line
         for dl_index in detail_lines(sorted_hps_validation_month):
             rank += 1
             series = sorted_hps_validation_month.iloc[dl_index]
-            if series.model == 'en':
-                r.detail_line(validation_month=validation_month,
-                              rank=rank,
-                              mae=series.mae,
-                              median_price=median_price,
-                              model=series.model,
-                              alpha=series.alpha,
-                              l1=series.l1_ratio,
-                              unitsX=series.units_X,
-                              )
-                if series.units_y != 'nat':
-                    # TODO: add units_Y, as it can be log!
-                    print series
-                    print 'unexpected series.units_y', series.units_y
-                    pdb.set_trace()
-            elif series.model == 'gb':
-                r.detail_line(validation_month=validation_month,
-                              rank=rank,
-                              median_price=median_price,
-                              model=series.model,
-                              n_months_back=series.n_months_back,
-                              max_depth=series.max_depth,
-                              n_estimators=series.n_estimators,
-                              max_features=series.max_features,
-                              learning_rate=series.learning_rate,
-                              )
-            elif series.model == 'rf':
-                r.detail_line(validation_month=validation_month,
-                              rank=rank,
-                              median_price=median_price,
-                              model=series.model,
-                              n_months_back=series.n_months_back,
-                              max_depth=series.max_depth,
-                              n_estimators=series.n_estimators,
-                              max_features=series.max_features,
-                              )
-            else:
-                print series
-                print 'unexpected series.model', series.model
-                pdb.set_trace()
+            print series
+            r.append_detail(
+                validation_month=validation_month,
+                rank=rank,
+                median_absolute_error=series.mae,
+                median_price=median_price,
+                model=series.model,
+                n_months_back=series.n_months_back,
+                max_depth=series.max_depth,
+                n_estimators=series.n_estimators,
+                max_features=series.max_features,
+                learning_rate=series.learning_rate,
+                alpha=series.alpha,
+                l1_ratio=series.l1_ratio,
+                units_X=series.units_X[:3],
+                units_y=series.units_y[:3],
+            )
 
     r.write(control.path_out_cd % report_id)
     return
