@@ -23,9 +23,11 @@ class ColumnsTable(object):
         self._column_defs = []
         self._number_of_header_lines = 0
         for column_def in column_defs:
-            cd3 = column_def[3]
+            assert len(column_def) == 5, 'column_def must have length 5: %s' % str(column_def)
+            ctf = ColumnsTableFields(*column_def)
+            headers = ctf.headers
             # convert 'abc' to ('abc',)
-            headers = (cd3,) if isinstance(cd3, str) else cd3
+            headers = (headers,) if isinstance(headers, str) else headers
             if self._number_of_header_lines != 0:
                 if self._number_of_header_lines != len(headers):
                     print 'inconsistent number of lines in header'
@@ -33,11 +35,11 @@ class ColumnsTable(object):
                     print 'found at headesr: %s' % headers
                     pdb.set_trace()
             self._number_of_header_lines = len(headers)
-            self._column_defs.append(ColumnsTableFields(column_def[0],
-                                                        column_def[1],
-                                                        column_def[2],
+            self._column_defs.append(ColumnsTableFields(ctf.name,
+                                                        ctf.width,
+                                                        ctf.formatter,
                                                         headers,
-                                                        column_def[4]))
+                                                        ctf.legend))
         self._lines = []
         self._verbose = verbose
         self._header()
