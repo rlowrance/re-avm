@@ -18,11 +18,11 @@ ColumnsTableFields = collections.namedtuple('ColumnsTableFields', 'name width fo
 
 
 class ColumnsTable(object):
-    def __init__(self, column_defs, verbose=False):
-        'column_defs is an iterable with elements (name, width, formatter, (header-list), legend)'
-        self._column_defs = []
+    def __init__(self, columns, verbose=False):
+        'columns is an iterable with elements (name, width, formatter, (header-list), legend)'
+        self._columns = []
         self._number_of_header_lines = 0
-        for column_def in column_defs:
+        for column_def in columns:
             assert len(column_def) == 5, 'column_def must have length 5: %s' % str(column_def)
             ctf = ColumnsTableFields(*column_def)
             headers = ctf.headers
@@ -35,11 +35,11 @@ class ColumnsTable(object):
                     print 'found at headesr: %s' % headers
                     pdb.set_trace()
             self._number_of_header_lines = len(headers)
-            self._column_defs.append(ColumnsTableFields(ctf.name,
-                                                        ctf.width,
-                                                        ctf.formatter,
-                                                        headers,
-                                                        ctf.legend))
+            self._columns.append(ColumnsTableFields(ctf.name,
+                                                    ctf.width,
+                                                    ctf.formatter,
+                                                    headers,
+                                                    ctf.legend))
         self._lines = []
         self._verbose = verbose
         self._header()
@@ -55,7 +55,7 @@ class ColumnsTable(object):
 
         self._append_line(' ')
         self._append_line('column legend:')
-        for cd in self._column_defs:
+        for cd in self._columns:
             line = '%12s -> %s' % (cat_headers(cd.headers), cd.legend)
             self._append_line(line)
 
@@ -65,7 +65,7 @@ class ColumnsTable(object):
 
     def append_detail(self, **kwds):
         line = ''
-        for cd in self._column_defs:
+        for cd in self._columns:
             if cd.name in kwds and kwds[cd.name] is not None:
                 try:
                     glyph = cd.formatter % kwds[cd.name]
@@ -93,7 +93,7 @@ class ColumnsTable(object):
     def _header(self):
         def append_header(index):
             line = ''
-            for cd in self._column_defs:
+            for cd in self._columns:
                 formatter = '%' + str(cd.width) + 's'
                 formatted = formatter % cd.headers[index]
                 line += (' ' if len(line) > 0 else '') + formatted
