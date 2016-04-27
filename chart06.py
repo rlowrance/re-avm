@@ -55,23 +55,6 @@ from Timer import Timer
 from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 cc = columns_contain
 
-Key = collections.namedtuple(  # hold all posssible keys that valavm may have generated
-    'Key',
-    'yyyymm ' +                                # period
-    'n_months_back units_X units_y ' +         # all ResultKey* have these fields
-    'alpha l1_ratio ' +                        # only ResultKeyEn has these fields
-    'n_estimators max_features max_depth ' +   # ResultKeyRfr and ResultKeyGbr have these fields
-    'loss learning_rate',                      # only ResultKeyGbr has these fields
-)
-
-Value = collections.namedtuple(
-    'Value',
-    'mae',  # median absolute error
-)
-
-ModelResult = collections.namedtuple('ModelResult', 'mae')
-
-
 def make_control(argv):
     # return a Bunch
 
