@@ -246,24 +246,36 @@ def nan_to_None(x):
         return None
     return None if np.isnan(x) else x
 
+# shared definitions of the columns, how to format them, and their legends
+columns_defs_d = {
+    'median_absolute_error': [6, '%6d', (' ', 'MAE'), 'median absolute error'],
+    'model': [5, '%5s', (' ', 'model'),
+              'model name (en = elastic net, gd = gradient boosting, rf = random forests)'],
+    'n_months_back': [2, '%2d', (' ', 'bk'), 'number of mnths back for training'],
+    'max_depth': [4, '%4d', (' ', 'mxd'), 'max depth of any individual decision tree'],
+    'n_estimators': [4, '%4d', (' ', 'next'), 'number of estimators (= number of trees)'],
+    'max_features': [4, '%4s', (' ', 'mxft'), 'maximum number of features examined to split a node'],
+    'learning_rate': [4, '%4.1f', (' ', 'lr'), 'learning rate for gradient boosting'],
+    'alpha': [5, '%5.2f', (' ', 'alpha'), 'constant multiplying penalty term for elastic net'],
+    'l1_ratio': [4, '%4.2f', (' ', 'l1'), 'l1_ratio mixing L1 and L2 penalties for elastic net'],
+    'units_X': [6, '%6s', (' ', 'unitsX'), 'units for the x value; either natural (nat) or log'],
+    'units_y': [6, '%6s', (' ', 'unitsY'), 'units for the y value; either natural (nat) or log'],
+    'validation_month': [6, '%6d', ('vald.', 'month'), 'month used for validation'],
+    'rank': [4, '%4d', (' ', 'rank'), 'rank within validation month; 1 == lowest MAE'],
+    'median_price': [6, '%6d', ('median', 'price'), 'median price in the validation month'],
+}
 
-class ChartB(object):
+
+class ChartBReport(object):
     def __init__(self, year, month, k):
         self._report = Report()
         self._header(year, month, k)
-        self._t = ColumnsTable(
-            column_defs=(
-                ('median_absolute_error', 6, '%6d', 'MAE', 'median absolute error'),
-                ('model', 5, '%5s', 'model',
-                 'model name (en = elastic net, gd = gradient boosting, rf = random forests'),
-                ('n_months_back', 2, '%2d', 'bk', 'number of months back for training)'),
-                ('max_depth', 4, '%4d', 'mxd', 'max depth of any individual decision tree'),
-                ('n_estimators', 4, '%4d', 'next', 'number of estimators (number of trees)'),
-                ('max_features', 4, '%4s', 'mxft', 'maximum number of features examine to split a node'),
-                ('learning_rate', 4, '%4.1f', 'lr', 'learning rate for gradient boosting'),
-            ),
-            verbose=True,
-        )
+        cd = [[field_name] + columns_defs_d[field_name]
+              for field_name in ('median_absolute_error', 'model', 'n_months_back',
+                                 'max_depth', 'n_estimators', 'max_features',
+                                 'learning_rate')
+              ]
+        self._t = ColumnsTable(columns=cd, verbose=True)
 
     def _header(self, year, month, k):
         def a(line):
@@ -312,7 +324,7 @@ def make_chart_b_year_month(reduction, year, month, control):
 
     def write_report(subset, yyyymm):
         k = 50  # report on the first k models in the sorted subset
-        report = ChartB(year, month, k)
+        report = ChartBReport(year, month, k)
         detail_line_number = 0
         for index, row in subset_sorted.iterrows():
             append_detail_line(report, row)
@@ -345,29 +357,14 @@ class ChartCDReport(object):
     # TODO: Create class ReportWithColumnsTable(heading,col_defs,verbose)
     def __init__(self):
         self._report = Report()
-        self._t = ColumnsTable(
-            column_defs=(
-                ('validation_month', 6, '%6d', ('Vald.', 'Month'), 'validation month in format year-month'),
-                ('rank', 4, '%4d', (' ', 'rank'), 'rank within month; 1 ==> lowest MAE'),
-                ('median_absolute_error', 6, '%6d', (' ', 'MAE'), 'median absolute error in the price estimate'),
-                ('median_price', 6, '%6d', ('Median', 'Price'), 'median price in the validation month'),
-                ('model', 5, '%5s', (' ', 'Model'),
-                 'kind of model: en=elastic net; gb=gradient boosting; rf=random forests'),
-                ('n_months_back', 2, '%2d', (' ', 'bk'), 'number of months back for training'),
-                ('max_depth', 3, '%3d', (' ', 'mxd'), 'max depth of individual tree'),
-                ('n_estimators', 4, '%4d', (' ', 'nest'), 'number of estimators (number of trees)'),
-                ('max_features', 4, '%4s', (' ', 'mxft'),
-                 'max number of features considered when selecting new split variable'),
-                ('learning_rate', 4, '%4.1f', (' ', 'lr'), 'learning rate for gradient boosting'),
-                ('alpha', 5, '%5.2f', (' ', 'alpha'), 'constant multiplying penalty term for elastic net'),
-                ('l1_ratio', 4, '%4.2f', (' ', 'l1'), 'l1_ratio mixing L1 and L2 penalties for elastic net'),
-                ('units_X', 6, '%6s', (' ', 'unitsX'),
-                 'units for the x value; either natural (nat) or log'),
-                ('units_y', 6, '%6s', (' ', 'unitsY'),
-                 'units for the y value; either natural (nat) or log'),
-            ),
-            verbose=True,
-        )
+        cd = [[field_name] + columns_defs_d[field_name]
+              for field_name in ('validation_month', 'rank', 'median_absolute_error',
+                                 'median_price', 'model', 'n_months_back',
+                                 'max_depth', 'n_estimators', 'max_features',
+                                 'learning_rate', 'alpha', 'l1_ratio',
+                                 'units_X', 'units_y')
+              ]
+        self._t = ColumnsTable(columns=cd, verbose=True)
         self._header()
 
     def append(self, line):
@@ -428,7 +425,7 @@ def make_median_prices(medians):
             }
 
 
-class ChartEReport(object):
+class ChartEReportOLD(object):
     def __init__(self, k, ensemble_weighting):
         self.report = Report()
         self.format_header = '%6s %20s %5s %6s %6s %6s'
@@ -516,6 +513,12 @@ class ChartEReport(object):
 
     def append(self, line):
         self.report.append(line)
+
+
+class ChartEReport(object):
+    def __init__(self, k, ensemble_weighting):
+        self._report = Report()
+        self._header(k, ensemble_weighting)
 
 
 class ChartFReport(object):
