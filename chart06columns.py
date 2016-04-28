@@ -16,7 +16,7 @@ _defs = {
     'l1_ratio': [4, '%4.2f', (' ', 'l1'), 'l1_ratio mixing L1 and L2 penalties for elastic net'],
     'units_X': [6, '%6s', (' ', 'unitsX'), 'units for the x value; either natural (nat) or log'],
     'units_y': [6, '%6s', (' ', 'unitsY'), 'units for the y value; either natural (nat) or log'],
-    'validation_month': [6, '%6d', ('vald', 'month'), 'month used for validation'],
+    'validation_month': [6, '%6s', ('vald', 'month'), 'month used for validation'],
     'rank': [4, '%4d', (' ', 'rank'), 'rank within validation month; 1 == lowest MAE'],
     'median_price': [6, '%6d', ('median', 'price'), 'median price in the validation month'],
     'mae_validation': [6, '%6d', ('vald ', 'MAE'), 'median absolute error in validation month'],
