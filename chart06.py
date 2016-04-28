@@ -55,6 +55,7 @@ from Timer import Timer
 from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 cc = columns_contain
 
+
 def make_control(argv):
     # return a Bunch
 
@@ -99,6 +100,9 @@ def make_control(argv):
         sampling_rate=0.02,
         test=arg.test,
         timer=Timer(),
+        validation_months=('200612', '200701', '200702', '200703', '200704', '200705',
+                           '200706', '200707', '200708', '200709', '200710', '200711',
+                           ),
     )
 
 
@@ -174,7 +178,7 @@ def make_chart_a(reduction, control):
     return
 
 
-def differ_only_in_units(a, b):
+def differ_only_in_unitsOLD(a, b):
     if a is None:
         return False
     # print a, b
@@ -191,7 +195,7 @@ def differ_only_in_units(a, b):
     return False
 
 
-def differ(a, b):
+def differOLD(a, b):
     if a is None:
         return b is None
     for index, value in a.iteritems():
@@ -202,7 +206,7 @@ def differ(a, b):
     return False
 
 
-def make_hp_string(series):
+def make_hp_stringOLD(series):
     ignored_indices = set(('mae', 'model', 'yyyymm', 'n_months_back',
                            'max_depth', 'n_estimators', 'max_features',
                            'validation_month', 'loss', 'rmse',
@@ -224,7 +228,7 @@ def make_hp_string(series):
     return result
 
 
-def nan_to_None(x):
+def nan_to_NoneOLD(x):
     print x, type(x)
     if x is None:
         return None
@@ -293,14 +297,6 @@ def make_chart_b(reduction, control):
             write_report(year, month)
 
 
-def validation_months():
-    return (
-        200612,
-        200701, 200702, 200703, 200704, 200705, 200706,
-        200707, 200708, 200709, 200710, 200711,
-    )
-
-
 class ChartCDReport(object):
     def __init__(self):
         self._report = Report()
@@ -334,30 +330,31 @@ class ChartCDReport(object):
         self._ct.append_detail(**with_spaces)
 
 
-def make_chart_cd(reduction, control, time_period_stats, sorted_hps, detail_lines, report_id):
+def make_chart_cd(reduction, median_prices, control, detail_line_indices, report_id):
     r = ChartCDReport()
-    for validation_month in validation_months():
-        median_price = time_period_stats[validation_month]['median']
-        sorted_hps_validation_month = sorted_hps[validation_month]
-        rank = 0
-        for dl_index in detail_lines(sorted_hps_validation_month):
-            rank += 1
-            series = sorted_hps_validation_month.iloc[dl_index]
+    for validation_month in control.validation_months:
+        if False and report_id != 'c':
+            pdb.set_trace()
+        median_price = median_prices[validation_month]
+        month_result_keys = list(reduction[validation_month])
+        for detail_line_index in detail_line_indices:
+            k = month_result_keys[detail_line_index]
+            v = reduction[validation_month][k]
             r.append_detail(
                 validation_month=validation_month,
-                rank=rank,
-                median_absolute_error=series.mae,
+                rank=detail_line_index + 1,
+                median_absolute_error=v.mae,
                 median_price=median_price,
-                model=series.model,
-                n_months_back=series.n_months_back,
-                max_depth=series.max_depth,
-                n_estimators=series.n_estimators,
-                max_features=series.max_features,
-                learning_rate=series.learning_rate,
-                alpha=series.alpha,
-                l1_ratio=series.l1_ratio,
-                units_X=series.units_X[:3],
-                units_y=series.units_y[:3],
+                model=k.model,
+                n_months_back=k.n_months_back,
+                max_depth=k.max_depth,
+                n_estimators=k.n_estimators,
+                max_features=k.max_features,
+                learning_rate=k.learning_rate,
+                alpha=k.alpha,
+                l1_ratio=k.l1_ratio,
+                units_X=k.units_X[:3],
+                units_y=k.units_y[:3],
             )
 
     r.write(control.path_out_cd % report_id)
@@ -567,7 +564,7 @@ class ChartFReport(object):
         self.report.write(path)
 
 
-def model_to_str(k):
+def model_to_strOLD(k):
     pdb.set_trace()  # replace me
     if isinstance(k, ResultKeyEn):
         return 'en-%d-%s-%s-%d-%d' % (
@@ -747,36 +744,15 @@ def make_charts(reduction, median_prices, control):
     make_chart_a(reduction, control)
     make_chart_b(reduction, control)
 
-    def make_sorted_hps(reduction):
-        'return dict; key = validation_month; value = df of HPs, sorted by MAE'
-        def subset_sorted(validation_month):
-            mask = reduction.validation_month == str(validation_month)
-            return reduction.loc[mask].sort_values('mae')
-        return {validation_month: subset_sorted(validation_month)
-                for validation_month in validation_months()
-                }
-
-    # NOTE: reduction[validation_month] is sorted by mae
-    sorted_hps = make_sorted_hps(reduction_df)
-
-    def detail_lines_c(sorted_hps_validation_month):
-        return [0]  # the one with the lowest MAE (the best set of HPs)
-
-    make_chart_cd(reduction_df, control, time_period_stats, sorted_hps, detail_lines_c, 'c')
+    make_chart_cd(reduction, median_prices, control, (0,), 'c')
     for n_best in (5, 100):
+        pdb.set_trace()
         report_id = 'd-%0d' % n_best
-
-        def detail_lines_d(sorted_hps_validation_month):
-            result = []
-            for k in xrange(len(sorted_hps_validation_month)):
-                result.append(k)
-                if k == (n_best - 1):
-                    break
-            # append index of worst month (it's last in the sorted list)
-            # result.append(len(sorted_hps_validation_month) - 1)
-            return result
-
-        make_chart_cd(reduction_df, control, time_period_stats, sorted_hps, detail_lines_d, report_id)
+        for validation_month, month_reduction in reduction.iteritems():
+            n_reductions_per_month = len(month_reduction)
+            break
+        detail_lines_d = range(n_best) + [n_reductions_per_month - 1]
+        make_chart_cd(reduction, median_prices, control, detail_lines_d, report_id)
     make_charts_efg(actuals_d, predictions_d, mae_d, control, time_period_stats)
 
 
@@ -1045,7 +1021,7 @@ def make_median_price(path):
         d, reduction_control = pickle.load(f)
         median_price = {}
         for validation_month, v in d.iteritems():
-            median_price[validation_month] = v['median']
+            median_price[str(validation_month)] = v['median']
         return median_price
 
 
