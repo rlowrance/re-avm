@@ -31,6 +31,7 @@ import argparse
 import collections
 import cPickle as pickle
 import glob
+import itertools
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -50,7 +51,6 @@ from Logger import Logger
 from Month import Month
 from Path import Path
 from Report import Report
-# from ReportWithColumnsTable import ReportWithColumnsTable
 from Timer import Timer
 from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 cc = columns_contain
@@ -232,9 +232,9 @@ def nan_to_None(x):
 
 
 class ChartBReport(object):
-    def __init__(self, year, month, k):
+    def __init__(self, validation_month, k):
         self._report = Report()
-        self._header(year, month, k)
+        self._header(validation_month, k)
         cd = chart06columns.defs_for_columns(
             'median_absolute_error', 'model', 'n_months_back',
             'max_depth', 'n_estimators', 'max_features',
@@ -242,12 +242,12 @@ class ChartBReport(object):
         )
         self._ct = ColumnsTable(columns=cd, verbose=True)
 
-    def _header(self, year, month, k):
+    def _header(self, validation_month, k):
         def a(line):
             self._report.append(line)
 
         a('MAE for %d best-performing models and their hyperparameters' % k)
-        a('Validation month: %d-%0d' % (year, month))
+        a('Validation month: %s' % validation_month)
         a(' ')
 
     def append_detail(self, **kwds):
@@ -264,50 +264,33 @@ class ChartBReport(object):
         self._report.write(path)
 
 
-def make_chart_b_year_month(reduction, year, month, control):
-    def append_detail_line(report, series):
-        # NOTE: while testing, an en can be selected here
-        report.append_detail(
-            median_absolute_error=series.mae,
-            model=series.model,
-            n_months_back=series.n_months_back,
-            max_depth=series.max_depth,
-            n_estimators=series.n_estimators,
-            max_features=series.max_features,
-            learning_rate=series.learning_rate,
-        )
-
-    def create_subset(yyyymm):
-        mask = reduction.validation_month == yyyymm
-        subset = reduction.loc[mask]
-        if len(subset) == 0:
-            print '++++++++++++++++++'
-            print subset.shape, yyyymm
-            print '++++++++++++++++++'
-            pdb.set_trace()
-        return subset
-
-    def write_report(subset, yyyymm):
-        k = 50  # report on the first k models in the sorted subset
-        report = ChartBReport(year, month, k)
-        detail_line_number = 0
-        for index, row in subset_sorted.iterrows():
-            append_detail_line(report, row)
-            detail_line_number += 1
-            if detail_line_number == k:
-                break
-        report.write(control.path_out_b % int(yyyymm))
-
-    yyyymm = str(year * 100 + month)
-    subset_sorted = create_subset(yyyymm).sort_values('mae')
-    write_report(subset_sorted, yyyymm)
-
-
 def make_chart_b(reduction, control):
+    def write_report(year, month):
+        validation_month = str(year * 100 + month)
+        k = 50  # report on the first k models in the sorted subset
+        report = ChartBReport(validation_month, k)
+        detail_line_number = 0
+        # ref: http://stackoverflow.com/questions/7971618/python-return-first-n-keyvalue-pairs-from-dict
+        first_k = itertools.islice(reduction[validation_month].items(), 0, k)
+        for key, value in first_k:
+            report.append_detail(
+                median_absolute_error=value.mae,
+                model=key.model,
+                n_months_back=key.n_months_back,
+                max_depth=key.max_depth,
+                n_estimators=key.n_estimators,
+                max_features=key.max_features,
+                learning_rate=key.learning_rate,
+            )
+            detail_line_number += 1
+            if detail_line_number > k:
+                break
+        report.write(control.path_out_b % int(validation_month))
+
     for year in (2006, 2007):
         months = (12,) if year == 2006 else (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
         for month in months:
-            make_chart_b_year_month(reduction, year, month, control)
+            write_report(year, month)
 
 
 def validation_months():
