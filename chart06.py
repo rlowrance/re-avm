@@ -333,10 +333,8 @@ class ChartCDReport(object):
 def make_chart_cd(reduction, median_prices, control, detail_line_indices, report_id):
     r = ChartCDReport()
     for validation_month in control.validation_months:
-        if False and report_id != 'c':
-            pdb.set_trace()
         median_price = median_prices[validation_month]
-        month_result_keys = list(reduction[validation_month])
+        month_result_keys = list(reduction[validation_month].keys())
         for detail_line_index in detail_line_indices:
             k = month_result_keys[detail_line_index]
             v = reduction[validation_month][k]
@@ -480,7 +478,7 @@ class ChartEReport(object):
         with_spaces = {k: (None if chart06columns.replace_by_spaces(k, v) else v)
                        for k, v in kwds.iteritems()
                        }
-        self._ct_append_detail(**with_spaces)
+        self._ct_append_detail(**with_spaces)  # TODO: add validation_mae, weight, next_mae
 
     def detail_note(self, value, text):
         self._ct_append_detail({'mae_next': value, 'note': text})
@@ -492,7 +490,7 @@ class ChartEReport(object):
         self._report.append('Ensemble weighting: %s' % ensemble_weighting)
 
 
-class ChartFReport(object):
+class ChartFReport(object):  #OLD API
     def __init__(self, k, ensemble_weighting):
         self.report = Report()
         self.format_header = '%6s %20s %6s'
@@ -610,18 +608,15 @@ def make_ensemble_predictions(predictions, weights):
     return result
 
 
-def make_charts_ef(k, actuals_d, predictions_d, mae_d, control, time_period_stats):
+def make_charts_efOLD(k, reduction, median_price, control):
     '''Write charts e and f, return median-absolute-relative_regret object'''
     verbose = True
     if verbose:
-        print mae_d.keys()
-        pdb.set_trace()
-    if len(actuals_d) != len(predictions_d) != len(mae_d):
         pdb.set_trace()
     ensemble_weighting = 'exp(-MAE/100000)'
     relative_errors = []
     f = ChartFReport(k, ensemble_weighting)
-    for validation_month in validation_months():
+    for validation_month in control.validation_months:
         e = ChartEReport(k, ensemble_weighting)
         validation_month_mae = mae_d[validation_month]
         models_sorted_validation_month = sorted(
@@ -640,6 +635,97 @@ def make_charts_ef(k, actuals_d, predictions_d, mae_d, control, time_period_stat
             weights.append(weight)
             actuals.append(actuals_d[validation_month][model])
             predictions.append(predictions_d[validation_month][model])
+        check_actuals(actuals)
+        # determine ensemble predictions (first k) and regret vs. best model
+        ensemble_actuals = actuals[0]  # they are all the same, so pick one
+        ensemble_predictions = make_ensemble_predictions(predictions, weights)
+        ensemble_rmse, ensemble_mae, ensemble_ci95_low, ensemble_ci95_high = errors(
+            ensemble_actuals,
+            ensemble_predictions,
+        )
+        e.ensemble_detail(ensemble_mae)
+        f.ensemble_detail(validation_month, ensemble_mae)
+        # pick the best models in validation_month + 1
+
+        def find_validation_month_index(model, model_list):
+            index = 0
+            while True:
+                if model == model_list[index]:
+                    return index
+                index += 1
+            return None  # should not get here
+
+        next_month_mae = mae_d[next_month]
+        models_sorted_next_month = sorted(next_month_mae, key=next_month_mae.get)
+        first_best_model = models_sorted_next_month[0]
+        best_mae = mae_d[next_month][first_best_model]
+        for next_month_index in xrange(k):
+            a_best_model = models_sorted_next_month[next_month_index]
+            validation_month_index = find_validation_month_index(a_best_model, models_sorted_validation_month)
+            e.model_best(
+                validation_month,
+                model_to_str(a_best_model),
+                validation_month_index,
+                mae_d[validation_month][a_best_model],
+                mae_d[next_month][a_best_model],
+            )
+        # determine regret
+        regret = ensemble_mae - best_mae
+        e.regret(regret)
+        f.regret(validation_month, regret)
+        median_price = time_period_stats[next_month]['median']
+        e.median_price(median_price)
+        f.median_price(validation_month, median_price)
+        relative_regret = regret / median_price
+        e.relative_error(relative_regret)
+        f.relative_error(validation_month, relative_regret)
+        relative_errors.append(relative_regret)
+        e.append(' ')
+        e.write(control.path_out_e % (k, validation_month))
+    e.append(' ')
+    f.append(' ')
+    median_absolute_relative_regret = np.median(np.abs(relative_errors))
+    e.marr(median_absolute_relative_regret)  # this line is never seen, because we write earlier
+    f.marr(median_absolute_relative_regret)
+    f.write(control.path_out_f % k)
+    return median_absolute_relative_regret
+
+
+def make_charts_ef(k, reduction, median_price, control):
+    '''Write charts e and f, return median-absolute-relative_regret object'''
+    verbose = True
+    if verbose:
+        pdb.set_trace()
+    ensemble_weighting = 'exp(-MAE/100000)'
+    relative_errors = []
+    f = ChartFReport(k, ensemble_weighting)
+    for validation_month in control.validation_months:
+        e = ChartEReport(k, ensemble_weighting)
+        next_month = Month(validation_month).increment(1)
+        validation_month_keys = list(reduction[validation_month].keys())
+        for index in xrange(k):
+            k = validation_month_keys[index]
+            v = reduction[validation_month][k]
+            validation_mae = v.mae
+            next_mae = reduction[validation_month][k].mae
+            weight = math.exp(-validation_mae / 100000.0)
+            e.detail_line(
+                validation_month=validation_month,
+                model=k.month,
+                n_months_back=k.n_months_back,
+                n_estimators=k.n_estimators,
+                max_features=k.max_features,
+                max_depth=k.max_depth,
+                learning_rate=k.learning_rate,
+                rank=index + 1,
+                validation_mae=validation_mae,
+                weight=weight,
+                next_mae=next_mae,
+                note=' ',
+            )
+            # need the mae of the ensemble
+            # need the actuals and predictions? or is this already computed
+            cumulative_predictions = weight * predictions
         check_actuals(actuals)
         # determine ensemble predictions (first k) and regret vs. best model
         ensemble_actuals = actuals[0]  # they are all the same, so pick one
@@ -725,15 +811,13 @@ class ChartGReport():
         self.report.append(line)
 
 
-def make_charts_efg(actuals_d, predictions_d, mae_d, control, time_period_stats):
+def make_charts_efg(reduction, median_prices, control):
+    # chart g uses the regret values that are computed in building chart e
     g = ChartGReport()
     ks = range(1, 31, 1)
     ks.extend([40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200])
     for k in ks:
-        median_absolute_relative_regret = make_charts_ef(
-            k,
-            actuals_d, predictions_d, mae_d, control, time_period_stats,
-        )
+        median_absolute_relative_regret = make_charts_ef(k, reduction, median_prices, control)
         g.detail(k, median_absolute_relative_regret)
     g.write(control.path_out_g)
 
@@ -746,14 +830,13 @@ def make_charts(reduction, median_prices, control):
 
     make_chart_cd(reduction, median_prices, control, (0,), 'c')
     for n_best in (5, 100):
-        pdb.set_trace()
         report_id = 'd-%0d' % n_best
         for validation_month, month_reduction in reduction.iteritems():
             n_reductions_per_month = len(month_reduction)
             break
         detail_lines_d = range(n_best) + [n_reductions_per_month - 1]
         make_chart_cd(reduction, median_prices, control, detail_lines_d, report_id)
-    make_charts_efg(actuals_d, predictions_d, mae_d, control, time_period_stats)
+    make_charts_efg(reduction, median_prices, control)
 
 
 def errors(actuals, predictions):
