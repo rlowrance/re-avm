@@ -691,7 +691,7 @@ def make_charts_efOLD(k, reduction, median_price, control):
     return median_absolute_relative_regret
 
 
-def make_charts_ef(k, reduction, median_price, control):
+def make_charts_ef(k, reduction, actuals, median_price, control):
     '''Write charts e and f, return median-absolute-relative_regret object'''
     verbose = True
     if verbose:
@@ -822,7 +822,7 @@ def make_charts_efg(reduction, median_prices, control):
     g.write(control.path_out_g)
 
 
-def make_charts(reduction, median_prices, control):
+def make_charts(reduction, actuals, median_prices, control):
     print 'making charts'
 
     make_chart_a(reduction, control)
@@ -836,7 +836,7 @@ def make_charts(reduction, median_prices, control):
             break
         detail_lines_d = range(n_best) + [n_reductions_per_month - 1]
         make_chart_cd(reduction, median_prices, control, detail_lines_d, report_id)
-    make_charts_efg(reduction, median_prices, control)
+    make_charts_efg(reduction, actuals, median_prices, control)
 
 
 def errors(actuals, predictions):
@@ -869,7 +869,7 @@ ModelDescription = collections.namedtuple(
 
 ModelResults = collections.namedtuple(
     'ModelResults',
-    'rmse mae ci95_low ci95_high'
+    'rmse mae ci95_low ci95_high predictions'
 )
 
 
@@ -950,7 +950,7 @@ def make_dataOLD(control):
 def make_data(control):
     'return dict[validation_month][ModelDescription] = ModelResults, sorted by increasing MAE'
 
-    def append_to_result(validation_month, k, v, result):
+    def append(validation_month, k, v, reduction, actuals_by_validation_month):
         'add entry to result'
         is_en = isinstance(k, ResultKeyEn)
         is_gbr = isinstance(k, ResultKeyGbr)
@@ -959,7 +959,19 @@ def make_data(control):
         model = 'en' if is_en else ('gb' if is_gbr else 'rf')
         actuals = v.actuals.values
         predictions = v.predictions
-
+        if validation_month in actuals_by_validation_month:
+            if (actuals == actuals_by_validation_month[validation_month]).all():
+                pass
+            else:
+                print '++++++++++++++++++++'
+                print validation_month
+                print actuals
+                print actuals_by_validation_month[validation_month]
+                print 'should be the same'
+                print '++++++++++++++++++++'
+                pdb.set_trace()
+        else:
+            actuals_by_validation_month[validation_month] = actuals
         if predictions is None:
             print '+++++++++++++++++++'
             print k
@@ -985,19 +997,20 @@ def make_data(control):
             mae=mae,
             ci95_low=ci95_low,
             ci95_high=ci95_high,
+            predictions=predictions,
         )
-        if key in result[validation_month]:
+        if key in reduction[validation_month]:
             print '++++++++++++++++++++'
             print validation_month
             print key
             print 'duplicate key in validation month'
             print '++++++++++++++++++++'
             pdb.set_trace()
-        result[validation_month][key] = value
+        reduction[validation_month][key] = value
         return
 
-    def process_records(path, result):
-        'mutate result, a dict, to include objects at path'
+    def process_records(path, reduction, all_actuals):
+        'mutate reduction, a dict, to include objects at path'
         print 'reducing', path
         validation_month = extract_yyyymm(path)
         n = 0
@@ -1008,7 +1021,7 @@ def make_data(control):
                     assert isinstance(record, tuple), type(record)
                     key, value = record
                     n += 1
-                    append_to_result(validation_month, key, value, result)
+                    append(validation_month, key, value, reduction, all_actuals)
                 except ValueError as e:
                     if record is not None:
                         print record
@@ -1017,17 +1030,18 @@ def make_data(control):
                     break
         print 'number of records retained', n
 
-    result = collections.defaultdict(dict)
+    reduction = collections.defaultdict(dict)
+    all_actuals = {}
     paths = sorted(glob.glob(control.path_in_ege))
     for path in paths:
-        process_records(path, result)
+        process_records(path, reduction, all_actuals)
 
     # sort by increasing mae
     ordered = {}
-    for validation_month, results in result.iteritems():
+    for validation_month, results in reduction.iteritems():
         sorted_results = collections.OrderedDict(sorted(results.items(), key=lambda t: t[1].mae))
         ordered[validation_month] = sorted_results
-    return ordered
+    return ordered, all_actuals
 
 
 def mainOLD(argv):
@@ -1117,22 +1131,25 @@ def main(argv):
     if control.arg.data:
         median_price = make_median_price(control.path_in_chart_01_reduction)
         lap('make_median_price')
-        reduction = make_data(control)
+        reduction, all_actuals = make_data(control)
         lap('make_data')
         samples = make_samples(reduction, control.sampling_rate)
         lap('make_samples')
+        output_all = (reduction, all_actuals, median_price, control)
+        output_samples = (samples, all_actuals, median_price, control)
         with open(control.path_out_data, 'wb') as f:
-            pickle.dump((reduction, median_price, control), f)
+            pickle.dump(output_all, f)
             lap('write all data')
         with open(control.path_out_data_test, 'wb') as f:
-            pickle.dump((samples, median_price, control), f)
+            pickle.dump(output_samples, f)
             lap('write samples')
     else:
         with open(control.path_in_data, 'rb') as f:
             print 'reading reduction data file'
-            reduction, median_price, reduction_control = pickle.load(f)
+            reduction, all_actuals, median_price, reduction_control = pickle.load(f)
             lap('read input from %s' % control.path_in_data)
-        make_charts(reduction, median_price, control)
+        pdb.set_trace()
+        make_charts(reduction, all_actuals, median_price, control)
 
     print control
     if control.test:
