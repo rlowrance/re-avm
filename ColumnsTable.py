@@ -22,6 +22,7 @@ class ColumnsTable(object):
         'columns is an iterable with elements (name, width, formatter, (header-list), legend)'
         self._columns = []
         self._number_of_header_lines = 0
+        self._column_names = set()
         for column_def in columns:
             assert len(column_def) == 5, 'column_def must have length 5: %s' % str(column_def)
             ctf = ColumnsTableFields(*column_def)
@@ -40,6 +41,10 @@ class ColumnsTable(object):
                                                     ctf.formatter,
                                                     headers,
                                                     ctf.legend))
+            if ctf.name in self._column_names:
+                print 'column name already defined: %s' % ctf.name
+                pdb.set_trace()
+            self._column_names.add(ctf.name)
         self._lines = []
         self._verbose = verbose
         self._header()
@@ -65,6 +70,13 @@ class ColumnsTable(object):
 
     def append_detail(self, **kwds):
         line = ''
+        # detect and report extra arguments
+        for k in kwds.keys():
+            if k not in self._column_names:
+                print 'Column %s is not defined in the ColumnTable' % k
+                print 'defined column names are', self._column_names
+                pdb.set_trace()
+        # format values in kwds
         for cd in self._columns:
             if cd.name in kwds and kwds[cd.name] is not None:
                 try:
