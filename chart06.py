@@ -43,7 +43,6 @@ import sys
 
 from AVM import AVM
 from Bunch import Bunch
-import chart06columns
 from ColumnsTable import ColumnsTable
 from columns_contain import columns_contain
 from Logger import Logger
@@ -111,7 +110,7 @@ class ColumnDefinitions(object):
         'define values that are replaced by spaces'
         if isinstance(v, float) and np.isnan(v):
             return True
-    return False
+        return False
 
 
 def make_control(argv):
@@ -295,10 +294,11 @@ def nan_to_NoneOLD(x):
 
 
 class ChartBReport(object):
-    def __init__(self, validation_month, k):
+    def __init__(self, validation_month, k, column_definitions):
         self._report = Report()
         self._header(validation_month, k)
-        cd = chart06columns.defs_for_columns(
+        self._column_definitions = column_definitions
+        cd = self._column_definitions.defs_for_columns(
             'median_absolute_error', 'model', 'n_months_back',
             'max_depth', 'n_estimators', 'max_features',
             'learning_rate',
@@ -315,9 +315,10 @@ class ChartBReport(object):
 
     def append_detail(self, **kwds):
         # replace NaN with None
-        with_spaces = {k: (None if chart06columns.replace_by_spaces(k, v) else v)
-                       for k, v in kwds.iteritems()
-                       }
+        with_spaces = {
+            k: (None if self._column_definitions.replace_by_spaces(k, v) else v)
+            for k, v in kwds.iteritems()
+        }
         self._ct.append_detail(**with_spaces)
 
     def write(self, path):
@@ -331,7 +332,7 @@ def make_chart_b(reduction, control):
     def write_report(year, month):
         validation_month = str(year * 100 + month)
         k = 50  # report on the first k models in the sorted subset
-        report = ChartBReport(validation_month, k)
+        report = ChartBReport(validation_month, k, control.column_definitions)
         detail_line_number = 0
         # ref: http://stackoverflow.com/questions/7971618/python-return-first-n-keyvalue-pairs-from-dict
         first_k = itertools.islice(reduction[validation_month].items(), 0, k)
@@ -357,9 +358,10 @@ def make_chart_b(reduction, control):
 
 
 class ChartCDReport(object):
-    def __init__(self):
+    def __init__(self, column_definitions):
+        self._column_definitions = column_definitions
         self._report = Report()
-        cd = chart06columns.defs_for_columns(
+        cd = self._column_definitions.defs_for_columns(
             'validation_month', 'rank', 'median_absolute_error',
             'median_price', 'model', 'n_months_back',
             'max_depth', 'n_estimators', 'max_features',
@@ -383,14 +385,15 @@ class ChartCDReport(object):
         self._report.append(' ')
 
     def append_detail(self, **kwds):
-        with_spaces = {k: (None if chart06columns.replace_by_spaces(k, v) else v)
-                       for k, v in kwds.iteritems()
-                       }
+        with_spaces = {
+            k: (None if self._column_definitions.replace_by_spaces(k, v) else v)
+            for k, v in kwds.iteritems()
+        }
         self._ct.append_detail(**with_spaces)
 
 
 def make_chart_cd(reduction, median_prices, control, detail_line_indices, report_id):
-    r = ChartCDReport()
+    r = ChartCDReport(control.column_definitions)
     for validation_month in control.validation_months:
         median_price = median_prices[validation_month]
         month_result_keys = list(reduction[validation_month].keys())
@@ -510,9 +513,10 @@ class ChartEReportOLD(object):
 
 class ChartEReport(object):
     'has 2 kinds of detail lines'
-    def __init__(self, k, ensemble_weighting):
+    def __init__(self, k, ensemble_weighting, column_definitions):
+        self._column_definitions = column_definitions,
         self._report = Report()
-        cd = chart06columns.defs_for_columns(
+        cd = self._column_definitions.defs_for_columns(
             'validation_month', 'model', 'n_months_back',
             'n_estimators', 'max_features', 'max_depth',
             'learning_rate', 'rank', 'mae_validation',
@@ -528,9 +532,10 @@ class ChartEReport(object):
         self._report.write(path)
 
     def detail_line(self, **kwds):
-        with_spaces = {k: (None if chart06columns.replace_by_spaces(k, v) else v)
-                       for k, v in kwds.iteritems()
-                       }
+        with_spaces = {
+            k: (None if self._column_definitions.replace_by_spaces(k, v) else v)
+            for k, v in kwds.iteritems()
+        }
         self._ct.append_detail(**with_spaces)
 
     def detail_note(self, value, text):
