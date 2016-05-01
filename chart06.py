@@ -95,6 +95,11 @@ class ColumnDefinitions(object):
             'rank_index': [5, '%5d', ('rank', 'index'),
                            'ranking of model performance in the validation month; 0 == best'],
             'weight': [6, '%6.4f', (' ', 'weight'), 'weight of the model in the ensemble method'],
+            'ensemble_mae': [6, '%6d', ('ensb', 'MAE'),
+                             'median absolute error of the ensemble model'],
+            'best_next_month_mae': [6, '%6d', ('best', 'MAE'),
+                                    'median absolute error of the best model in the next month']
+
         }
 
     def defs_for_columns(self, *key_list):
@@ -131,6 +136,7 @@ def make_control(argv):
 
     return Bunch(
         arg=arg,
+        column_definitions=ColumnDefinitions(),
         debug=False,
         path_in_ege=(
             dir_working +
