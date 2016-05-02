@@ -65,7 +65,8 @@ class ColumnsTable(object):
         self._append_line(' ')
         self._append_line('column legend:')
         for cd in self._columns:
-            line = '%12s -> %s' % (cat_headers(cd.headers), cd.legend)
+            # TODO: replace fix width below with value detemined from column headings
+            line = '%13s -> %s' % (cat_headers(cd.headers), cd.legend)
             self._append_line(line)
 
     def iterlines(self):
