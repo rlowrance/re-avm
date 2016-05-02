@@ -90,12 +90,16 @@ class ColumnDefinitions(object):
                            'ranking of model performance in the validation month; 0 == best'],
             'weight': [6, '%6.4f', (' ', 'weight'), 'weight of the model in the ensemble method'],
             'mae_ensemble': [6, '%6d', ('ensb', 'MAE'),
-                             'median absolute error of the ensemble model'],
+                             'median absolute error of ensemble model'],
             'mae_best_next_month': [6, '%6d', ('best', 'MAE'),
                                     'median absolute error of the best model in the next month'],
             'mae_next': [6, '%6d', ('next', 'MAE'),
                          'median absolute error in test month (which follows the validation month)'],
             'mae_validation': [6, '%6d', ('vald', 'MAE'), 'median absolute error in validation month'],
+            'mae_index0': [6, '%6d', ('rank1', 'MAE'), 'median absolute error of rank 1 model'],
+            'fraction_median_price_next_month_index0': [
+                6, '%6.3f', ('rank1', 'relerr'),
+                'rank 1 MAE as a fraction of the median price in the next month'],
             'fraction_median_price_next_month_ensemble': [
                 6, '%6.3f', ('ensmbl', 'relerr'),
                 'ensemble MAE as a fraction of the median price in the next month'],
@@ -567,9 +571,11 @@ class ChartFReport(object):
         self._header(k, ensemble_weighting)
         cd = self._column_definitions.defs_for_columns(
             'validation_month',
+            'mae_index0',
             'mae_ensemble',
             'mae_best_next_month',
             'median_price',
+            'fraction_median_price_next_month_index0',
             'fraction_median_price_next_month_ensemble',
             'fraction_median_price_next_month_best',
         )
@@ -654,6 +660,7 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
         check_key_order(reduction[validation_month])
         # write lines for the k best individual models
         # accumulate info needed to build the ensemble model
+        index0_mae = None
         for index in xrange(k):
             validation_month_key = validation_month_keys[index]
             validation_month_value = reduction[validation_month][validation_month_key]
@@ -666,6 +673,8 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
                              )
             mae_validation = validation_month_value.mae
             mae_next = next_month_value.mae
+            if index == 0:
+                index0_mae = mae_next
             weight = math.exp(-mae_validation / 100000.0)
             e.detail_line(
                 validation_month=validation_month,
@@ -711,11 +720,11 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
         )
         e.write(control.path_out_e % (k, validation_month))
         mae[validation_month] = Bunch(
+            index0=index0_mae,
             ensemble=ensemble_mae,
             best_next_month=best_value.mae,
         )
     # TODO: also create a graph
-    pdb.set_trace()
     f = ChartFReport(k, ensemble_weighting, control.column_definitions)
     # TODO: add columns median_price, ensb_fmp, best_fmp
     # where fmp = mae as fraction of median price
@@ -729,9 +738,11 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
         relative_errors.append(relative_error)
         f.detail_line(
             validation_month=validation_month,
+            mae_index0=mae[validation_month].index0,
             mae_ensemble=mae[validation_month].ensemble,
             mae_best_next_month=mae[validation_month].best_next_month,
             median_price=median_price[next_month],
+            fraction_median_price_next_month_index0=mae[validation_month].index0 / median_price[next_month],
             fraction_median_price_next_month_ensemble=mae[validation_month].ensemble / median_price[next_month],
             fraction_median_price_next_month_best=mae[validation_month].best_next_month / median_price[next_month],
         )
