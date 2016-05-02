@@ -31,9 +31,11 @@ class ColumnsTable(object):
             headers = (headers,) if isinstance(headers, str) else headers
             if self._number_of_header_lines != 0:
                 if self._number_of_header_lines != len(headers):
+                    print '+++++++++++++++++++++'
                     print 'inconsistent number of lines in header'
                     print 'have both %d and %d' % (self._number_of_header_lines, len(headers))
                     print 'found at headesr: %s' % headers
+                    print '+++++++++++++++++++++'
                     pdb.set_trace()
             self._number_of_header_lines = len(headers)
             self._columns.append(ColumnsTableFields(ctf.name,
@@ -42,7 +44,9 @@ class ColumnsTable(object):
                                                     headers,
                                                     ctf.legend))
             if ctf.name in self._column_names:
+                print '+++++++++++++++++++++'
                 print 'column name already defined: %s' % ctf.name
+                print '+++++++++++++++++++++'
                 pdb.set_trace()
             self._column_names.add(ctf.name)
         self._lines = []
