@@ -96,6 +96,12 @@ class ColumnDefinitions(object):
             'mae_next': [6, '%6d', ('next', 'MAE'),
                          'median absolute error in test month (which follows the validation month)'],
             'mae_validation': [6, '%6d', ('vald', 'MAE'), 'median absolute error in validation month'],
+            'fraction_median_price_next_month_ensemble': [
+                6, '%6.3f', ('ensmbl', 'relerr'),
+                'ensemble MAE as a fraction of the median price in the next month'],
+            'fraction_median_price_next_month_best': [
+                6, '%6.3f', ('best', 'relerr'),
+                'best model MAE as a fraction of the median price in the next month'],
 
         }
 
@@ -109,6 +115,17 @@ class ColumnDefinitions(object):
         if isinstance(v, float) and np.isnan(v):
             return True
         return False
+
+
+def trace_unless(condition, message, **kwds):
+    if condition:
+        return
+    print '+++++++++++++++'
+    for k, v in kwds.iteritems():
+        print k, v
+    print message
+    print '+++++++++++++++'
+    pdb.set_trace()
 
 
 def make_control(argv):
@@ -510,7 +527,6 @@ class ChartEReportOLD(object):
 
 
 class ChartEReport(object):
-    'has 2 kinds of detail lines'
     def __init__(self, k, ensemble_weighting, column_definitions):
         self._column_definitions = column_definitions
         self._report = Report()
@@ -537,9 +553,6 @@ class ChartEReport(object):
         }
         self._ct.append_detail(**with_spaces)
 
-    def detail_note(self, value, text):
-        self._ct.append_detail(**{'mae_next': value, 'note': text})
-
     def _header(self, k, ensemble_weighting):
         self._report.append('Performance of Best Models Separately and as an Ensemble')
         self._report.append(' ')
@@ -547,99 +560,39 @@ class ChartEReport(object):
         self._report.append('Ensemble weighting: %s' % ensemble_weighting)
 
 
-class ChartFReport(object):  # TODO: replace with new API
+class ChartFReport(object):
     def __init__(self, k, ensemble_weighting, column_definitions):
         self._column_definitions = column_definitions
-        self.report = Report()
-        self.format_header = '%6s %20s %6s'
-        self.format_ensemble = '%6d %20s  %6.0f'
-        self.format_relative_error = '%6d %20s %5.3f%%'
-        self.format_regret = '%6d %20s %6.0f'
-        self.format_marr = '%6s %20s %5.3f%%'
+        self._report = Report()
         self._header(k, ensemble_weighting)
-
-    def _header(self, k, ensemble_weighting):
-        self.report.append('Regret of Ensemble Models')
-        self.report.append(' ')
-        self.report.append('Consider best %d models' % k)
-        self.report.append('Ensemble weighting: %s' % ensemble_weighting)
-        self.report.append(' ')
-        self.report.append(
-            self.format_header % (
-                'vald.', ' ', 'next'))
-        self.report.append(
-            self.format_header % (
-                'month', 'model', 'MAE'))
-
-    def ensemble_detail(self, validation_month, mae):
-        self.report.append(
-            self.format_ensemble % (
-                validation_month, 'ensemble', mae))
-
-    def median_price(self, validation_month, amount):
-        self.report.append(
-            self.format_ensemble % (
-                validation_month, 'median price', amount))
-
-    def regret(self, validation_month, amount):
-        self.report.append(
-            self.format_regret % (
-                validation_month, 'regret', amount))
-
-    def relative_error(self, validation_month, amount):
-        self.report.append(
-            self.format_relative_error % (
-                validation_month, 'relative regret', amount * 100.0))
-
-    def marr(self, amount):
-        self.report.append(
-            self.format_marr % (
-                ' ', 'med abs rel regret', amount * 100.0))
-
-    def append(self, line):
-        self.report.append(line)
+        cd = self._column_definitions.defs_for_columns(
+            'validation_month',
+            'mae_ensemble',
+            'mae_best_next_month',
+            'median_price',
+            'fraction_median_price_next_month_ensemble',
+            'fraction_median_price_next_month_best',
+        )
+        self._ct = ColumnsTable(columns=cd, verbose=True)
 
     def write(self, path):
-        'append legend and write the file'
-        def a(line):
-            self.report.append(line)
+        self._ct.append_legend()
+        for line in self._ct.iterlines():
+            self._report.append(line)
+        self._report.write(path)
 
-        a(' ')
-        a('Legend for columns:')
-        a('vald. month --> validation month for selecting models')
-        a('                parameters are trained starting in bk prior month')
-        a('                where bk is part of the best model description')
-        a('model       --> description of the model (see below)')
-        a('rank index  --> performance of model on test month data')
-        a('                the best model has index 0')
-        a('                the second best model has index 1')
-        a('test MAE    --> the median absolute error of the model in the test month')
-        a('weight      --> the weight of the model in the ensemble method')
-        a('next MAE    --> the median absolute error of the model in the month after the test month')
+    def detail_line(self, **kwds):
+        with_spaces = {
+            k: (None if self._column_definitions.replace_by_spaces(k, v) else v)
+            for k, v in kwds.iteritems()
+        }
+        self._ct.append_detail(**with_spaces)
 
-        self.report.write(path)
-
-
-def model_to_strOLD(k):
-    pdb.set_trace()  # replace me
-    if isinstance(k, ResultKeyEn):
-        return 'en-%d-%s-%s-%d-%d' % (
-            k.n_months_back, k.units_X, k.units_y, k.alpha, k.l1_ratio)
-    elif isinstance(k, ResultKeyGbr):
-        print k
-        assert k.loss == 'ls', k
-        return 'gb-%d-%d-%s-%.1f' % (
-            k.n_months_back, k.n_estimators, str(k.max_depth), k.learning_rate)
-    elif isinstance(k, ResultKeyRfr):
-        if (k.n_estimators is None) or (k.n_months_back is None):
-            print k
-            pdb.set_trace()
-        return 'rf-%d-%d-%s-%s' % (
-            k.n_months_back, k.n_estimators, str(k.max_depth), str(k.max_features))
-    else:
-        print type(k)
-        pdb.set_trace()
-    return 'model'
+    def _header(self, k, ensemble_weighting):
+        self._report.append('Comparison of Errors of Ensemble and Best Model That Know the Future')
+        self._report.append(' ')
+        self._report.append('Considering Best K = %d models' % k)
+        self._report.append('Ensemble weighting: %s' % ensemble_weighting)
 
 
 def check_actuals(actuals):
@@ -666,94 +619,22 @@ def make_ensemble_predictions(predictions, weights):
     return result
 
 
-def make_charts_efOLD(k, reduction, median_price, control):
-    pass
-#    '''Write charts e and f, return median-absolute-relative_regret object'''
-#    verbose = True
-#    if verbose:
-#        pdb.set_trace()
-#    ensemble_weighting = 'exp(-MAE/100000)'
-#    relative_errors = []
-#    f = ChartFReport(k, ensemble_weighting)
-#    for validation_month in control.validation_months:
-#        e = ChartEReport(k, ensemble_weighting)
-#        validation_month_mae = mae_d[validation_month]
-#        models_sorted_validation_month = sorted(
-#            validation_month_mae,
-#            key=validation_month_mae.get)  # keys in order of mae
-#        weights = []
-#        actuals = []
-#        predictions = []
-#        next_month = Month(validation_month).increment(1).as_int()
-#        for index in xrange(k):
-#            model = models_sorted_validation_month[index]
-#            test_mae = mae_d[validation_month][model]
-#            next_mae = mae_d[next_month][model]
-#            weight = math.exp(-test_mae / 100000.0)
-#            e.model_detail(validation_month, model_to_str(model), index, test_mae, weight, next_mae)
-#            weights.append(weight)
-#            actuals.append(actuals_d[validation_month][model])
-#            predictions.append(predictions_d[validation_month][model])
-#        check_actuals(actuals)
-#        # determine ensemble predictions (first k) and regret vs. best model
-#        ensemble_actuals = actuals[0]  # they are all the same, so pick one
-#        ensemble_predictions = make_ensemble_predictions(predictions, weights)
-#        ensemble_rmse, ensemble_mae, ensemble_ci95_low, ensemble_ci95_high = errors(
-#            ensemble_actuals,
-#            ensemble_predictions,
-#        )
-#        e.ensemble_detail(ensemble_mae)
-#        f.ensemble_detail(validation_month, ensemble_mae)
-#        # pick the best models in validation_month + 1
-#
-#        def find_validation_month_index(model, model_list):
-#            index = 0
-#            while True:
-#                if model == model_list[index]:
-#                    return index
-#                index += 1
-#            return None  # should not get here
-#
-#        next_month_mae = mae_d[next_month]
-#        models_sorted_next_month = sorted(next_month_mae, key=next_month_mae.get)
-#        first_best_model = models_sorted_next_month[0]
-#        best_mae = mae_d[next_month][first_best_model]
-#        for next_month_index in xrange(k):
-#            a_best_model = models_sorted_next_month[next_month_index]
-#            validation_month_index = find_validation_month_index(a_best_model, models_sorted_validation_month)
-#            e.model_best(
-#                validation_month,
-#                model_to_str(a_best_model),
-#                validation_month_index,
-#                mae_d[validation_month][a_best_model],
-#                mae_d[next_month][a_best_model],
-#            )
-#        # determine regret
-#        regret = ensemble_mae - best_mae
-#        e.regret(regret)
-#        f.regret(validation_month, regret)
-#        median_price = time_period_stats[next_month]['median']
-#        e.median_price(median_price)
-#        f.median_price(validation_month, median_price)
-#        relative_regret = regret / median_price
-#        e.relative_error(relative_regret)
-#        f.relative_error(validation_month, relative_regret)
-#        relative_errors.append(relative_regret)
-#        e.append(' ')
-#        e.write(control.path_out_e % (k, validation_month))
-#    e.append(' ')
-#    f.append(' ')
-#    median_absolute_relative_regret = np.median(np.abs(relative_errors))
-#    e.marr(median_absolute_relative_regret)  # this line is never seen, because we write earlier
-#    f.marr(median_absolute_relative_regret)
-#    f.write(control.path_out_f % k)
-#    return median_absolute_relative_regret
-#
+def check_key_order(d):
+    keys = d.keys()
+    for index, key1_key2 in enumerate(zip(keys, keys[1:])):
+        key1, key2 = key1_key2
+        # print index, key1, key2
+        mae1 = d[key1].mae
+        mae2 = d[key2].mae
+        trace_unless(mae1 <= mae2, 'should be non increasing',
+                     index=index, mae1=mae1, mae2=mae2,
+                     )
 
 
 def make_charts_ef(k, reduction, actuals, median_price, control):
     '''Write charts e and f, return median-absolute-relative_regret object'''
     def interesting():
+        return False
         return k == 5
 
     def trace_if_interesting():
@@ -762,20 +643,27 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
 
     trace_if_interesting()
     ensemble_weighting = 'exp(-MAE/100000)'
-    relative_errors = []
-    ensemble_keys = []
-    f = ChartFReport(k, ensemble_weighting, control.column_definitions)
+    mae = {}
     for validation_month in control.validation_months:
         e = ChartEReport(k, ensemble_weighting, control.column_definitions)
         next_month = Month(validation_month).increment(1).as_str()
         validation_month_keys = list(reduction[validation_month].keys())
         cum_weighted_predictions = None
         cum_weights = 0
+        mae_validation = None
+        check_key_order(reduction[validation_month])
+        # write lines for the k best individual models
+        # accumulate info needed to build the ensemble model
         for index in xrange(k):
             validation_month_key = validation_month_keys[index]
             validation_month_value = reduction[validation_month][validation_month_key]
-            ensemble_keys.append(validation_month_key)
             next_month_value = reduction[next_month][validation_month_key]
+            if mae_validation is not None:
+                trace_unless(mae_validation <= validation_month_value.mae,
+                             'should be non-decreasing',
+                             mae_previous=mae_validation,
+                             mae_next=validation_month_value.mae,
+                             )
             mae_validation = validation_month_value.mae
             mae_next = next_month_value.mae
             weight = math.exp(-mae_validation / 100000.0)
@@ -800,6 +688,8 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
             else:
                 cum_weighted_predictions += weight * predictions_next
             cum_weights += weight
+        # write line comparing the best individual model in the next month
+        # to the ensemble model
         trace_if_interesting()
         ensemble_predictions = cum_weighted_predictions / cum_weights
         ensemble_rmse, ensemble_mae, ensemble_ci95_low, ensemble_ci95_high = errors(
@@ -808,35 +698,47 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
         )
         best_key = reduction[next_month].keys()[0]
         best_value = reduction[next_month][best_key]
-        if interesting():
-            if abs(best_value.mae - 60406) < 1:
-                pass
-            else:
-                print '++++++++++++++++++'
-                print 'didn\'t use best value, which is', 60406
-                print best_value.mae
-                print best_key
-                print '++++++++++++++++++'
-                for index, key in enumerate(reduction[next_month].keys()):
-                    print index, reduction[next_month][key].mae
-                    if index == 4:
-                        break
-                pdb.set_trace()
         e.detail_line(
             validation_month=validation_month,
             mae_ensemble=ensemble_mae,
             mae_best_next_month=best_value.mae,
+            model=best_key.model,
+            n_months_back=best_key.n_months_back,
+            n_estimators=best_key.n_estimators,
+            max_features=best_key.max_features,
+            max_depth=best_key.max_depth,
+            learning_rate=best_key.learning_rate,
         )
         e.write(control.path_out_e % (k, validation_month))
-    return  # for now, we may need to return a value later
-    # TODO: write report f
-    e.append(' ')
-    f.append(' ')
+        mae[validation_month] = Bunch(
+            ensemble=ensemble_mae,
+            best_next_month=best_value.mae,
+        )
+    # TODO: also create a graph
+    pdb.set_trace()
+    f = ChartFReport(k, ensemble_weighting, control.column_definitions)
+    # TODO: add columns median_price, ensb_fmp, best_fmp
+    # where fmp = mae as fraction of median price
+    regrets = []
+    relative_errors = []
+    for validation_month in control.validation_months:
+        next_month_value = reduction[next_month][validation_month_key]
+        regret = mae[validation_month].ensemble - mae[validation_month].best_next_month
+        regrets.append(regret)
+        relative_error = regret / median_price[validation_month]
+        relative_errors.append(relative_error)
+        f.detail_line(
+            validation_month=validation_month,
+            mae_ensemble=mae[validation_month].ensemble,
+            mae_best_next_month=mae[validation_month].best_next_month,
+            median_price=median_price[next_month],
+            fraction_median_price_next_month_ensemble=mae[validation_month].ensemble / median_price[next_month],
+            fraction_median_price_next_month_best=mae[validation_month].best_next_month / median_price[next_month],
+        )
+    median_absolute_regret = np.median(np.abs(regrets))
     median_absolute_relative_regret = np.median(np.abs(relative_errors))
-    e.marr(median_absolute_relative_regret)  # this line is never seen, because we write earlier
-    f.marr(median_absolute_relative_regret)
     f.write(control.path_out_f % k)
-    return median_absolute_relative_regret
+    return median_absolute_regret, median_absolute_relative_regret
 
 
 class ChartGReport():
@@ -1004,16 +906,18 @@ def make_data(control):
         print 'retained %d records in validation month %s' % (n_records_retained, validation_month)
         return validation_month, model, actuals
 
-    control.debug = True
     reduction = collections.defaultdict(dict)
     all_actuals = {}
     paths = sorted(glob.glob(control.path_in_ege))
     for path in paths:
         validation_month, model, actuals = process_records(path)
-        # sort model by increasing MAE
-        sorted_model = collections.OrderedDict(sorted(model.items(), key=lambda t: t[1].mae))
-        reduction[validation_month] = sorted_model
+        # sort models by increasing MAE
+        sorted_models = collections.OrderedDict(sorted(model.items(), key=lambda t: t[1].mae))
+        check_key_order(sorted_models)
+        reduction[validation_month] = sorted_models
         all_actuals[validation_month] = actuals
+        if control.debug:
+            break
 
     return reduction, all_actuals
 
@@ -1024,23 +928,27 @@ class Sampler(object):
         self._keys = None
 
     def sample(self, d):
+        'return ordered dictionary using the same keys for each input dictionary d'
         if self._keys is None:
             k = int(len(d) * self._fraction)
             self._keys = random.sample(list(d), k)
-        sample = {key: d[key] for key in self._keys}
-        return sample
+        result = {}
+        for key in self._keys:
+            result[key] = d[key]
+        sorted_result = collections.OrderedDict(sorted(result.items(), key=lambda t: t[1].mae))
+        return sorted_result
 
 
 def make_samples(reduction, fraction):
-    'return a random sample of the reduction stratified by validation_month'
+    'return a random sample of the reduction stratified by validation_month as an ordereddict'
     # use same keys (models) every validation month
-    samples = collections.defaultdict(dict)
     sampler = Sampler(fraction)
+    result = {}
     for validation_month, validation_dict in reduction.iteritems():
-        selected = sampler.sample(validation_dict)
-        for k, v in selected.iteritems():
-            samples[validation_month][k] = v
-    return samples
+        samples = sampler.sample(validation_dict)
+        check_key_order(samples)
+        result[validation_month] = sampler.sample(validation_dict)
+    return result
 
 
 def make_median_price(path):
@@ -1067,6 +975,10 @@ def main(argv):
         lap('make_samples')
         output_all = (reduction, all_actuals, median_price, control)
         output_samples = (samples, all_actuals, median_price, control)
+        for validation_month in samples.keys():
+            check_key_order(reduction[validation_month])
+            check_key_order(samples[validation_month])
+        lap('check key order')
         with open(control.path_out_data, 'wb') as f:
             pickle.dump(output_all, f)
             lap('write all data')
@@ -1078,6 +990,12 @@ def main(argv):
             print 'reading reduction data file'
             reduction, all_actuals, median_price, reduction_control = pickle.load(f)
             lap('read input from %s' % control.path_in_data)
+
+        # check that the reduction dictionaries are ordered by mae
+        for validation_month in reduction.iterkeys():
+            d = reduction[validation_month]
+            check_key_order(d)
+
         make_charts(reduction, all_actuals, median_price, control)
 
     print control
