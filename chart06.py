@@ -313,10 +313,11 @@ def nan_to_NoneOLD(x):
 
 
 class ChartBReport(object):
-    def __init__(self, validation_month, k, column_definitions):
+    def __init__(self, validation_month, k, column_definitions, test):
         self._report = Report()
         self._header(validation_month, k)
         self._column_definitions = column_definitions
+        self._test = test
         cd = self._column_definitions.defs_for_columns(
             'median_absolute_error', 'model', 'n_months_back',
             'max_depth', 'n_estimators', 'max_features',
@@ -344,6 +345,8 @@ class ChartBReport(object):
         self._ct.append_legend()
         for line in self._ct.iterlines():
             self._report.append(line)
+        if self._test:
+            self._report.append('**TESTING: DISCARD')
         self._report.write(path)
 
 
@@ -351,7 +354,7 @@ def make_chart_b(reduction, control):
     def write_report(year, month):
         validation_month = str(year * 100 + month)
         k = 50  # report on the first k models in the sorted subset
-        report = ChartBReport(validation_month, k, control.column_definitions)
+        report = ChartBReport(validation_month, k, control.column_definitions, control.test)
         detail_line_number = 0
         # ref: http://stackoverflow.com/questions/7971618/python-return-first-n-keyvalue-pairs-from-dict
         first_k = itertools.islice(reduction[validation_month].items(), 0, k)
@@ -377,8 +380,9 @@ def make_chart_b(reduction, control):
 
 
 class ChartCDReport(object):
-    def __init__(self, column_definitions):
+    def __init__(self, column_definitions, test):
         self._column_definitions = column_definitions
+        self._test = test
         self._report = Report()
         cd = self._column_definitions.defs_for_columns(
             'validation_month', 'rank', 'median_absolute_error',
@@ -397,6 +401,8 @@ class ChartCDReport(object):
         self._ct.append_legend()
         for line in self._ct.iterlines():
             self._report.append(line)
+        if self._test:
+            self._report.append('** TESTING: DISCARD')
         self._report.write(path)
 
     def _header(self):
@@ -412,7 +418,7 @@ class ChartCDReport(object):
 
 
 def make_chart_cd(reduction, median_prices, control, detail_line_indices, report_id):
-    r = ChartCDReport(control.column_definitions)
+    r = ChartCDReport(control.column_definitions, control.test)
     for validation_month in control.validation_months:
         median_price = median_prices[validation_month]
         month_result_keys = list(reduction[validation_month].keys())
@@ -531,8 +537,9 @@ class ChartEReportOLD(object):
 
 
 class ChartEReport(object):
-    def __init__(self, k, ensemble_weighting, column_definitions):
+    def __init__(self, k, ensemble_weighting, column_definitions, test):
         self._column_definitions = column_definitions
+        self._test = test
         self._report = Report()
         self._header(k, ensemble_weighting)
         cd = self._column_definitions.defs_for_columns(
@@ -548,6 +555,8 @@ class ChartEReport(object):
         self._ct.append_legend()
         for line in self._ct.iterlines():
             self._report.append(line)
+        if self._test:
+            self._report.append('** TESTING: DISCARD')
         self._report.write(path)
 
     def detail_line(self, **kwds):
@@ -565,8 +574,9 @@ class ChartEReport(object):
 
 
 class ChartFReport(object):
-    def __init__(self, k, ensemble_weighting, column_definitions):
+    def __init__(self, k, ensemble_weighting, column_definitions, test):
         self._column_definitions = column_definitions
+        self._test = test
         self._report = Report()
         self._header(k, ensemble_weighting)
         cd = self._column_definitions.defs_for_columns(
@@ -585,6 +595,8 @@ class ChartFReport(object):
         self._ct.append_legend()
         for line in self._ct.iterlines():
             self._report.append(line)
+        if self._test:
+            self._report.append('** TESTING: DISCARD')
         self._report.write(path)
 
     def detail_line(self, **kwds):
@@ -651,7 +663,7 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
     ensemble_weighting = 'exp(-MAE/100000)'
     mae = {}
     for validation_month in control.validation_months:
-        e = ChartEReport(k, ensemble_weighting, control.column_definitions)
+        e = ChartEReport(k, ensemble_weighting, control.column_definitions, control.test)
         next_month = Month(validation_month).increment(1).as_str()
         validation_month_keys = list(reduction[validation_month].keys())
         cum_weighted_predictions = None
@@ -725,9 +737,7 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
             best_next_month=best_value.mae,
         )
     # TODO: also create a graph
-    f = ChartFReport(k, ensemble_weighting, control.column_definitions)
-    # TODO: add columns median_price, ensb_fmp, best_fmp
-    # where fmp = mae as fraction of median price
+    f = ChartFReport(k, ensemble_weighting, control.column_definitions, control.test)
     regrets = []
     relative_errors = []
     for validation_month in control.validation_months:
