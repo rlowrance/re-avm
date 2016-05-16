@@ -46,32 +46,6 @@ def usage(msg=None):
     sys.exit(1)
 
 
-# def make_grid_anil():
-#    # return Bunch of hyperparameter settings
-#    return Bunch(
-#        # HP settings to test across all models
-#        n_months_back_seq=(1, 2, 3, 6, 12),
-#
-#        # HP settings to test for ElasticNet models
-#        alpha_seq=(0.01, 0.03, 0.1, 0.3, 1.0),  # multiplies the penalty term
-#        l1_ratio_seq=(0.0, 0.25, 0.50, 0.75, 1.0),  # 0 ==> L2 penalty, 1 ==> L1 penalty
-#        units_X_seq=('natural', 'log'),
-#        units_y_seq=('natural', 'log'),
-#
-#        # HP settings to test for tree-based models
-#        # settings based on Anil Kocak's recommendations
-#        n_estimators_seq=(300,),  # largest should be best, except for noise in the signal
-#        max_features_seq=('log2', 'sqrt', 'auto'),  # auto --> max features
-#        max_depth_seq=(None,),  # None --> leaves are split until pure
-#
-#        # HP setting to test for GradientBoostingRegression models
-#        learning_rate_seq=(.10, .25, .50, .75, .99),
-#        # experiments demonstrated that the best loss is seldom quantile
-#        # loss_seq=('ls', 'quantile'),
-#        loss_seq=('ls',),
-#    )
-
-
 def make_grid():
     # return Bunch of hyperparameter settings
     return Bunch(
