@@ -1,12 +1,12 @@
 '''create ColumnsTable that can be printed in a txt file
 
     c = ColumnsTable(('colname', 6, '%6.2f', ('header1', 'header2'), 'legend'),)
-    c.append(colname=10)  # also other column name=value pairs
+    c.append_detail(colname=10)  # also other column name=value pairs
     ...
     c.append_legend()
     r = Report()
     r.append('title')
-    c.iterate_lines(lambda line: r.append(line))  # also takes kwds
+    c.iterlines(lambda line: r.append(line))  # also takes kwds
     r.write(path)
 '''
 
@@ -66,7 +66,7 @@ class ColumnsTable(object):
         self._append_line('column legend:')
         for cd in self._columns:
             # TODO: replace fix width below with value detemined from column headings
-            line = '%13s -> %s' % (cat_headers(cd.headers), cd.legend)
+            line = '%16s -> %s' % (cat_headers(cd.headers), cd.legend)
             self._append_line(line)
 
     def iterlines(self):
