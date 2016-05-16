@@ -28,6 +28,7 @@ import random
 import sys
 
 from Bunch import Bunch
+from ColumnsTable import ColumnsTable
 from columns_contain import columns_contain
 from Logger import Logger
 from Path import Path
@@ -128,46 +129,63 @@ def make_chart_graph(data, control):
     plt.close()
 
 
-def make_chart_stats(data, control, filter):
+def make_chart_stats(data, control, filter_f):
     'return Report with statistics for years and months that obey the filter'
     r = Report()
-    format_header = '%9s %9s %9s %9s %9s %9s'
-    format_detail = '%9d %9d %9.0f %9.0f %9d %9.0f'
     r.append('Prices by Month')
     r.append('')
-    r.append(format_header % (' ', ' ', 'mean', 'median', 'number', 'standard'))
-    r.append(format_header % ('year', 'month', 'price', 'price', 'trades', 'deviation'))
+    ct = ColumnsTable((
+            ('year', 4, '%4d', (' ', ' ', 'year'), 'year of transaction'),
+            ('month', 5, '%5d', (' ', ' ', 'month'), 'month of transaction'),
+            ('mean_price', 6, '%6.0f', (' ', ' mean', 'price'), 'mean price in dollars'),
+            ('median_price', 6, '%6.0f', (' ', 'median', 'price'), 'median price in dollars'),
+            ('mean_price_ratio', 6, '%6.3f', (' mean', ' price', ' ratio'), 'ratio of price in current month to prior month'),
+            ('median_price_ratio', 6, '%6.3f', ('median', ' price', ' ratio'), 'ratio of price in current month to prior month'),
+            ('number_trades', 6, '%6d', ('number', 'of', 'trades'), 'number of trades in the month'),
+            ))
+
+    prior_mean_price = None
+    prior_median_price = None
     for year in xrange(2003, 2010):
         for month in xrange(1, 13):
-            if filter(year, month):
+            if filter_f(year, month):
                 value = data[make_reduction_key(year, month)]
-                r.append(format_detail % (
-                    year,
-                    month,
-                    value['mean'],
-                    value['median'],
-                    value['count'],
-                    value['standarddeviation'],
-                ))
+                mean_price = value['mean']
+                median_price = value['median']
+                number_trades = value['count']
+                ct.append_detail(
+                        year=year,
+                        month=month,
+                        mean_price=mean_price,
+                        median_price=median_price,
+                        mean_price_ratio=None if prior_mean_price is None else mean_price / prior_mean_price,
+                        median_price_ratio=None if prior_median_price is None else median_price / prior_median_price,
+                        number_trades=number_trades,
+                        )
+                prior_mean_price = mean_price
+                prior_median_price = median_price
+    ct.append_legend()
+    for line in ct.iterlines():
+        r.append(line)
     return r
 
 
 def make_chart_stats_all(data, control):
-    def filter(year, month):
+    def filter_f(year, month):
         if year == 2009:
             return 1 <= month <= 3
         else:
             return True
 
-    r = make_chart_stats(data, control, filter)
+    r = make_chart_stats(data, control, filter_f)
     r.write(control.path_out_stats_all)
 
 
 def make_chart_stats_2006_2008(data, control):
-    def filter(year, month):
+    def filter_f(year, month):
         return year in (2006, 2007, 2008)
 
-    r = make_chart_stats(data, control, filter)
+    r = make_chart_stats(data, control, filter_f)
     r.write(control.path_out_stats_2006_2008)
 
 
