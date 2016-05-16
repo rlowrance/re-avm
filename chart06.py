@@ -152,6 +152,10 @@ def make_control(argv):
     if not os.path.exists(dir_out):
         os.makedirs(dir_out)
 
+    validation_months = ('200612', '200701', '200702', '200703', '200704', '200705',
+                         '200706', '200707', '200708', '200709', '200710', '200711',
+                         )
+    validation_months_long = validation_months + ('200801', '200802', '200803', '200804', '200805')
     return Bunch(
         arg=arg,
         column_definitions=ColumnDefinitions(),
@@ -177,9 +181,8 @@ def make_control(argv):
         sampling_rate=0.02,
         test=arg.test,
         timer=Timer(),
-        validation_months=('200612', '200701', '200702', '200703', '200704', '200705',
-                           '200706', '200707', '200708', '200709', '200710', '200711',
-                           ),
+        validation_months=validation_months,
+        validation_months_long=validation_months_long,
     )
 
 
@@ -362,7 +365,7 @@ class ChartCDReport(object):
 
 def make_chart_cd(reduction, median_prices, control, detail_line_indices, report_id):
     r = ChartCDReport(control.column_definitions, control.test)
-    for validation_month in control.validation_months:
+    for validation_month in control.validation_months_long:
         median_price = median_prices[validation_month]
         month_result_keys = list(reduction[validation_month].keys())
         for detail_line_index in detail_line_indices:
@@ -774,17 +777,23 @@ def make_data(control):
                     if record is not None:
                         print record
                     print 'ignoring ValueError in record %d: %s' % (n_records_retained, e)
-                    pdb.set_trace()
                 except EOFError:
+                    print 'found EOFError path: %s' % path
+                    print 'continuing'
                     break
+                except pickle.UnpicklingError as e:
+                    print 'cPickle.Unpicklingerror: %s' % e
+
         print 'retained %d records in validation month %s' % (n_records_retained, validation_month)
-        return validation_month, model, actuals
+        return validation_month, model, actuals, n_records_retained
 
     reduction = collections.defaultdict(dict)
     all_actuals = {}
     paths = sorted(glob.glob(control.path_in_ege))
+    records_retained = {}
     for path in paths:
-        validation_month, model, actuals = process_records(path)
+        validation_month, model, actuals, n_records_retained = process_records(path)
+        records_retained[validation_month] = n_records_retained
         # sort models by increasing MAE
         sorted_models = collections.OrderedDict(sorted(model.items(), key=lambda t: t[1].mae))
         check_key_order(sorted_models)
@@ -793,6 +802,9 @@ def make_data(control):
         if control.debug:
             break
 
+    print 'records retained'
+    for k, v in records_retained.iteritems():
+        print k, v
     return reduction, all_actuals
 
 
