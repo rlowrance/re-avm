@@ -133,8 +133,7 @@ def trace_unless(condition, message, **kwds):
 
 
 def make_control(argv):
-    # return a Bunch
-
+    'return a Bunch'
     print argv
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
@@ -152,10 +151,21 @@ def make_control(argv):
     if not os.path.exists(dir_out):
         os.makedirs(dir_out)
 
-    validation_months = ('200612', '200701', '200702', '200703', '200704', '200705',
-                         '200706', '200707', '200708', '200709', '200710', '200711',
-                         )
-    validation_months_long = validation_months + ('200801', '200802', '200803', '200804', '200805')
+    validation_months = (
+            '200612',
+            '200701', '200702', '200703', '200704', '200705', '200706'
+            '200707', '200708', '200709', '200710', '200711',
+            )
+    validation_months_long = (
+            '200512',
+            '200601', '200602', '200603', '200604', '200605', '200606',
+            '200607', '200608', '200609', '200610', '200611', '200612',
+            '200701', '200702', '200703', '200704', '200705', '200706',
+            '200707', '200708', '200709', '200710', '200711', '200712',
+            '200801', '200802', '200803', '200804', '200805', '200806',
+            '200807', '200808', '200809', '200810', '200811', '200812',
+            '200901', '200902',
+            )
     return Bunch(
         arg=arg,
         column_definitions=ColumnDefinitions(),
