@@ -122,6 +122,7 @@ class ColumnDefinitions(object):
 
 
 def trace_unless(condition, message, **kwds):
+    'like assert condition, message; but enters debugger if condition fails'
     if condition:
         return
     print '+++++++++++++++'
@@ -153,7 +154,7 @@ def make_control(argv):
 
     validation_months = (
             '200612',
-            '200701', '200702', '200703', '200704', '200705', '200706'
+            '200701', '200702', '200703', '200704', '200705', '200706',
             '200707', '200708', '200709', '200710', '200711',
             )
     validation_months_long = (
@@ -528,8 +529,12 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
     trace_if_interesting()
     ensemble_weighting = 'exp(-MAE/100000)'
     mae = {}
+    debug = False
     for validation_month in control.validation_months:
         e = ChartEReport(k, ensemble_weighting, control.column_definitions, control.test)
+        if debug:
+            print validation_month
+            pdb.set_trace()
         next_month = Month(validation_month).increment(1).as_str()
         validation_month_keys = list(reduction[validation_month].keys())
         cum_weighted_predictions = None
