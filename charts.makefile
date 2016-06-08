@@ -1,7 +1,10 @@
-# define how to make charts used in paper1
-PYTHON = ~/anaconda/bin/python
-
-WORKING = ../data/working
+# define how to make charts used in paper1. The output is these Makefile variables
+#   CHARTS
+#
+# depend on including makefile to define these Makefile variables:
+#   PYTHON
+#   WORKING
+#
 # name one chart from each set of used chart
 # Note: many charts supported preliminary analysis not in the final paper
 CHARTS += $(WORKING)/chart01/median-price.pdf

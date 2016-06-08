@@ -3,8 +3,7 @@
 .SUFFIXES:
 
 
-
-PYTHON = ~/anaconda/bin/python
+PYTHON = ~/anaconda2/bin/python
 
 WORKING = ../data/working
 
