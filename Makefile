@@ -59,11 +59,34 @@ VALAVM_B += $(WORKING)/valavm/200902.pickle
 VALAVM += $(VALAVM_A) $(VALAVM_B)
 ALL += $(VALAVM)
 
-include charts.makefile  # yields variable CHARTS
+# define the charts
+# NOTE: many charts of historic interest only and were not used in the final report
+#
+# name one chart from each set of used chart
+# Note: many charts supported preliminary analysis not in the final paper
+CHARTS += $(WORKING)/chart01/median-price.pdf
+CHARTS += $(WORKING)/chart06/a.pdf
+
 ALL += $(CHARTS)
 
 .PHONY : all
 all: $(ALL)
+
+# builds for charts actually used
+
+# chart01
+$(WORKING)/chart01/data.pickle: chart01.py $(WORKING)/samples-train-validate.csv
+	$(PYTHON) chart01.py --data
+
+$(WORKING)/chart01/median-price.pdf: chart01.py $(WORKING)/chart01/data.pickle
+	$(PYTHON) chart01.py
+	
+# chart06 
+$(WORKING)/chart06/data.pickle: chart06.py $(WORKING)/chart01/data.pickle $(VALAVM)
+	$(PYTHON) chart06.py  --data
+
+$(WORKING)/chart06/a.pdf: chart06.py $(WORKING)/chart06/data.pickle
+	$(PYTHON) chart06.py 
 
 # builds for VALAVM on separate systems
 # invocations
