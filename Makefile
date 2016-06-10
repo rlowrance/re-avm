@@ -110,6 +110,8 @@ CHARTS += $(WORKING)/chart06/a.pdf
 
 ALL += $(CHARTS)
 
+ALL += $(WORKING)/rank_models.pickle
+
 .PHONY : all
 all: $(ALL)
 
@@ -129,7 +131,15 @@ $(WORKING)/chart06/data.pickle: chart06.py $(WORKING)/chart01/data.pickle $(VALA
 $(WORKING)/chart06/a.pdf: chart06.py $(WORKING)/chart06/data.pickle
 	$(PYTHON) chart06.py 
 
-# builds for VALAVM on separate systems
+.PHONY : parcels-features
+parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcels-features-zip5.csv
+
+
+# rank_models
+$(WORKING)/rank_models.pickle: $(WORKING)/chart06/data.pickle
+	$(PYTHON) rank_models.py
+
+# builds VALAVM files on separate systems
 # invocations
 #   make valavm_A
 #   make valavm_B
@@ -138,10 +148,6 @@ valavm_A: $(VALAVM_A)
 
 .PHONY : valavm_B
 valavm_B: $(VALAVM_B)
-
-.PHONY : parcels-features
-parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcels-features-zip5.csv
-
 
 $(WORKING)/census-features-derived.csv: census-features.py layout_census.py
 	$(PYTHON) census-features.py
@@ -161,11 +167,11 @@ $(WORKING)/valavm/%-pickle: $(valavm_dep)
 
 # valavm-fitted
 
-valavm_fitted_deps += $(valavm_dep)
-valavm_fitted_deps += $(WORKING)/best-models.pickle
+valavm_fitted_dep += $(valavm_dep)
+valavm_fitted_dep += $(WORKING)/rank_models.pickle
 
-$(WORKING)/valavm/%-fitted.pickle: $(valavm_dep)
-	$(PYTHON) valavm.py $* --grid $(WORKING)/best-models.pickle 
+$(WORKING)/valavm/%-fitted.pickle: $(valavm_fitted_dep)
+	$(PYTHON) valavm.py $* --grid $(WORKING)/best_models.pickle 
 
 
 # parcels-*
