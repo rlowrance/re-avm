@@ -110,7 +110,8 @@ CHARTS += $(WORKING)/chart06/a.pdf
 
 ALL += $(CHARTS)
 
-ALL += $(WORKING)/rank_models.pickle
+# pick a representative of all the rank_models
+ALL += $(WORKING)/rank_models/200512.pickle
 
 .PHONY : all
 all: $(ALL)
@@ -136,7 +137,7 @@ parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcel
 
 
 # rank_models
-$(WORKING)/rank_models.pickle: $(WORKING)/chart06/data.pickle
+$(WORKING)/rank_models/%.pickle: $(WORKING)/chart06/data.pickle
 	$(PYTHON) rank_models.py
 
 # builds VALAVM files on separate systems
