@@ -3,7 +3,7 @@
 .SUFFIXES:
 
 
-PYTHON = ~/anaconda2/bin/python
+PYTHON = ~/anaconda/bin/python
 
 WORKING = ../data/working
 
@@ -98,7 +98,7 @@ VALAVM_FITTED += $(WORKING)/valavm/200811-fitted.pickle
 VALAVM_FITTED += $(WORKING)/valavm/200812-fitted.pickle
 VALAVM_FITTED += $(WORKING)/valavm/200901-fitted.pickle
 VALAVM_FITTED += $(WORKING)/valavm/200902-fitted.pickle
-ALL += $(VALAVM_FITTED)
+#ALL += $(VALAVM_FITTED)
 
 # define the charts
 # NOTE: many charts of historic interest only and were not used in the final report
