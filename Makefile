@@ -98,7 +98,7 @@ VALAVM_FITTED += $(WORKING)/valavm/200811-fitted.pickle
 VALAVM_FITTED += $(WORKING)/valavm/200812-fitted.pickle
 VALAVM_FITTED += $(WORKING)/valavm/200901-fitted.pickle
 VALAVM_FITTED += $(WORKING)/valavm/200902-fitted.pickle
-#ALL += $(VALAVM_FITTED)
+ALL += $(VALAVM_FITTED)
 
 # define the charts
 # NOTE: many charts of historic interest only and were not used in the final report
@@ -137,7 +137,7 @@ parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcel
 
 
 # rank_models
-$(WORKING)/rank_models/%.pickle: $(WORKING)/chart06/data.pickle
+$(WORKING)/rank_models.pickle: $(WORKING)/chart06/data.pickle
 	$(PYTHON) rank_models.py
 
 # builds VALAVM files on separate systems
@@ -172,7 +172,7 @@ valavm_fitted_dep += $(valavm_dep)
 valavm_fitted_dep += $(WORKING)/rank_models.pickle
 
 $(WORKING)/valavm/%-fitted.pickle: $(valavm_fitted_dep)
-	$(PYTHON) valavm.py $* --grid $(WORKING)/best_models.pickle 
+	$(PYTHON) valavm.py $* --onlyfitted 1
 
 
 # parcels-*
