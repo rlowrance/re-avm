@@ -57,6 +57,33 @@ class Features(object):
                        zip5_aggregated)
         return result
 
+    def ege_names(self):
+        'return names of features in order (not column names)'
+        # TODO: refactor to avoid code duplication with ege method
+        pdb.set_trace()
+        non_geo_features = [
+            'age', 'age2', 'age_effective', 'age_effective2',
+            'building_basement_square_feet', 'building_baths', 'building_bedrooms',
+            'building_fireplace_number', 'building_is_new_construction',
+            'building_living_square_feet', 'building_rooms', 'building_stories',
+            'census2000_fraction_owner_occupied', 'census2000_median_household_income',
+            'census2000_avg_commute',
+            'has_pool', 'lot_square_feet', 'lot_parking_spaces',
+            ]
+        # these are all indicator variables (0 or 1)
+        census_tract_propn = [('census_tract_has_' + x, None) for x in parcels.propn.keys()]
+        zip5_propn = [('zip5_has_' + x, None) for x in parcels.propn.keys()]
+        aggregated_features = ('any_commercial', 'any_industrial', 'any_non_residential')
+        census_tract_aggregated = [('census_tract_has_' + x, None) for x in aggregated_features]
+        zip5_aggregated = [('zip5_has_' + x, None) for x in aggregated_features]
+        pdb.set_trace()
+        result = tuple(non_geo_features +
+                       census_tract_propn +
+                       zip5_propn +
+                       census_tract_aggregated +
+                       zip5_aggregated)
+        return result
+
     def extract_and_transform_X_y(self,
                                   df, features_transforms, target_feature_name,
                                   units_X, units_y,
