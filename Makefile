@@ -137,7 +137,7 @@ parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcel
 
 
 # rank_models
-$(WORKING)/rank_models.pickle: $(WORKING)/chart06/data.pickle
+$(WORKING)/rank_models/200512.pickle: $(WORKING)/chart06/data.pickle
 	$(PYTHON) rank_models.py
 
 # builds VALAVM files on separate systems
@@ -169,7 +169,7 @@ $(WORKING)/valavm/%-pickle: $(valavm_dep)
 # valavm-fitted
 
 valavm_fitted_dep += $(valavm_dep)
-valavm_fitted_dep += $(WORKING)/rank_models.pickle
+valavm_fitted_dep += $(WORKING)/rank_models/200512.pickle
 
 $(WORKING)/valavm/%-fitted.pickle: $(valavm_fitted_dep)
 	$(PYTHON) valavm.py $* --onlyfitted 1
