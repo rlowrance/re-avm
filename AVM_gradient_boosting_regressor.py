@@ -18,7 +18,6 @@ def fit(avm, X_train, y_train):
             avm.max_features,
             avm.random_state,
         )
-        pdb.set_trace()
 
     avm.model = sklearn.ensemble.GradientBoostingRegressor(
         loss=avm.loss,
@@ -46,3 +45,7 @@ def extract_and_transform(avm, df, transform_y):
 
 def predict(avm, X_test):
     return avm.model.predict(X_test)
+
+
+if __name__ == '__main__':
+    pdb
