@@ -2,19 +2,23 @@
 for AVMs based on 3 models (linear, random forests, gradient boosting regression)
 
 INVOCATION
-  python valavm.py TEST_MONTH --test]
+  python valavm.py TEST_MONTH [--test] [--onlyfitted K]
   where
    TEST_MONTH: yyyymm  Month of test data; training uses months just prior
+   K: int              Number of best-fitting models to use in grid
 
 INPUTS
  WORKING/samples-train.csv
+ WORKING/rank_models/TEST_MONTH-fitted.pickle  HPs for best models
 
 OUTPUTS
- WORKING/valavm/TEST_MONTH.pickle
+ WORKING/valavm/TEST_MONTH.pickle         contains result from grid search
+ WORKING/valavm/TEST_MONTH-fitted.pickle  containing K best fitting
 '''
 
 from __future__ import division
 
+import argparse
 import collections
 import cPickle as pickle
 import numpy as np
@@ -28,22 +32,15 @@ import sys
 import AVM
 from Bunch import Bunch
 from columns_contain import columns_contain
+# from Features import Features
 import layout_transactions
 from Logger import Logger
 from Month import Month
-from ParseCommandLine import ParseCommandLine
 from Path import Path
 from SampleSelector import SampleSelector
 from Timer import Timer
 # from TimeSeriesCV import TimeSeriesCV
 cc = columns_contain
-
-
-def usage(msg=None):
-    print __doc__
-    if msg is not None:
-        print msg
-    sys.exit(1)
 
 
 def make_grid():
@@ -72,37 +69,46 @@ def make_grid():
     )
 
 
-def make_control(argv):
-    # return a Bunch
-
-    def check_is_string(obj, name):
-        if not isinstance(obj, str):
-            usage('%s is not a string' % name)
-
-    print argv
-    if not(2 <= len(argv) <= 3):
-        usage('invalid number of arguments')
-
-    pcl = ParseCommandLine(argv)
-    arg = Bunch(
-        base_name='valavm',
-        test_month=argv[1],
-        test=pcl.has_arg('--test'),
-    )
-
-    assert len(arg.test_month) > 0, argv
-
+def positive_int(s):
     try:
-        arg.test_month = int(arg.test_month)
+        value = int(s)
+        assert value > 0
+        return value
     except:
-        usage('test_month not an integer like YYYYMM')
+        raise argparse.ArgumentTypeError('%s is not a positive integer' % s)
+
+
+def year_month(s):
+    'return s, only if it is form YYYYMM'
+    s_year = s[:4]
+    s_month = s[4:]
+    try:
+        int_year = int(s_year)
+        assert 0 <= int_year <= 2016
+
+        int_month = int(s_month)
+        assert 1 <= int_month <= 12
+
+        return s
+    except:
+        raise argparse.ArgumentTypeError('%s is not a yearmonth' % s)
+
+
+def make_control(argv):
+    'return a Bunch'
+    print argv
+    parser = argparse.ArgumentParser()
+    parser.add_argument('invocation')
+    parser.add_argument('test_month', type=year_month)
+    parser.add_argument('--test', action='store_true')
+    parser.add_argument('--onlyfitted', action='store', type=positive_int)
+    arg = parser.parse_args(argv)
+    arg.base_name = 'valavm'
 
     random_seed = 123
     random.seed(random_seed)
 
     dir_working = Path().dir_working()
-
-    debug = False
 
     # assure output directory exists
     dir_path = dir_working + arg.base_name + '/'
@@ -111,14 +117,17 @@ def make_control(argv):
 
     return Bunch(
         arg=arg,
-        debug=debug,
-        path_in=dir_working + 'samples-train.csv',
-        path_out_file=dir_path + str(arg.test_month) + '.pickle',
+        debug=False,
+        path_in_samples=dir_working + 'samples-train.csv',
+        path_in_ranked_models_dir=dir_working + 'rank_models/',
+        path_out_file=dir_path + arg.test_month + '.pickle',
+        path_out_fitted=dir_path + 'fitted-' + arg.test_month + '.pickle',
         path_out_log=dir_path + 'log-' + str(arg.test_month) + '.txt',
         grid=make_grid(),
         random_seed=random_seed,
-        test=arg.test,
+        timer=Timer(),
     )
+
 
 ResultKeyEn = collections.namedtuple(
     'ResultKeyEn',
@@ -156,6 +165,7 @@ def do_val(control, samples, save, already_exists):
 
     def fit_and_run(avm, samples_test, samples_train):
         'return a ResultValue'
+        pdb.set_trace()
         avm.fit(samples_train)
         predictions = avm.predict(samples_test)
         if predictions is None:
@@ -195,7 +205,7 @@ def do_val(control, samples, save, already_exists):
                             print
                             save(result_key,
                                  fit_and_run(avm, samples_test, samples_train))
-                            if control.test:
+                            if control.arg.test:
                                 return
 
     def search_gbr(samples_test, samples_train):
@@ -233,7 +243,7 @@ def do_val(control, samples, save, already_exists):
                                 print
                                 save(result_key,
                                      fit_and_run(avm, samples_test, samples_train))
-                                if control.test:
+                                if control.arg.test:
                                     return
 
     def search_rf(samples_test, samples_train):
@@ -264,7 +274,7 @@ def do_val(control, samples, save, already_exists):
                         print
                         save(result_key,
                              fit_and_run(avm, samples_test, samples_train))
-                        if control.test:
+                        if control.arg.test:
                             return
 
     # grid search for all model types
@@ -279,33 +289,74 @@ def do_val(control, samples, save, already_exists):
         )
         print n_months_back, test_month.decrement(n_months_back), test_month.decrement(1)
         print len(samples_test), len(samples_train)
+        pdb.set_trace()
         search_en(samples_test, samples_train)
         search_gbr(samples_test, samples_train)
         search_rf(samples_test, samples_train)
-        if control.test:
-            break
 
     return result
 
 
-def main(argv):
-    timer = Timer()
-    control = make_control(argv)
-    if False:
-        # avoid error in sklearn that requires flush to have no arguments
-        sys.stdout = Logger(log_file_path=control.path_out_log)
-    print control
+FittedAvm = collections.namedtuple('FittedAVM', 'index key fitted')
 
-    samples = pd.read_csv(
-        control.path_in,
-        nrows=None if control.test else None,
-    )
-    print 'samples.shape', samples.shape
 
-    # assure output file exists
-    if not os.path.exists(control.path_out_file):
-        os.system('touch %s' % control.path_out_file)
+def process_only_fitted(control, samples):
+    'write files containing fitted models and feature names'
+    # WRITEME: duplicate some functionality in do_val
+    # get feature names from Features().ege_names(), which returns a tuple of strings
+    def fit_avm(key):
+        'return attributes of fitted model'
+        avm = AVM.AVM(
+            model_name={
+                'en': 'ElasticNet',
+                'gb': 'GradientBoostingRegressor',
+                'rf': 'RandomForestRegressor',
+                }[key.model],
+            forecast_time_period=control.arg.test_month,
+            n_months_back=key.n_months_back,
+            random_state=control.random_seed,
+            verbose=True,
+            alpha=key.alpha,
+            l1_ratio=key.l1_ratio,
+            units_X=key.units_X,
+            units_y=key.units_y,
+            n_estimators=key.n_estimators,
+            max_depth=key.max_depth,
+            max_features=key.max_features,
+            learning_rate=key.learning_rate,
+            loss=key.loss,
+            )
+        avm.fit(samples)
+        return avm.model  # caller wants the attributes of the fitted model
 
+    def fit_and_write_k_best(best_models_f):
+        with open(control.path_out_fitted, 'wb') as g:
+            try:
+                pickled = pickle.load(best_models_f)  # read until EOF or until K records are processed
+                for index, key in enumerate(pickled):  # process the SortedDictionary
+                    if index >= control.arg.onlyfitted:
+                        # process only K best
+                        break
+                    print 'fitting index', index, 'of', control.arg.onlyfitted
+                    print 'fitting key', key
+                    fitted_avm = fit_avm(key)
+                    # drop all the fitted sub-estimators, because they take a lot of room
+                    if key.model in ('gb', 'rf'):
+                        fitted_avm.estimators_ = None
+                    print 'appending fitted avm to', control.path_out_fitted
+                    pickle.dump((index, key, fitted_avm), g)
+                    # pickle.dump(fa, g)
+            except EOFError:
+                print 'found EOF for test_month:', control.arg.test_month
+
+    path = control.path_in_ranked_models_dir + control.arg.test_month + '.pickle'
+    print 'reading ranked model descriptions from', path
+    with open(path, 'rb') as best_models_f:
+        fit_and_write_k_best(best_models_f)
+
+
+def process_complete_grid(control, samples):
+    pdb.set_trace()
     existing_keys = set()
     with open(control.path_out_file, 'rb') as prior:
         while True:
@@ -319,6 +370,7 @@ def main(argv):
                 print 'ignored'
             except EOFError:
                 break
+    pdb.set_trace()
     print 'number of existing keys in output file:', len(existing_keys)
 
     with open(control.path_out_file, 'ab') as output:
@@ -332,12 +384,61 @@ def main(argv):
 
         do_val(control, samples, save, already_exists)
 
-    print 'elapsed wall clock seconds:', timer.elapsed_wallclock_seconds()
-    print 'elapsed CPU seconds       :', timer.elapsed_cpu_seconds()
+
+def main(argv):
+    control = make_control(argv)
+    if False:
+        # avoid error in sklearn that requires flush to have no arguments
+        sys.stdout = Logger(log_file_path=control.path_out_log)
+    print control
+
+    samples = pd.read_csv(
+        control.path_in_samples,
+        nrows=None if control.arg.test else None,
+    )
+    print 'samples.shape', samples.shape
+    control.timer.lap('read samples')
+
+    # assure output file exists
+    if not os.path.exists(control.path_out_file):
+        os.system('touch %s' % control.path_out_file)
+
+    if control.arg.onlyfitted is None:
+        process_complete_grid(control, samples)
+    else:
+        process_only_fitted(control, samples)
+
+#    existing_keys = set()
+#    with open(control.path_out_file, 'rb') as prior:
+#        while True:
+#            try:
+#                record = pickle.load(prior)
+#                key, value = record
+#                existing_keys.add(key)
+#            except ValueError as e:
+#                print record
+#                print e
+#                print 'ignored'
+#            except EOFError:
+#                break
+#    print 'number of existing keys in output file:', len(existing_keys)
+#
+#    with open(control.path_out_file, 'ab') as output:
+#        def already_exists(key):
+#            return key in existing_keys
+#
+#        def save(key, value):
+#            print 'save key=', key
+#            record = (key, value)
+#            pickle.dump(record, output)
+#
+#        do_val(control, samples, save, already_exists)
 
     print control
-    if control.test:
+    if control.arg.test:
         print 'DISCARD OUTPUT: test'
+    if control.debug:
+        print 'DISCARD OUTPUT: debug'
     print 'done'
 
     return
