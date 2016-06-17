@@ -3,7 +3,7 @@
 .SUFFIXES:
 
 
-PYTHON = ~/anaconda/bin/python
+PYTHON = ~/anaconda2/bin/python
 
 WORKING = ../data/working
 
@@ -59,45 +59,45 @@ VALAVM_B += $(WORKING)/valavm/200902.pickle
 VALAVM += $(VALAVM_A) $(VALAVM_B)
 ALL += $(VALAVM)
 
-VALAVM_FITTED += $(WORKING)/valavm/200512-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200601-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200602-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200603-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200604-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200605-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200606-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200607-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200608-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200609-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200610-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200611-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200612-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200701-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200702-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200703-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200704-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200705-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200706-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200707-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200708-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200709-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200710-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200711-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200712-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200801-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200802-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200803-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200804-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200805-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200806-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200807-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200808-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200809-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200810-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200811-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200812-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200901-fitted.pickle
-VALAVM_FITTED += $(WORKING)/valavm/200902-fitted.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200512.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200601.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200602.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200603.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200604.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200605.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200606.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200607.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200608.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200609.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200610.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200611.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200612.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200701.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200702.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200703.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200704.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200705.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200706.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200707.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200708.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200709.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200710.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200711.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200712.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200801.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200802.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200803.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200804.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200805.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200806.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200807.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200808.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200809.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200810.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200811.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200812.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200901.pickle
+VALAVM_FITTED += $(WORKING)/valavm/fitted-200902.pickle
 ALL += $(VALAVM_FITTED)
 
 # define the charts
@@ -171,7 +171,7 @@ $(WORKING)/valavm/%-pickle: $(valavm_dep)
 valavm_fitted_dep += $(valavm_dep)
 valavm_fitted_dep += $(WORKING)/rank_models/200512.pickle
 
-$(WORKING)/valavm/%-fitted.pickle: $(valavm_fitted_dep)
+$(WORKING)/valavm/fitted-%.pickle: $(valavm_fitted_dep)
 	$(PYTHON) valavm.py $* --onlyfitted 1
 
 
