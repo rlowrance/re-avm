@@ -289,7 +289,6 @@ def do_val(control, samples, save, already_exists):
         )
         print n_months_back, test_month.decrement(n_months_back), test_month.decrement(1)
         print len(samples_test), len(samples_train)
-        pdb.set_trace()
         search_en(samples_test, samples_train)
         search_gbr(samples_test, samples_train)
         search_rf(samples_test, samples_train)
@@ -304,8 +303,9 @@ def process_only_fitted(control, samples):
     'write files containing fitted models and feature names'
     # WRITEME: duplicate some functionality in do_val
     # get feature names from Features().ege_names(), which returns a tuple of strings
-    def fit_avm(key):
-        'return attributes of fitted model'
+    def make_importances(key):
+        'fit model and return importances of it'
+        control.debug = True
         avm = AVM.AVM(
             model_name={
                 'en': 'ElasticNet',
@@ -326,8 +326,12 @@ def process_only_fitted(control, samples):
             learning_rate=key.learning_rate,
             loss=key.loss,
             )
-        avm.fit(samples)
-        return avm.model  # caller wants the attributes of the fitted model
+        fitted_model = avm.fit(samples)
+        if key.model == 'en':
+            result = (fitted_model.intercept_, fitted_model.coef_)
+        else:
+            result = fitted_model.feature_importances_
+        return result
 
     def fit_and_write_k_best(best_models_f):
         with open(control.path_out_fitted, 'wb') as g:
@@ -339,12 +343,9 @@ def process_only_fitted(control, samples):
                         break
                     print 'fitting index', index, 'of', control.arg.onlyfitted
                     print 'fitting key', key
-                    fitted_avm = fit_avm(key)
-                    # drop all the fitted sub-estimators, because they take a lot of room
-                    if key.model in ('gb', 'rf'):
-                        fitted_avm.estimators_ = None
-                    print 'appending fitted avm to', control.path_out_fitted
-                    pickle.dump((index, key, fitted_avm), g)
+                    importances = make_importances(key)
+                    print 'appending importances for index', index
+                    pickle.dump((index, key, importances), g)
                     # pickle.dump(fa, g)
             except EOFError:
                 print 'found EOF for test_month:', control.arg.test_month
