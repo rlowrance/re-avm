@@ -4,10 +4,11 @@
     c.append_detail(colname=10)  # also other column name=value pairs
     ...
     c.append_legend()
-    r = Report()
-    r.append('title')
-    c.iterlines(lambda line: r.append(line))  # also takes kwds
-    r.write(path)
+    report = Report()
+    report.append('title')
+    for line in c.iterlines():
+        report.append(line)
+    report.write(path)
 '''
 
 import collections
@@ -34,7 +35,7 @@ class ColumnsTable(object):
                     print '+++++++++++++++++++++'
                     print 'inconsistent number of lines in header'
                     print 'have both %d and %d' % (self._number_of_header_lines, len(headers))
-                    print 'found at headesr: %s' % headers
+                    print 'found at header: %s' % headers
                     print '+++++++++++++++++++++'
                     pdb.set_trace()
             self._number_of_header_lines = len(headers)
