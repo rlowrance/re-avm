@@ -15,7 +15,6 @@ import AVM_elastic_net
 import AVM_gradient_boosting_regressor
 import AVM_random_forest_regressor
 from Features import Features
-import layout_transactions
 cc = columns_contain
 
 
@@ -80,36 +79,6 @@ class AVM(sklearn.base.BaseEstimator):
         X_train, y_train = self.extract_and_transform(samples)
         fitted = self.implementation_module.fit(self, X_train, y_train)
         return fitted.model  # scikit learn's fitted model
-
-    def fitOLD(self, df):
-        'construct and fit df that contains X and y'
-        assert False, 'deprecated'
-        self.implementation_module = {
-            'ElasticNet': AVM_elastic_net,
-            'GradientBoostingRegressor': AVM_gradient_boosting_regressor,
-            'RandomForestRegressor': AVM_random_forest_regressor,
-        }[self.model_name]
-        mask = df[layout_transactions.yyyymm] < self.forecast_time_period
-        df_period = df[mask]
-        kept_yyyymm = []
-        last_kept_yyyymm = self.forecast_time_period - 1
-        for n in xrange(self.n_months_back):
-            if last_kept_yyyymm % 100 == 0:
-                # ex: found 200900; need to convert to 200812
-                last_kept_yyyymm += - 100 + 12  # adjust year and month
-            kept_yyyymm.append(last_kept_yyyymm)
-            last_kept_yyyymm -= 1
-        mask_kept = df_period[layout_transactions.yyyymm].isin(kept_yyyymm)
-        df_kept = df_period[mask_kept]
-        if self.verbose > 0:
-            print 'AVM.fit %s %s %s' % (
-                self.model_name, self.forecast_time_period, str(df_kept.shape))
-        X_train, y_train = self.extract_and_transform(df_kept)
-        if False and ((self.units_X == 'log') or (self.units_y == 'log')):
-            print self.units_X, self.units_y
-            print 'check transformation to log'
-            pdb.set_trace()
-        self.implementation_module.fit(self, X_train, y_train)
 
     def get_attributes(self):
         'return both sets of attributes, with None if not used by that model'
