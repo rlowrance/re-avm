@@ -33,9 +33,10 @@ import sys
 from AVM import AVM
 from Bunch import Bunch
 from chart06 import ModelDescription, ModelResults, ColumnDefinitions
+from ColumnsTable import ColumnsTable
 from Features import Features
 from Path import Path
-# from Report import Report
+from Report import Report
 from Timer import Timer
 # cc = columns_contain
 
@@ -72,27 +73,97 @@ def make_control(argv):
 
     return Bunch(
         arg=arg,
-        debug=True,
+        debug=False,
         k=1,  # number of best models examined
         path_in_data=dir_out + reduced_file_name,
         path_in_fitted_dir=dir_working + 'valavm/',
         path_out_data=dir_out + reduced_file_name,
-        path_out_a=dir_out + 'a.txt',
+        path_out_chart_a_template=dir_out + 'a-nbest-%d-nworst-%d.txt',
         test_months=test_months,
         timer=Timer(),
     )
 
 
-def make_charts(control, importances):
+def make_chart_a(control, data):
+    'return dict[(n_best, n_worst]) --> a Report'
+    def make_header(report):
+        report.append('Mean Probability of a Feature Being Included in a Decision Tree')
+        report.append('Mean Probability Across the Entire Ensemble of Decisions Trees')
+        report.append('For Most Accurate Model in Each Training Month')
+        report.append(' ')
+
+    def make_details(report, data, test_months, n_best, n_worst):
+        feature_names = Features().ege_names()
+        columns_table = ColumnsTable((
+            ('test_month', 6, '%6s', ('test', 'month'), 'test month'),
+            ('nth', 2, '%2d', (' ', 'n'), 'rank of feature (1 ==> more frequently included)'),
+            ('probability', 4, '%4.2f', (' ', 'prob'), 'probability feature appears in a decision tree'),
+            ('feature_name', 40, '%40s', (' ', 'feature name'), 'name of feature'),
+            ),
+            verbose=True)
+        for test_month in test_months:
+            importances = data[test_month]
+            sorted_indices = importances.argsort()  # sorted first lowest, last highest
+            for nth_best in xrange(n_best):
+                index = sorted_indices[len(importances) - nth_best - 1]
+                columns_table.append_detail(
+                    test_month=test_month,
+                    nth=nth_best + 1,
+                    probability=importances[index],
+                    feature_name=feature_names[index]
+                    )
+            for nth in xrange(n_worst):
+                nth_worst = n_worst - nth - 1
+                index = sorted_indices[nth_worst]
+                columns_table.append_detail(
+                    test_month=test_month,
+                    nth=len(importances) - nth_worst,
+                    probability=importances[index],
+                    feature_name=feature_names[index]
+                    )
+            if n_best > 1 or n_worst > 1:
+                # insert blank line between test_months if more than 1 row in a month
+                columns_table.append_detail()
+
+        columns_table.append_legend()
+        for line in columns_table.iterlines():
+            report.append(line)
+
+    def make_report(n_best, n_worst):
+        report = Report()
+        make_header(report)
+        make_details(report, data, control.test_months, n_best, n_worst)
+        return report
+
+    reports = {}
+
+    def add_report(n_best, n_worst):
+        reports[(n_best, n_worst)] = make_report(n_best, n_worst)
+
+    add_report(1, 0)
+    add_report(10, 0)
+    add_report(15, 0)
+    add_report(0, 10)
+    add_report(0, 20)
+    add_report(0, 40)
+    add_report(0, 60)
+
+    return reports
+
+
+def make_charts(control, data):
     'return dict of charts'
     # all models are fit to an X matrix with the same features in the same columns
     pdb.set_trace()
-    assert control.k == 1, control  # the codes works only for the very best model
+    assert control.k == 1, control  # this code works only for the very best model
+    chart_a = make_chart_a(control, data)
+    return {
+        'chart_a': chart_a,
+        }
 
 
 def make_data(control):
-    'return dict[k] = (model_type, coefficients_or_feature_importances)'
-    feature_names = Features().ege_names()
+    'return dict[test_month] = coefficients_or_feature_importances'
     result = {}
     for test_month in control.test_months:
         path = control.path_in_fitted_dir + 'fitted-' + test_month + '.pickle'
@@ -107,12 +178,7 @@ def make_data(control):
                 # we don't handle the coefficients from the en models
                 # but no en model is among the best performing
                 assert key.model == 'gb' or key.model == 'rf', key
-                for index in xrange(len(importances)):
-                    feature_name = feature_names[index]
-                    importance = importances[index]
-                    key = (feature_name, test_month)
-                    assert key not in result, key
-                    result[key] = importance
+                result[test_month] = importances
     return result
 
 
@@ -133,8 +199,18 @@ def main(argv):
             data, reduction_control = pickled
         charts = make_charts(control, data)
         control.timer.lap('make charts')
-        print charts
-        # TODO: write the charts, which are a dictionary
+        # write the charts
+        for chart_key, chart_value in charts.iteritems():
+            if chart_key == 'chart_a':
+                # white chart_a's
+                for chart_a_key, chart_a_value in chart_value.iteritems():
+                    n_best, n_worst = chart_a_key
+                    path = control.path_out_chart_a_template % (n_best, n_worst)
+                    print 'writing', path
+                    chart_a_value.write(path)
+            else:
+                print 'bad chart key', chart_key
+                pdb.set_trace()
         control.timer.lap('write charts')
 
     # wrap up
