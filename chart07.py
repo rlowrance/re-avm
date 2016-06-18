@@ -84,20 +84,52 @@ def make_control(argv):
     )
 
 
-def make_chart_a(control, data):
-    'return dict[(n_best, n_worst]) --> a Report'
+def make_chart_b(control, data):
+    'return a Report'
     def make_header(report):
         report.append('Mean Probability of a Feature Being Included in a Decision Tree')
-        report.append('Mean Probability Across the Entire Ensemble of Decisions Trees')
+        report.append('Across the Entire Ensemble of Decisions Trees')
         report.append('For Most Accurate Model in Each Training Month')
         report.append(' ')
+
+    def make_details(report, data, test_months):
+        pdb.set_trace()
+        feature_names = Features().ege_names()
+        median_importance = {}
+        for feature_index, feature_name in enumerate(feature_names):
+            importances = np.zeros(len(test_months))
+            for month_index, test_month in enumerate(test_months):
+                month_importances = data[test_month]
+                importances[month_index] = month_importances[feature_index]
+            median_importance[feature_name] = np.median(importances)
+        pdb.set_trace()
+        columns_table = ColumnsTable((
+            ('median_prob', 4, '%4.1f', (' ', 'prob'), 'median probability feature appears in a decision tree'),
+            ('feature_name', 40, '%40s', (' ', 'feature name'), 'name of feature'),
+            ),
+            verbose=True)
+        for feature_name in sorted(median_importance, key=median_importance.get):
+            columns_table.append_detail(
+                median_prob=median_importance[feature_name] * 100.0,
+                feature_name=feature_name,
+            )
+        
+    pdb.set_trace()
+    report = Report()
+    make_header(report)
+    make_details(report, data, control.test_months, n_best, n_worst)
+    return report
+
+
+def make_chart_a(control, data):
+    'return dict[(n_best, n_worst]) --> a Report'
 
     def make_details(report, data, test_months, n_best, n_worst):
         feature_names = Features().ege_names()
         columns_table = ColumnsTable((
             ('test_month', 6, '%6s', ('test', 'month'), 'test month'),
             ('nth', 2, '%2d', (' ', 'n'), 'rank of feature (1 ==> more frequently included)'),
-            ('probability', 4, '%4.2f', (' ', 'prob'), 'probability feature appears in a decision tree'),
+            ('probability', 4, '%4.1f', (' ', 'prob'), 'probability feature appears in a decision tree'),
             ('feature_name', 40, '%40s', (' ', 'feature name'), 'name of feature'),
             ),
             verbose=True)
@@ -109,7 +141,7 @@ def make_chart_a(control, data):
                 columns_table.append_detail(
                     test_month=test_month,
                     nth=nth_best + 1,
-                    probability=importances[index],
+                    probability=importances[index] * 100.0,
                     feature_name=feature_names[index]
                     )
             for nth in xrange(n_worst):
@@ -118,7 +150,7 @@ def make_chart_a(control, data):
                 columns_table.append_detail(
                     test_month=test_month,
                     nth=len(importances) - nth_worst,
-                    probability=importances[index],
+                    probability=importances[index] * 100.0,
                     feature_name=feature_names[index]
                     )
             if n_best > 1 or n_worst > 1:
