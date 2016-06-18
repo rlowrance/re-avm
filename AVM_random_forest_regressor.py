@@ -3,6 +3,7 @@
 These are separate in order to reflect dependencies in the Makefile
 '''
 
+import pdb
 import sklearn
 
 from Features import Features
@@ -45,3 +46,9 @@ def predict(avm, X_test):
     if avm.verbose > 0:
         print 'predict_random_forest_regressor'
     return avm.model.predict(X_test)
+
+
+if __name__ == '__main__':
+    if False:
+        # avoid warning messages from checkers
+        pdb()
