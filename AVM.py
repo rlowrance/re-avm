@@ -28,7 +28,7 @@ def avm_scoring(estimator, df):
     y_hat = estimator.predict(df)
     errors = y_hat - y
     median_abs_error = np.median(np.abs(errors))
-    return -median_abs_error  # because GridSearchCV chooses the model with the score
+    return -median_abs_error  # because GridSearchCV chooses the model with the highest score
 
 
 class AVM(sklearn.base.BaseEstimator):
@@ -78,7 +78,8 @@ class AVM(sklearn.base.BaseEstimator):
             'RandomForestRegressor': AVM_random_forest_regressor,
         }[self.model_name]
         X_train, y_train = self.extract_and_transform(samples)
-        self.implementation_module.fit(self, X_train, y_train)
+        fitted = self.implementation_module.fit(self, X_train, y_train)
+        return fitted.model  # scikit learn's fitted model
 
     def fitOLD(self, df):
         'construct and fit df that contains X and y'
