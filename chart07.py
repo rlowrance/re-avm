@@ -23,6 +23,7 @@ from __future__ import division
 
 import argparse
 import cPickle as pickle
+import numpy as np
 import os
 import pandas as pd
 import pdb
@@ -79,6 +80,7 @@ def make_control(argv):
         path_in_fitted_dir=dir_working + 'valavm/',
         path_out_data=dir_out + reduced_file_name,
         path_out_chart_a_template=dir_out + 'a-nbest-%d-nworst-%d.txt',
+        path_out_chart_b=dir_out + 'b.txt',
         test_months=test_months,
         timer=Timer(),
     )
@@ -92,39 +94,53 @@ def make_chart_b(control, data):
         report.append('For Most Accurate Model in Each Training Month')
         report.append(' ')
 
-    def make_details(report, data, test_months):
-        pdb.set_trace()
+    def make_mean_importance_by_feature(test_months):
+        'return dict[feature_name] = float, the mean importance of the feature'
         feature_names = Features().ege_names()
-        median_importance = {}
+        mean_importance = {}  # key = feature_name
         for feature_index, feature_name in enumerate(feature_names):
-            importances = np.zeros(len(test_months))
+            # build vector of feature_importances for feature_name
+            feature_importances = np.zeros(len(test_months))
             for month_index, test_month in enumerate(test_months):
-                month_importances = data[test_month]
-                importances[month_index] = month_importances[feature_index]
-            median_importance[feature_name] = np.median(importances)
-        pdb.set_trace()
+                month_importances = data[test_month]  # for each feature
+                feature_importances[month_index] = month_importances[feature_index]
+            mean_importance[feature_name] = np.mean(feature_importances)
+        return mean_importance
+
+    def make_details(data, test_months):
+        'return a ColumnTable'
         columns_table = ColumnsTable((
-            ('median_prob', 4, '%4.1f', (' ', 'prob'), 'median probability feature appears in a decision tree'),
+            ('mean_prob', 5, '%5.2f', ('mean', 'prob'), 'mean probability feature appears in a decision tree'),
             ('feature_name', 40, '%40s', (' ', 'feature name'), 'name of feature'),
             ),
             verbose=True)
-        for feature_name in sorted(median_importance, key=median_importance.get):
+        mean_importance = make_mean_importance_by_feature(test_months)
+        for feature_name in sorted(mean_importance, key=mean_importance.get, reverse=True):
             columns_table.append_detail(
-                median_prob=median_importance[feature_name] * 100.0,
+                mean_prob=mean_importance[feature_name] * 100.0,
                 feature_name=feature_name,
             )
-        
-    pdb.set_trace()
+        columns_table.append_legend()
+        return columns_table
+
     report = Report()
     make_header(report)
-    make_details(report, data, control.test_months, n_best, n_worst)
+    details = make_details(data, control.test_months)
+    for line in details.iterlines():
+        report.append(line)
     return report
 
 
 def make_chart_a(control, data):
     'return dict[(n_best, n_worst]) --> a Report'
+    def make_header(report):
+        report.append('Mean Probability of a Feature Being Included in a Decision Tree')
+        report.append('Across the Entire Ensemble of Decisions Trees')
+        report.append('For Most Accurate Model in Each Training Month')
+        report.append(' ')
 
-    def make_details(report, data, test_months, n_best, n_worst):
+    def make_details(data, test_months, n_best, n_worst):
+        'return a ColumnTable'
         feature_names = Features().ege_names()
         columns_table = ColumnsTable((
             ('test_month', 6, '%6s', ('test', 'month'), 'test month'),
@@ -156,15 +172,15 @@ def make_chart_a(control, data):
             if n_best > 1 or n_worst > 1:
                 # insert blank line between test_months if more than 1 row in a month
                 columns_table.append_detail()
-
         columns_table.append_legend()
-        for line in columns_table.iterlines():
-            report.append(line)
+        return columns_table
 
     def make_report(n_best, n_worst):
         report = Report()
         make_header(report)
-        make_details(report, data, control.test_months, n_best, n_worst)
+        details = make_details(report, data, control.test_months, n_best, n_worst)
+        for line in details.iteritems():
+            report.append(line)
         return report
 
     reports = {}
@@ -186,7 +202,8 @@ def make_chart_a(control, data):
 def make_charts(control, data):
     'return dict of charts'
     # all models are fit to an X matrix with the same features in the same columns
-    pdb.set_trace()
+    if control.debug:
+        return {'chart_b': make_chart_b(control, data)}
     assert control.k == 1, control  # this code works only for the very best model
     chart_a = make_chart_a(control, data)
     return {
@@ -240,6 +257,10 @@ def main(argv):
                     path = control.path_out_chart_a_template % (n_best, n_worst)
                     print 'writing', path
                     chart_a_value.write(path)
+            elif chart_key == 'chart_b':
+                path = control.path_out_chart_b
+                print 'writing', path
+                chart_value.write(path)
             else:
                 print 'bad chart key', chart_key
                 pdb.set_trace()
