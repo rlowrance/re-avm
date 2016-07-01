@@ -236,12 +236,19 @@ def do_val(control, samples, save, already_exists):
 
     def search_en(samples_test, samples_train):
         'search over ElasticNet HPs, appending to result'
+        total = len(control.grid_units_X_seq)
+        total *= len(control.grid.units_y_seq)
+        total *= len(control.grid.alpha_seq)
+        total *= len(control.grid.l1_ratio_seq)
+        count = 0
         for units_X in control.grid.units_X_seq:
             for units_y in control.grid.units_y_seq:
                 for alpha in control.grid.alpha_seq:
                     for l1_ratio in control.grid.l1_ratio_seq:
+                        count += 1
+                        print 'fitting %d out of %d en hp collections' % (count, total)
                         print (
-                            control.arg.test_month, 'en', n_months_back, units_X[:3], units_y[:3],
+                            control.arg.test_month,  'en', n_months_back, units_X[:3], units_y[:3],
                             alpha, l1_ratio,
                         )
                         avm = AVM.AVM(
@@ -273,11 +280,19 @@ def do_val(control, samples, save, already_exists):
 
     def search_gbr(samples_test, samples_train):
         'search over GradientBoostingRegressor HPs, appending to result'
+        total = len(control.grid_n_estimators_seq)
+        total *= len(control.grid.max_features_seq)
+        total *= len(control.grid.max_depth_seq)
+        total *= len(control.grid.loss_seq)
+        total *= len(control.grid.learning_rate_seq)
+        count = 0
         for n_estimators in control.grid.n_estimators_seq:
             for max_features in control.grid.max_features_seq:
                 for max_depth in control.grid.max_depth_seq:
                     for loss in control.grid.loss_seq:
                         for learning_rate in control.grid.learning_rate_seq:
+                            count += 1
+                            print 'fitting %d out of %d gbr hp collections' % (count, total)
                             print (
                                 control.arg.test_month, 'gbr', n_months_back,
                                 n_estimators, max_features_s(max_features), max_depth, loss, learning_rate,
@@ -314,9 +329,15 @@ def do_val(control, samples, save, already_exists):
 
     def search_rf(samples_test, samples_train):
         'search over RandomForestRegressor HPs, appending to result'
+        total = len(control.grid.n_estimators_seq)
+        total *= len(control.grid.max_features_seq)
+        total *= len(control.grid.max_depth_seq)
+        count = 0
         for n_estimators in control.grid.n_estimators_seq:
             for max_features in control.grid.max_features_seq:
                 for max_depth in control.grid.max_depth_seq:
+                    count += 1
+                    print 'fitting %d out of %d rf hp collections' % (count, total)
                     print (
                         control.arg.test_month, 'rfr', n_months_back,
                         n_estimators, max_features_s(max_features), max_depth
