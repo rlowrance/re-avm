@@ -263,7 +263,7 @@ def do_val(control, samples, save, already_exists):
                         if already_exists(result_key):
                             print 'already exists'
                         else:
-                            print 'fitting and running', result_key
+                            print 'fitting and running', control.arg.features_hps_month, result_key
                             result_value = fit_and_run(
                                 avm, samples_test, samples_train, control.arg.features_group,
                                 )
