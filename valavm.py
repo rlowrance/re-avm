@@ -2,7 +2,7 @@
 for AVMs based on 3 models (linear, random forests, gradient boosting regression)
 
 INVOCATION
-  python valavm.py FEATURESGROUP-HPS-TESTMONTH [--test]
+  python valavm.py FEATURESGROUP-HPS-TESTMONTH [--test] [--newdir]
   where
    TESTMONTH: yyyymm  Month of test data; training uses months just prior
    FEATURES : features to use
@@ -22,6 +22,7 @@ INPUTS
    ex: WORKING/rank_models/TEST_MONTH.pickle  HPs for best models
 
 OUTPUTS
+ WORKING/valavm/FEAUTRESGROUP-HPS/FEATURESGROUP-HPS-TESTMONTH.pickle  if --newdir
  WORKING/valavm/FEATURESGROUP-HPS-TESTMONTH/valavm.pickle
 
 NOTE 1
@@ -95,6 +96,7 @@ def make_control(argv):
     parser.add_argument('invocation')
     parser.add_argument('features_hps_month', type=arg_type.features_hps_month)
     parser.add_argument('--test', action='store_true')
+    parser.add_argument('--newdir', action='store_true')
     arg = parser.parse_args(argv)
     arg.base_name = 'valavm'
     arg.features_group, arg.hps, arg.test_month = arg.features_hps_month.split('-')
@@ -108,16 +110,13 @@ def make_control(argv):
 
     # assure output directory exists
     use_file = True  # keep True until the Dell runs have finished
-    if use_file:
-        dir_path = dir_working + arg.base_name + '/' 
-        path_out_file = dir_path + '%s-%s-%s.pickle' % (arg.features_group, arg.hps, arg.test_month),
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
+    if arg.newdir:
+        dir_path = dir_working + arg.base_name + '/' + ('%s-%s/') % (arg.features_group, arg.hps)
     else:
-        dir_path = dir_working + arg.base_name + '/' + arg.features_hps_month + '/valavm.pickle'
-        path_out_file = dir_path + 'valavm.pickle'
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
+        dir_path = dir_working + arg.base_name + '/' 
+    path_out_file = dir_path + '%s-%s-%s.pickle' % (arg.features_group, arg.hps, arg.test_month),
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
 
     return Bunch(
         arg=arg,
