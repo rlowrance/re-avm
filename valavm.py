@@ -2,7 +2,7 @@
 for AVMs based on 3 models (linear, random forests, gradient boosting regression)
 
 INVOCATION
-  python valavm.py FEATURESGROUP-HPS-TESTMONTH [--test] [--newdir]
+  python valavm.py FEATURESGROUP-HPS-TESTMONTH [--test] [--olddir]
   where
    TESTMONTH: yyyymm  Month of test data; training uses months just prior
    FEATURES : features to use
@@ -15,6 +15,7 @@ INVOCATION
                best1: sweep just the best 1 in WORKING/rank_models/TEST_MONTH.pickle
    HPCOUNT  : number of hps to use if HPS is a PATH; default 1
    --test   : if present, runs in test mode, output is not usable
+   --olddir : if present, use old directory structure
 
 INPUTS
  WORKING/samples-train.csv
@@ -22,8 +23,8 @@ INPUTS
    ex: WORKING/rank_models/TEST_MONTH.pickle  HPs for best models
 
 OUTPUTS
- WORKING/valavm/FEAUTRESGROUP-HPS/FEATURESGROUP-HPS-TESTMONTH.pickle  if --newdir
- WORKING/valavm/FEATURESGROUP-HPS-TESTMONTH/valavm.pickle
+ WORKING/valavm/FEAUTRESGROUP-HPS/FEATURESGROUP-HPS-TESTMONTH.pickle
+ WORKING/valavm/FEATURESGROUP-HPS-TESTMONTH/valavm.pickle             if --olddir
 
 NOTE 1
 The codes for the FEATURES are used directly in AVM and Features, so if you
@@ -96,7 +97,7 @@ def make_control(argv):
     parser.add_argument('invocation')
     parser.add_argument('features_hps_month', type=arg_type.features_hps_month)
     parser.add_argument('--test', action='store_true')
-    parser.add_argument('--newdir', action='store_true')
+    parser.add_argument('--olddir', action='store_true')
     arg = parser.parse_args(argv)
     arg.base_name = 'valavm'
     arg.features_group, arg.hps, arg.test_month = arg.features_hps_month.split('-')
@@ -109,11 +110,10 @@ def make_control(argv):
     dir_working = Path().dir_working()
 
     # assure output directory exists
-    use_file = True  # keep True until the Dell runs have finished
-    if arg.newdir:
-        dir_path = dir_working + arg.base_name + '/' + ('%s-%s/') % (arg.features_group, arg.hps)
+    if arg.olddir:
+        dir_path = dir_working + arg.base_name + '/'
     else:
-        dir_path = dir_working + arg.base_name + '/' 
+        dir_path = dir_working + arg.base_name + '/' + ('%s-%s/') % (arg.features_group, arg.hps)
     path_out_file = dir_path + '%s-%s-%s.pickle' % (arg.features_group, arg.hps, arg.test_month),
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
