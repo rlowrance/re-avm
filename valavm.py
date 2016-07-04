@@ -114,7 +114,8 @@ def make_control(argv):
         dir_path = dir_working + arg.base_name + '/'
     else:
         dir_path = dir_working + arg.base_name + '/' + ('%s-%s/') % (arg.features_group, arg.hps)
-    path_out_file = dir_path + '%s-%s-%s.pickle' % (arg.features_group, arg.hps, arg.test_month),
+    out_file_name = '%s-%s-%s.pickle' % (arg.features_group, arg.hps, arg.test_month)
+    path_out_file = dir_path + out_file_name
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
@@ -207,36 +208,9 @@ def do_val(control, samples, save, already_exists):
 
     result = {}
 
-    def fit_and_runOLD(avm, samples_test, samples_train):
-        'return a ResultValue and Importances'
-        def make_importances(model_name, fitted_avm):
-            if model_name == 'ElasticNet':
-                return {
-                    'intercept': fitted_avm.intercept_,
-                    'coefficients': fitted_avm.coef_,
-                    'features_group': control.arg.features_group,
-                    }
-            else:
-                # the tree-based models have the same structure for their important features
-                return {
-                    'feature_importances': fitted_avm.feature_importances_,
-                    'features_group': control.arg.features_group,
-                    }
-
-        fitted_model = avm.fit(samples_train)
-        predictions = avm.predict(samples_test)
-        if predictions is None:
-            print 'no predictions!'
-            pdb.set_trace()
-        actuals = samples_test[layout_transactions.price]
-        return (
-            ResultValue(actuals, predictions),
-            make_importances(avm.model_name, fitted_model),
-            )
-
     def search_en(samples_test, samples_train):
         'search over ElasticNet HPs, appending to result'
-        total = len(control.grid_units_X_seq)
+        total = len(control.grid.units_X_seq)
         total *= len(control.grid.units_y_seq)
         total *= len(control.grid.alpha_seq)
         total *= len(control.grid.l1_ratio_seq)
@@ -280,7 +254,7 @@ def do_val(control, samples, save, already_exists):
 
     def search_gbr(samples_test, samples_train):
         'search over GradientBoostingRegressor HPs, appending to result'
-        total = len(control.grid_n_estimators_seq)
+        total = len(control.grid.n_estimators_seq)
         total *= len(control.grid.max_features_seq)
         total *= len(control.grid.max_depth_seq)
         total *= len(control.grid.loss_seq)
