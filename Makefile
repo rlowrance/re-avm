@@ -245,16 +245,36 @@ $(WORKING)/parcels-features-census_tract.csv: parcels-features.py layout_parcels
 $(WORKING)/parcels-features-zip5.csv: parcels-features.py layout_parcels.py
 	$(PYTHON) parcels-features.py --geo zip5
 
-$(WORKING)/transactions-al-g-sfr.csv: transactions.py \
-	$(WORKING)/census-features-derived.csv \
-	$(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcels-features-zip5.csv 
+# transactions-al-g-srf
+RLA = $(WORKING)/real-estate-log-angeles
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-deeds-090402_07/CAC06037F1.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-deeds-090402_07/CAC06037F2.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-deeds-090402_07/CAC06037F3.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-deeds-090402_07/CAC06037F4.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-deeds-090402_09/CAC06037F5.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-deeds-090402_09/CAC06037F6.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-deeds-090402_09/CAC06037F7.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-deeds-090402_09/CAC06037F8.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-taxrolls-090402_05/CAC06037F1.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-taxrolls-090402_05/CAC06037F2.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-taxrolls-090402_05/CAC06037F3.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-taxrolls-090402_05/CAC06037F4.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-taxrolls-090402_05/CAC06037F5.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-taxrolls-090402_05/CAC06037F6.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-taxrolls-090402_05/CAC06037F7.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(RLA)/corelogic-taxrolls-090402_05/CAC06037F8.zip
+TRANSACTIONS-AL-G-SFR-DEP += $(WORKING)/parcels-features-census_tract.csv
+TRANSACTIONS-AL-G-SFR-DEP += $(WORKING)/parcels-features-zip5.csv
+$(WORKING)/transactions-al-g-sfr.csv: transactions.py $(TRANSACTIONS-AL-G-SFR-DEP)
 	$(PYTHON) transactions.py
 
-$(WORKING)/samples-test%csv $(WORKING)/samples-train%csv $(WORKING)/samples-train-validate%csv $(WORKING)/samples-validate%csv: samples.py $(WORKING)/transactions-al-g-sfr.csv
-	$(PYTHON) samples.py
+# samples.testcsv
+#$(WORKING)/samples-test%csv $(WORKING)/samples-train%csv $(WORKING)/samples-train-validate%csv $(WORKING)/samples-validate%csv: samples.py $(WORKING)/transactions-al-g-sfr.csv
+#	$(PYTHON) samples.py
 
-$(WORKING)/summarize-samples-train.csv: summarize-df.py summarize.py
-	$(PYTHON) summarize-df.py --in samples-train.csv 
+# summarize-samples-train.csv
+#$(WORKING)/summarize-samples-train.csv: summarize-df.py summarize.py
+#	$(PYTHON) summarize-df.py --in samples-train.csv 
 
 # valavm
 valavm_dep += valavm.py
