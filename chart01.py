@@ -4,13 +4,13 @@ INVOCATION
   python chart01.py [--data] [--test]
 
 INPUT FILES
- INPUT/samples-train-validate.csv
+ INPUT/samples-train.csv
 
 OUTPUT FILES
- WORKING/charts/01/data.pickle   # dict: keys=ReductionKey values=ReductionValue
- WORKING/charts/01/median-price.pdf
- WORKING/charts/01/median-price.txt
- WORKING/charts/01/median-price_2006_2007.txt
+ WORKING/chart01/data.pickle   # dict: keys=ReductionKey values=ReductionValue
+ WORKING/chart01/median-price.pdf
+ WORKING/chart01/median-price.txt
+ WORKING/chart01/median-price_2006_2007.txt
 '''
 
 from __future__ import division
@@ -78,7 +78,7 @@ def make_control(argv):
     reduced_file_name = 'data.pickle'
 
     # assure output directory exists
-    dir_path = dir_working + 'charts/01/'
+    dir_path = dir_working + 'chart01/'
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
@@ -86,7 +86,7 @@ def make_control(argv):
         arg=arg,
         base_name=base_name,
         debug=debug,
-        path_in_samples=dir_working + 'samples-train-validate.csv',
+        path_in_samples=dir_working + 'samples-train.csv',
         path_out_graph=dir_path + 'median-price.pdf',
         path_out_stats_all=dir_path + 'price-stats-all.txt',
         path_out_stats_2006_2008=dir_path + 'price-stats-2006-2008.txt',
