@@ -238,6 +238,24 @@ $(WORKING)/rank_models/200512.pickle: $(WORKING)/chart06/data.pickle
 $(WORKING)/census-features-derived.csv: census-features.py layout_census.py
 	$(PYTHON) census-features.py
 
+# parcels-*
+$(WORKING)/parcels-features-census_tract.csv: parcels-features.py layout_parcels.py
+	$(PYTHON) parcels-features.py --geo census_tract
+
+$(WORKING)/parcels-features-zip5.csv: parcels-features.py layout_parcels.py
+	$(PYTHON) parcels-features.py --geo zip5
+
+$(WORKING)/transactions-al-g-sfr.csv: transactions.py \
+	$(WORKING)/census-features-derived.csv \
+	$(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcels-features-zip5.csv 
+	$(PYTHON) transactions.py
+
+$(WORKING)/samples-test%csv $(WORKING)/samples-train%csv $(WORKING)/samples-train-validate%csv $(WORKING)/samples-validate%csv: samples.py $(WORKING)/transactions-al-g-sfr.csv
+	$(PYTHON) samples.py
+
+$(WORKING)/summarize-samples-train.csv: summarize-df.py summarize.py
+	$(PYTHON) summarize-df.py --in samples-train.csv 
+
 # valavm
 valavm_dep += valavm.py
 valavm_dep += AVM.py
@@ -263,20 +281,3 @@ $(WORKING)/valavm/fitted-%.pickle: $(valavm_fitted_dep)
 	$(PYTHON) valavm.py $* --onlyfitted 1
 
 
-# parcels-*
-$(WORKING)/parcels-features-census_tract.csv: parcels-features.py layout_parcels.py
-	$(PYTHON) parcels-features.py --geo census_tract
-
-$(WORKING)/parcels-features-zip5.csv: parcels-features.py layout_parcels.py
-	$(PYTHON) parcels-features.py --geo zip5
-
-$(WORKING)/transactions-al-g-sfr.csv: transactions.py \
-	$(WORKING)/census-features-derived.csv \
-	$(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcels-features-zip5.csv 
-	$(PYTHON) transactions.py
-
-$(WORKING)/samples-test%csv $(WORKING)/samples-train%csv $(WORKING)/samples-train-validate%csv $(WORKING)/samples-validate%csv: samples.py $(WORKING)/transactions-al-g-sfr.csv
-	$(PYTHON) samples.py
-
-$(WORKING)/summarize-samples-train.csv: summarize-df.py summarize.py
-	$(PYTHON) summarize-df.py --in samples-train.csv 
