@@ -8,23 +8,22 @@ where
   FH is FEATURESGROUP-HPS
 
 INPUT FILES
- WORKING/charts/01/data.pickle
- WORKING/samples-train.csv
- WORKING/valavm/YYYYMM.pickle
- WORKING/data.pickle or WORKING/data-subset.pickle
+ WORKING/chart01/data.pickle
+ WORKING/valavm/FH/YYYYMM.pickle
+ WORKING/chart06/FH/data.pickle or WORKING/chart06/data-subset.pickle
 
 INPUT AND OUTPUT FILES (build with --data)
- WORKING/charts/06/data.pickle         | reduced data
- WORKING/charts/06/data-subset.pickle  | reduced data test subset; always built, sometimes read
+ WORKING/chart06/FH/data.pickle         | reduced data
+ WORKING/chart06/FH/data-subset.pickle  | reduced data test subset; always built, sometimes read
 
 OUTPUT FILES
- WORKING/charts/06/FH/data-report.txt | records retained
- WORKING/charts/06/FH/a.pdf           | range of losses by model (graph)
- WORKING/charts/06/FH/b-YYYYMM.txt    | HPs with lowest losses
- WORKING/charts/06/FH/c.pdf           | best model each month
- WORKING/charts/06/FH/d.pdf           | best & 50th best each month
- WORKING/charts/06/FH/e.pdf           | best 50 models each month (was chart07)
- WORKING/charts/06/FH/best.pickle     | dataframe with best choices each month # CHECK
+ WORKING/chart06/FH/data-report.txt | records retained
+ WORKING/chart06/FH/a.pdf           | range of losses by model (graph)
+ WORKING/chart06/FH/b-YYYYMM.txt    | HPs with lowest losses
+ WORKING/chart06/FH/c.pdf           | best model each month
+ WORKING/chart06/FH/d.pdf           | best & 50th best each month
+ WORKING/chart06/FH/e.pdf           | best 50 models each month (was chart07)
+ WORKING/chart06/FH/best.pickle     | dataframe with best choices each month # CHECK
 '''
 
 from __future__ import division
@@ -154,7 +153,7 @@ def make_control(argv):
 
     # assure output directory exists
     dir_working = Path().dir_working()
-    dir_out = dir_working + 'charts/06/' + arg.features_hps + '/'
+    dir_out = dir_working + 'chart06/' + arg.features_hps + '/'
     if not os.path.exists(dir_out):
         os.makedirs(dir_out)
 
@@ -177,12 +176,14 @@ def make_control(argv):
         arg=arg,
         column_definitions=ColumnDefinitions(),
         debug=False,
-        path_in_ege=(
-            dir_working +
-            'valavm/' +
-            arg.features_hps +
-            '-??????.pickle'),
-        path_in_samples=dir_working + 'samples-train.csv',
+        errors=[],
+        exceptions=[],
+        path_in_ege='%svalavm/%s/%s-??????.pickle' % (
+            dir_working,
+            arg.features_hps,
+            arg.features_hps,
+            ),
+        path_in_chart_01_reduction=dir_working + 'chart01/data.pickle',
         path_in_data=dir_out + ('data-subset.pickle' if arg.subset else 'data.pickle'),
         path_out_a=dir_out + 'a.pdf',
         path_out_b=dir_out + 'b-%d.txt',
@@ -195,7 +196,6 @@ def make_control(argv):
         path_out_data_report=dir_out + 'data-report.txt',
         path_out_data_subset=dir_out + 'data-subset.pickle',
         path_out_log=dir_out + 'log' + ('-data' if arg.data else '') + '.txt',
-        path_in_chart_01_reduction=dir_working + 'charts/01/data.pickle',
         random_seed=random_seed,
         sampling_rate=0.02,
         test=arg.test,
@@ -220,7 +220,7 @@ def select_and_sort(df, year, month, model):
     return subset.sort_values('mae')
 
 
-def make_chart_a(reduction, control):
+def make_chart_a(reduction, median_prices, control):
     'graph range of errors by month by method'
     print 'make_chart_a'
 
@@ -234,7 +234,7 @@ def make_chart_a(reduction, control):
                  ]
             plt.plot(y, label=model)  # the reduction is sorted by increasing mae
             plt.yticks(size='xx-small')
-            plt.title('%s' % (validation_month),
+            plt.title('yr mnth %s med price $%.0f' % (validation_month, median_prices[validation_month]),
                       loc='right',
                       fontdict={'fontsize': 'xx-small',
                                 'style': 'italic',
@@ -249,7 +249,6 @@ def make_chart_a(reduction, control):
         plt.figure()  # new figure
         # plt.suptitle('Loss by Test Period, Tree Max Depth, N Trees')  # overlays the subplots
         axes_number = 0
-        # MAYBE: add first 6 months in 2008
         validation_months = ('200612', '200701', '200702', '200703', '200704', '200705',
                              '200706', '200707', '200708', '200709', '200710', '200711',
                              )
@@ -386,6 +385,9 @@ def make_chart_cd(reduction, median_prices, control, detail_line_indices, report
     r = ChartCDReport(control.column_definitions, control.test)
     for validation_month in control.validation_months_long:
         median_price = median_prices[validation_month]
+        if validation_month not in reduction:
+            control.exceptions.append('reduction is missing month %s' % validation_month)
+            continue
         month_result_keys = reduction[validation_month].keys()
         for detail_line_index in detail_line_indices:
             if detail_line_index >= len(month_result_keys):
@@ -550,7 +552,10 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
             print validation_month
             pdb.set_trace()
         next_month = Month(validation_month).increment(1).as_str()
-        validation_month_keys = list(reduction[validation_month].keys())
+        if next_month not in reduction:
+            control.exceptions.append('%s not in reduction (charts ef)' % next_month)
+            print control.exception
+            continue
         cum_weighted_predictions = None
         cum_weights = 0
         mae_validation = None
@@ -558,10 +563,16 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
         # write lines for the k best individual models
         # accumulate info needed to build the ensemble model
         index0_mae = None
-        for index in xrange(k):
-            validation_month_key = validation_month_keys[index]
-            validation_month_value = reduction[validation_month][validation_month_key]
-            next_month_value = reduction[next_month][validation_month_key]
+        for index, next_month_key in enumerate(reduction[next_month].keys()):
+            # print only k rows
+            if index >= k:
+                break
+            print index, next_month_key
+            validation_month_value = reduction[validation_month][next_month_key]
+            print next_month
+            if next_month == '200701':
+                pdb.set_trace()
+            next_month_value = reduction[next_month][next_month_key]
             if mae_validation is not None:
                 trace_unless(mae_validation <= validation_month_value.mae,
                              'should be non-decreasing',
@@ -575,12 +586,12 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
             weight = math.exp(-mae_validation / 100000.0)
             e.detail_line(
                 validation_month=validation_month,
-                model=validation_month_key.model,
-                n_months_back=validation_month_key.n_months_back,
-                n_estimators=validation_month_key.n_estimators,
-                max_features=validation_month_key.max_features,
-                max_depth=validation_month_key.max_depth,
-                learning_rate=validation_month_key.learning_rate,
+                model=next_month_key.model,
+                n_months_back=next_month_key.n_months_back,
+                n_estimators=next_month_key.n_estimators,
+                max_features=next_month_key.max_features,
+                max_depth=next_month_key.max_depth,
+                learning_rate=next_month_key.learning_rate,
                 rank=index + 1,
                 mae_validation=mae_validation,
                 weight=weight,
@@ -626,7 +637,7 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
     regrets = []
     relative_errors = []
     for validation_month in control.validation_months:
-        next_month_value = reduction[next_month][validation_month_key]
+        next_month_value = reduction[next_month][next_month_key]
         regret = mae[validation_month].ensemble - mae[validation_month].best_next_month
         regrets.append(regret)
         relative_error = regret / median_price[validation_month]
@@ -695,8 +706,7 @@ def make_charts_efg(reduction, actuals, median_prices, control):
 def make_charts(reduction, actuals, median_prices, control):
     print 'making charts'
 
-    pdb.set_trace()
-    make_chart_a(reduction, control)
+    make_chart_a(reduction, median_prices, control)
     make_chart_b(reduction, control)
 
     make_chart_cd(reduction, median_prices, control, (0,), 'c')
@@ -729,7 +739,10 @@ def errors(actuals, predictions):
 
 
 def extract_yyyymm(path):
-    return path.split('/')[4].split('.')[0].split('-')[2]
+    file_name = path.split('/')[-1]
+    base, suffix = file_name.split('.')
+    yyyymm = base.split('-')[-1]
+    return yyyymm
 
 
 def make_data(control):
@@ -811,6 +824,8 @@ def make_data(control):
                     counter['EOFError'] += 1
                     print 'found EOFError path in record %d: %s' % (input_record_number, path)
                     print 'continuing'
+                    if input_record_number == 1:
+                        control.errors.append('eof record 1; path = %s' % path)
                     break
                 except pickle.UnpicklingError as e:
                     counter['UnpicklingError'] += 1
@@ -840,7 +855,7 @@ def make_data(control):
     return reduction, all_actuals, counters
 
 
-class Sampler(object):
+class SamplerOLD(object):
     def __init__(self, d, fraction):
         self._d = d
         self._fraction = fraction
@@ -863,11 +878,44 @@ class Sampler(object):
 def make_subset(reduction, fraction):
     'return a random sample of the reduction stratified by validation_month as an ordereddict'
     # use same keys (models) every validation month
-    result = {}
+    # generate candidate for common keys in the subset
+    pdb.set_trace()
+    subset_common_keys = None
     for validation_month, validation_dict in reduction.iteritems():
-        result[validation_month] = Sampler(validation_dict, fraction).sample()
-        check_key_order(result[validation_month])  # verify sorted lowest to highest mae
-    return result
+        if len(validation_dict) == 0:
+            print 'zero length validation dict', validation_month
+            pdb.set_trace()
+        keys = validation_dict.keys()
+        n_to_keep = int(len(keys) * fraction)
+        subset_common_keys_list = random.sample(keys, n_to_keep)
+        subset_common_keys = set(subset_common_keys_list)
+        break
+
+    # remove keys from subset_common_keys that are not in each validation_month
+    print 'n candidate common keys', len(subset_common_keys)
+    for validation_month, validation_dict in reduction.iteritems():
+        print 'make_subset', validation_month
+        validation_keys = set(validation_dict.keys())
+        for key in subset_common_keys:
+            if key not in validation_keys:
+                print 'not in', validation_month, ': ', key
+                subset_common_keys -= set(key)
+    print 'n final common keys', len(subset_common_keys)
+    pdb.set_trace()
+
+    # build reduction subset using the actual common keys
+    results = {}
+    for validation_month, validation_dict in reduction.iteritems():
+        d = {
+            common_key: validation_dict[common_key]
+            for common_key in subset_common_keys
+            }
+        # sort by MAE, low to high
+        pdb.set_trace()
+        od = collections.OrderedDict(sorted(d.items(), key=lambda x: x[1].mae))
+        results[validation_month] = od
+
+    return results
 
 
 def make_median_price(path):
@@ -907,6 +955,11 @@ def main(argv):
         median_price = make_median_price(control.path_in_chart_01_reduction)
         lap('make_median_price')
         reduction, all_actuals, counters = make_data(control)
+        if control.errors is not None:
+            print 'stopping because of errors'
+            for error in control.errors:
+                print error
+            pdb.set_trace()
         lap('make_data')
         ReportReduction(counters).write(control.path_out_data_report)
         subset = make_subset(reduction, control.sampling_rate)
@@ -943,6 +996,14 @@ def main(argv):
         print 'DISCARD OUTPUT: debug'
     if control.arg.subset:
         print 'DISCARD OUTPUT: subset'
+    if len(control.errors) != 0:
+        print 'DISCARD OUTPUT: ERRORS'
+        for error in control.errors:
+            print error
+    if len(control.exceptions) != 0:
+        print 'DISCARD OUTPUT; EXCEPTIONS'
+        for exception in control.expections:
+            print exception
     print 'done'
 
     return
