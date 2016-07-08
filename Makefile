@@ -90,6 +90,7 @@ VALAVM_SW_ALL_HP     += $(WORKING)/valavm/sw-all/sw-all-200711.pickle
 VALAVM_SW_ALL_JUDITH += $(WORKING)/valavm/sw-all/sw-all-200712.pickle
 VALAVM_SW_ALL_JUDITH += $(WORKING)/valavm/sw-all/sw-all-200801.pickle
 VALAVM_SW_ALL_JUDITH += $(WORKING)/valavm/sw-all/sw-all-200801.pickle
+VALAVM_SW_ALL_JUDITH += $(WORKING)/valavm/sw-all/sw-all-200802.pickle
 VALAVM_SW_ALL_JUDITH += $(WORKING)/valavm/sw-all/sw-all-200803.pickle
 VALAVM_SW_ALL_JUDITH += $(WORKING)/valavm/sw-all/sw-all-200804.pickle
 VALAVM_SW_ALL_JUDITH += $(WORKING)/valavm/sw-all/sw-all-200805.pickle
@@ -108,6 +109,53 @@ VALAVM_SW_ALL += $(VALAVM_SW_ALL_HP)
 VALAVM_SW_ALL += $(VALAVM_SW_ALL_JUDITH)
 VALAVM_SW_ALL += $(VALAVM_SW_ALL_X)
 ALL += $(VALAVM_SW_ALL)
+
+VALAVM_S_ALL_HP     += $(WORKING)/valavm/s-all/s-all-200512.pickle
+VALAVM_S_ALL_HP     += $(WORKING)/valavm/s-all/s-all-200601.pickle
+VALAVM_S_ALL_HP     += $(WORKING)/valavm/s-all/s-all-200602.pickle
+VALAVM_S_ALL_HP     += $(WORKING)/valavm/s-all/s-all-200603.pickle
+VALAVM_S_ALL_ROY    += $(WORKING)/valavm/s-all/s-all-200604.pickle
+VALAVM_S_ALL_ROY    += $(WORKING)/valavm/s-all/s-all-200605.pickle
+VALAVM_S_ALL_ROY    += $(WORKING)/valavm/s-all/s-all-200606.pickle
+VALAVM_S_ALL_ROY    += $(WORKING)/valavm/s-all/s-all-200607.pickle
+VALAVM_S_ALL_ROY    += $(WORKING)/valavm/s-all/s-all-200608.pickle
+VALAVM_S_ALL_ROY    += $(WORKING)/valavm/s-all/s-all-200609.pickle
+VALAVM_S_ALL_ROY    += $(WORKING)/valavm/s-all/s-all-200610.pickle
+VALAVM_S_ALL_ROY    += $(WORKING)/valavm/s-all/s-all-200611.pickle
+VALAVM_S_ALL_ROY    += $(WORKING)/valavm/s-all/s-all-200612.pickle
+VALAVM_S_ALL_ROY    += $(WORKING)/valavm/s-all/s-all-200701.pickle
+VALAVM_S_ALL_ROY    += $(WORKING)/valavm/s-all/s-all-200702.pickle
+VALAVM_S_ALL_ROY    += $(WORKING)/valavm/s-all/s-all-200703.pickle
+VALAVM_S_ALL_HP     += $(WORKING)/valavm/s-all/s-all-200704.pickle
+VALAVM_S_ALL_HP     += $(WORKING)/valavm/s-all/s-all-200705.pickle
+VALAVM_S_ALL_HP     += $(WORKING)/valavm/s-all/s-all-200706.pickle
+VALAVM_S_ALL_HP     += $(WORKING)/valavm/s-all/s-all-200707.pickle
+VALAVM_S_ALL_HP     += $(WORKING)/valavm/s-all/s-all-200708.pickle
+VALAVM_S_ALL_HP     += $(WORKING)/valavm/s-all/s-all-200709.pickle
+VALAVM_S_ALL_HP     += $(WORKING)/valavm/s-all/s-all-200710.pickle
+VALAVM_S_ALL_HP     += $(WORKING)/valavm/s-all/s-all-200711.pickle
+VALAVM_S_ALL_JUDITH += $(WORKING)/valavm/s-all/s-all-200712.pickle
+VALAVM_S_ALL_JUDITH += $(WORKING)/valavm/s-all/s-all-200801.pickle
+VALAVM_S_ALL_JUDITH += $(WORKING)/valavm/s-all/s-all-200801.pickle
+VALAVM_S_ALL_JUDITH += $(WORKING)/valavm/s-all/s-all-200802.pickle
+VALAVM_S_ALL_JUDITH += $(WORKING)/valavm/s-all/s-all-200803.pickle
+VALAVM_S_ALL_JUDITH += $(WORKING)/valavm/s-all/s-all-200804.pickle
+VALAVM_S_ALL_JUDITH += $(WORKING)/valavm/s-all/s-all-200805.pickle
+VALAVM_S_ALL_JUDITH += $(WORKING)/valavm/s-all/s-all-200806.pickle
+VALAVM_S_ALL_JUDITH += $(WORKING)/valavm/s-all/s-all-200807.pickle
+VALAVM_S_ALL_X      += $(WORKING)/valavm/s-all/s-all-200808.pickle
+VALAVM_S_ALL_X      += $(WORKING)/valavm/s-all/s-all-200809.pickle
+VALAVM_S_ALL_X      += $(WORKING)/valavm/s-all/s-all-200810.pickle
+VALAVM_S_ALL_X      += $(WORKING)/valavm/s-all/s-all-200811.pickle
+VALAVM_S_ALL_X      += $(WORKING)/valavm/s-all/s-all-200812.pickle
+VALAVM_S_ALL_X      += $(WORKING)/valavm/s-all/s-all-200901.pickle
+VALAVM_S_ALL_X      += $(WORKING)/valavm/s-all/s-all-200902.pickle
+VALAVM_S_ALL += $(VALAVM_S_ALL_DELL)
+VALAVM_S_ALL += $(VALAVM_S_ALL_ROY)
+VALAVM_S_ALL += $(VALAVM_S_ALL_HP)
+VALAVM_S_ALL += $(VALAVM_S_ALL_JUDITH)
+VALAVM_S_ALL += $(VALAVM_S_ALL_X)
+ALL += $(VALAVM_S_ALL)
 
 VALAVM_SWPN_BEST1 += $(WORKING)/valavm/swpn-best1/swpn-best1-200512.pickle
 VALAVM_SWPN_BEST1 += $(WORKING)/valavm/swpn-best1/swpn-best1-200601.pickle
@@ -155,11 +203,11 @@ VALAVM_SWPN_BEST1 += $(WORKING)/valavm/swpn-best1/swpn-best1-200902.pickle
 #
 # name one chart from each set of used chart
 # Note: many charts supported preliminary analysis not in the final paper
-CHARTSDIR = $(WORKING)/charts
-CHARTS01 += $(CHARTSDIR)/01/median-price.pdf
-CHARTS06 += $(CHARTSDIR)/06/a.pdf
-CHARTS07 += $(CHARTSDIR)/07/a-nbest-1-nworst-0.txt
-ALLCHARTS = $(CHARTS01) $(CHARTS02) $(CHARTS03)
+CHART01 += $(WORKING)/chart01/median-price.pdf
+CHART06 += $(WORKING)/chart06/sw-all/a.pdf
+CHART06 += $(WORKING)/chart06/swpn-all/a.pdf
+CHART07 += $(WORKING)/chart07/a-nbest-1-nworst-0.txt
+ALLCHARTS = $(CHART01) $(CHART06) $(CHART07)
 
 ALL += $(ALLCHARTS)
 
@@ -169,8 +217,14 @@ ALL += $(WORKING)/rank_models/200512.pickle
 .PHONY : all
 all: $(ALL)
 
+.PHONY : dell-s-all
+dell-s-all: $(VALAVM_S_ALL)
+
 .PHONY : dell-swpn-all
 dell-swpn-all: $(VALAVM_SWPN_ALL_DELL)
+
+.PHONY : roy-s-all
+roy-s-all: $(VALAVM_S_ALL)
 
 .PHONY : roy-sw-all
 roy-sw-all: $(VALAVM_SW_ALL_ROY)
@@ -190,40 +244,48 @@ judith-swpn-all: $(VALAVM_SWPN_ALL_JUDITH)
 
 judith-sw-all: $(VALAVM_SW_ALL_JUDITH)
 
-.PHONY: charts01
-charts01: $(CHARTS01)
+.PHONY: chart01
+chart01: $(CHART01)
 
 .PHONY: chart06
-charts06: $(CHARTS06)
+chart06: $(CHART06)
+
+.PHONY: chart07
+chart06: $(CHART07)
+
+# census-features-derived.csv
+$(WORKING)/census-features-derived.csv: census-features.py layout_census.py
+	$(PYTHON) census-features.py
 
 
 # builds for charts actually used
+# NOTE: some charts were created and not used ihe final report
 
 # chart01
-$(CHARTSDIR)/01/data.pickle: chart01.py $(WORKING)/samples-train.csv
+$(WORKING)/chart01/data.pickle: chart01.py $(WORKING)/samples-train.csv
 	$(PYTHON) chart01.py --data
 
-$(CHARTSDIR)/01/median-price.pdf: chart01.py $(CHARTSDIR)/01/data.pickle
+$(WORKING)/chart01/median-price.pdf: chart01.py $(WORKING)/chart01/data.pickle
 	$(PYTHON) chart01.py
 	
-#$(WORKING)/chart01/data.pickle: chart01.py $(WORKING)/samples-train-validate.csv
-#	$(PYTHON) chart01.py --data
-#
-#$(WORKING)/chart01/median-price.pdf: chart01.py $(WORKING)/chart01/data.pickle
-#	$(PYTHON) chart01.py
-	
 # chart06 
-$(CHARTSDIR)/06/data.pickle: chart06.py $(CHARTSDIR)/01/data.pickle $(VALAVM)
-	$(PYTHON) chart06.py  --data
+$(WORKING)/chart06/sw-all/data.pickle: chart06.py $(WORKING)/chart01/data.pickle $(VALAVM)
+	$(PYTHON) chart06.py sw-all --data
 
-$(CHARTSDIR)/06/a.pdf: chart06.py $(CHARTSDIR)/06/data.pickle
-	$(PYTHON) chart06.py 
+$(WORKING)/chart06/sw-all/a.pdf: chart06.py $(WORKING)/chart06/sw-all/data.pickle
+	$(PYTHON) chart06.py sw-all
+
+$(WORKING)/chart06/swpn-all/data.pickle: chart06.py $(WORKING)/chart01/data.pickle $(VALAVM)
+	$(PYTHON) chart06.py swpn-all --data
+
+$(WORKING)/chart06/swpn-all/a.pdf: chart06.py $(WORKING)/chart06/swpn-all/data.pickle
+	$(PYTHON) chart06.py swpn-all
 
 # chart07
-$(WORKING)/chart07/data.pickle: chart07.py $(VALAVM_FITTED)
+$(WORKING)/07/chart07/data.pickle: chart07.py $(VALAVM_FITTED)
 	$(PYTHON) chart07.py --data
 
-$(WORKING)/chart07/a-nbest-1-nworst-0.txt: chart07.py $(WORKING)/chart07/data.pickle
+$(WORKING)/07/chart07/a-nbest-1-nworst-0.txt: chart07.py $(WORKING)/chart07/data.pickle
 	$(PYTHON) chart07.py
 
 .PHONY : parcels-features
@@ -231,12 +293,9 @@ parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcel
 
 
 # rank_models
-$(WORKING)/rank_models/200512.pickle: $(WORKING)/chart06/data.pickle
+$(WORKING)/rank_models/200512.pickle: rank_models.py $(WORKING)/chart06/data.pickle
 	$(PYTHON) rank_models.py
 
-
-$(WORKING)/census-features-derived.csv: census-features.py layout_census.py
-	$(PYTHON) census-features.py
 
 # parcels-*
 $(WORKING)/parcels-features-census_tract.csv: parcels-features.py layout_parcels.py
@@ -285,6 +344,9 @@ valavm_dep += AVM_elastic_net.py
 valavm_dep += $(WORKING)/samples-train.csv
 
 # valavm
+
+$(WORKING)/valavm/s-all/%.pickle: $(valavm_dep)
+	$(PYTHON) valavm.py $*
 
 $(WORKING)/valavm/sw-all/%.pickle: $(valavm_dep)
 	$(PYTHON) valavm.py $*
