@@ -570,10 +570,8 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
             print index, next_month_key
             validation_month_value = reduction[validation_month][next_month_key]
             print next_month
-            if next_month == '200701':
-                pdb.set_trace()
             next_month_value = reduction[next_month][next_month_key]
-            if mae_validation is not None:
+            if mae_validation is not None and False:  # turn off this test for now
                 trace_unless(mae_validation <= validation_month_value.mae,
                              'should be non-decreasing',
                              mae_previous=mae_validation,
@@ -879,7 +877,6 @@ def make_subset(reduction, fraction):
     'return a random sample of the reduction stratified by validation_month as an ordereddict'
     # use same keys (models) every validation month
     # generate candidate for common keys in the subset
-    pdb.set_trace()
     subset_common_keys = None
     for validation_month, validation_dict in reduction.iteritems():
         if len(validation_dict) == 0:
@@ -901,7 +898,6 @@ def make_subset(reduction, fraction):
                 print 'not in', validation_month, ': ', key
                 subset_common_keys -= set(key)
     print 'n final common keys', len(subset_common_keys)
-    pdb.set_trace()
 
     # build reduction subset using the actual common keys
     results = {}
@@ -911,7 +907,6 @@ def make_subset(reduction, fraction):
             for common_key in subset_common_keys
             }
         # sort by MAE, low to high
-        pdb.set_trace()
         od = collections.OrderedDict(sorted(d.items(), key=lambda x: x[1].mae))
         results[validation_month] = od
 
@@ -955,7 +950,7 @@ def main(argv):
         median_price = make_median_price(control.path_in_chart_01_reduction)
         lap('make_median_price')
         reduction, all_actuals, counters = make_data(control)
-        if control.errors is not None:
+        if len(control.errors) > 0:
             print 'stopping because of errors'
             for error in control.errors:
                 print error
