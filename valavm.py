@@ -205,6 +205,16 @@ def do_val(control, samples, save, already_exists):
         'convert to 4-character string (for printing)'
         return max_features[:4] if isinstance(max_features, str) else ('%4.1f' % max_features)
 
+    def report(count, total, model_name):
+        print 'fitting %d out of %d %s %s %s' % (
+            count,
+            total,
+            model_name,
+            control.arg.features_group,
+            control.hps,
+            )
+
+            
     result = {}
 
     def search_en(samples_test, samples_train):
@@ -219,7 +229,7 @@ def do_val(control, samples, save, already_exists):
                 for alpha in control.grid.alpha_seq:
                     for l1_ratio in control.grid.l1_ratio_seq:
                         count += 1
-                        print 'fitting %d out of %d en hp collections' % (count, total)
+                        report(count, total, 'en')
                         print (
                             control.arg.test_month,  'en', n_months_back, units_X[:3], units_y[:3],
                             alpha, l1_ratio,
@@ -265,7 +275,7 @@ def do_val(control, samples, save, already_exists):
                     for loss in control.grid.loss_seq:
                         for learning_rate in control.grid.learning_rate_seq:
                             count += 1
-                            print 'fitting %d out of %d gbr hp collections' % (count, total)
+                            report(count, total, 'gbr')
                             print (
                                 control.arg.test_month, 'gbr', n_months_back,
                                 n_estimators, max_features_s(max_features), max_depth, loss, learning_rate,
@@ -310,7 +320,7 @@ def do_val(control, samples, save, already_exists):
             for max_features in control.grid.max_features_seq:
                 for max_depth in control.grid.max_depth_seq:
                     count += 1
-                    print 'fitting %d out of %d rf hp collections' % (count, total)
+                    report(count, total, 'rf')
                     print (
                         control.arg.test_month, 'rfr', n_months_back,
                         n_estimators, max_features_s(max_features), max_depth
