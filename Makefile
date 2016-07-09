@@ -254,6 +254,7 @@ VALAVM_SWPN_BEST1 += $(WORKING)/valavm/swpn-best1/swpn-best1-200902.pickle
 # name one chart from each set of used chart
 # Note: many charts supported preliminary analysis not in the final paper
 CHART01 += $(WORKING)/chart01/median-price.pdf
+CHART06 += $(WORKING)/chart06/s-all/a.pdf
 CHART06 += $(WORKING)/chart06/sw-all/a.pdf
 CHART06 += $(WORKING)/chart06/swpn-all/a.pdf
 CHART07 += $(WORKING)/chart07/a-nbest-1-nworst-0.txt
@@ -301,7 +302,7 @@ chart01: $(CHART01)
 chart06: $(CHART06)
 
 .PHONY: chart07
-chart06: $(CHART07)
+chart07: $(CHART07)
 
 # census-features-derived.csv
 $(WORKING)/census-features-derived.csv: census-features.py layout_census.py
@@ -319,6 +320,12 @@ $(WORKING)/chart01/median-price.pdf: chart01.py $(WORKING)/chart01/data.pickle
 	$(PYTHON) chart01.py
 	
 # chart06 
+$(WORKING)/chart06/s-all/data.pickle: chart06.py $(WORKING)/chart01/data.pickle $(VALAVM)
+	$(PYTHON) chart06.py s-all --data
+
+$(WORKING)/chart06/s-all/a.pdf: chart06.py $(WORKING)/chart06/s-all/data.pickle
+	$(PYTHON) chart06.py s-all
+
 $(WORKING)/chart06/sw-all/data.pickle: chart06.py $(WORKING)/chart01/data.pickle $(VALAVM)
 	$(PYTHON) chart06.py sw-all --data
 
