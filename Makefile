@@ -111,56 +111,56 @@ VALAVM_SW_ALL += $(VALAVM_SW_ALL_X)
 ALL += $(VALAVM_SW_ALL)
 
 # NOTE: make these files only after the valavm swpn-best1 files are remade
-#VALAVM_SWP_ALL_HP     += $(WORKING)/valavm/swp-all/swp-all-200512.pickle
-#VALAVM_SWP_ALL_HP     += $(WORKING)/valavm/swp-all/swp-all-200601.pickle
-#VALAVM_SWP_ALL_HP     += $(WORKING)/valavm/swp-all/swp-all-200602.pickle
-#VALAVM_SWP_ALL_HP     += $(WORKING)/valavm/swp-all/swp-all-200603.pickle
-#
-#VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200604.pickle
-#VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200605.pickle
-#VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200606.pickle
-#VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200607.pickle
-#VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200608.pickle
-#VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200609.pickle
-#VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200610.pickle
-#VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200611.pickle
-#VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200612.pickle
-#VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200701.pickle
-#VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200702.pickle
-#VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200703.pickle
-#
-#VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200704.pickle
-#VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200705.pickle
-#VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200706.pickle
-#VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200707.pickle
-#VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200708.pickle
-#VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200709.pickle
-#VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200710.pickle
-#
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200711.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200712.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200801.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200802.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200803.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200804.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200805.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200806.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200807.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200808.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200809.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200810.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200811.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200812.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200901.pickle
-#VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200902.pickle
-#
-#VALAVM_SWP_ALL += $(VALAVM_SWP_ALL_DELL)
-#VALAVM_SWP_ALL += $(VALAVM_SWP_ALL_ROY)
-#VALAVM_SWP_ALL += $(VALAVM_SWP_ALL_HP)
-#VALAVM_SWP_ALL += $(VALAVM_SWP_ALL_JUDITH)
-#VALAVM_SWP_ALL += $(VALAVM_SWP_ALL_X)
-#
-#ALL += $(VALAVM_SWP_ALL)
+VALAVM_SWP_ALL_HP     += $(WORKING)/valavm/swp-all/swp-all-200512.pickle
+VALAVM_SWP_ALL_HP     += $(WORKING)/valavm/swp-all/swp-all-200601.pickle
+VALAVM_SWP_ALL_HP     += $(WORKING)/valavm/swp-all/swp-all-200602.pickle
+VALAVM_SWP_ALL_HP     += $(WORKING)/valavm/swp-all/swp-all-200603.pickle
+
+VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200604.pickle
+VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200605.pickle
+VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200606.pickle
+VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200607.pickle
+VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200608.pickle
+VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200609.pickle
+VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200610.pickle
+VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200611.pickle
+VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200612.pickle
+VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200701.pickle
+VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200702.pickle
+VALAVM_SWP_ALL_ROY    += $(WORKING)/valavm/swp-all/swp-all-200703.pickle
+
+VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200704.pickle
+VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200705.pickle
+VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200706.pickle
+VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200707.pickle
+VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200708.pickle
+VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200709.pickle
+VALAVM_SWP_ALL_JUDITH += $(WORKING)/valavm/swp-all/swp-all-200710.pickle
+
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200711.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200712.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200801.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200802.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200803.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200804.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200805.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200806.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200807.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200808.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200809.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200810.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200811.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200812.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200901.pickle
+VALAVM_SWP_ALL_DELL   += $(WORKING)/valavm/swp-all/swp-all-200902.pickle
+
+VALAVM_SWP_ALL += $(VALAVM_SWP_ALL_DELL)
+VALAVM_SWP_ALL += $(VALAVM_SWP_ALL_ROY)
+VALAVM_SWP_ALL += $(VALAVM_SWP_ALL_HP)
+VALAVM_SWP_ALL += $(VALAVM_SWP_ALL_JUDITH)
+VALAVM_SWP_ALL += $(VALAVM_SWP_ALL_X)
+
+ALL += $(VALAVM_SWP_ALL)
 
 VALAVM_SWPN_ALL_DELL   += $(WORKING)/valavm/swpn-all/swpn-all-200512.pickle
 VALAVM_SWPN_ALL_DELL   += $(WORKING)/valavm/swpn-all/swpn-all-200601.pickle
@@ -257,7 +257,10 @@ CHART01 += $(WORKING)/chart01/median-price.pdf
 CHART06 += $(WORKING)/chart06/s-all/a.pdf
 CHART06 += $(WORKING)/chart06/sw-all/a.pdf
 CHART06 += $(WORKING)/chart06/swpn-all/a.pdf
-#CHART07 += $(WORKING)/chart07/a-nbest-1-nworst-0.txt
+CHART07 += $(WORKING)/chart07/s-all/b.txt
+CHART07 += $(WORKING)/chart07/sw-all/b.txt
+#CHART07 += $(WORKING)/chart07/swp-all/b.txt
+CHART07 += $(WORKING)/chart07/swpn-all/b.txt
 ALLCHARTS = $(CHART01) $(CHART06) $(CHART07)
 
 ALL += $(ALLCHARTS)
@@ -279,6 +282,12 @@ roy-s-all: $(VALAVM_S_ALL)
 
 .PHONY : roy-sw-all
 roy-sw-all: $(VALAVM_SW_ALL_ROY)
+
+.PHONY : dell-swp-all hp-swp-all judith-swp-all roy-swp-all
+dell-swp-all: $(VALAVM_SWP_ALL_DELL)
+hp-swp-all: $(VALAVM_SWP_ALL_HP)
+judith-swp-all: $(VALAVM_SWP_ALL_JUDTIH)
+roy-swp-all: $(VALAVM_SWP_ALL_ROY)
 
 .PHONY : roy-swpn-all
 roy-swpn-all: $(VALAVM_SWPN_ALL_ROY)
@@ -339,11 +348,23 @@ $(WORKING)/chart06/swpn-all/a.pdf: chart06.py $(WORKING)/chart06/swpn-all/data.p
 	$(PYTHON) chart06.py swpn-all
 
 # chart07
-$(WORKING)/07/chart07/data.pickle: chart07.py $(VALAVM_FITTED)
-	$(PYTHON) chart07.py --data
+$(WORKING)/chart07/s-all/data.pickle: chart07.py $(VALAVM_FITTED)
+	$(PYTHON) chart07.py s-all --data
 
-$(WORKING)/07/chart07/a-nbest-1-nworst-0.txt: chart07.py $(WORKING)/chart07/data.pickle
-	$(PYTHON) chart07.py
+$(WORKING)/chart07/s-all/b.txt: chart07.py $(WORKING)/chart07/s-all/data.pickle
+	$(PYTHON) chart07.py s-all
+
+$(WORKING)/chart07/sw-all/data.pickle: chart07.py $(VALAVM_FITTED)
+	$(PYTHON) chart07.py sw-all --data
+
+$(WORKING)/chart07/sw-all/b.txt: chart07.py $(WORKING)/chart07/s-all/data.pickle
+	$(PYTHON) chart07.py sw-all
+
+$(WORKING)/chart07/swpn-all/data.pickle: chart07.py $(VALAVM_FITTED)
+	$(PYTHON) chart07.py swpn-all --data
+
+$(WORKING)/chart07/swpn-all/b.txt: chart07.py $(WORKING)/chart07/s-all/data.pickle
+	$(PYTHON) chart07.py swpn-all
 
 .PHONY : parcels-features
 parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcels-features-zip5.csv
