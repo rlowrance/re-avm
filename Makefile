@@ -256,10 +256,12 @@ CHART01 += $(WORKING)/chart01/median-price.pdf
 CHART06 += $(WORKING)/chart06/s-all/a.pdf
 CHART06 += $(WORKING)/chart06/sw-all/a.pdf
 CHART06 += $(WORKING)/chart06/swpn-all/a.pdf
+
 CHART07 += $(WORKING)/chart07/s-all/b.txt
 CHART07 += $(WORKING)/chart07/sw-all/b.txt
 #CHART07 += $(WORKING)/chart07/swp-all/b.txt
 CHART07 += $(WORKING)/chart07/swpn-all/b.txt
+
 ALLCHARTS = $(CHART01) $(CHART06) $(CHART07)
 
 ALL += $(ALLCHARTS)
@@ -356,13 +358,13 @@ $(WORKING)/chart07/s-all/b.txt: chart07.py $(WORKING)/chart07/s-all/data.pickle
 $(WORKING)/chart07/sw-all/data.pickle: chart07.py $(VALAVM_FITTED)
 	$(PYTHON) chart07.py sw-all --data
 
-$(WORKING)/chart07/sw-all/b.txt: chart07.py $(WORKING)/chart07/s-all/data.pickle
+$(WORKING)/chart07/sw-all/b.txt: chart07.py $(WORKING)/chart07/sw-all/data.pickle
 	$(PYTHON) chart07.py sw-all
 
 $(WORKING)/chart07/swpn-all/data.pickle: chart07.py $(VALAVM_FITTED)
 	$(PYTHON) chart07.py swpn-all --data
 
-$(WORKING)/chart07/swpn-all/b.txt: chart07.py $(WORKING)/chart07/s-all/data.pickle
+$(WORKING)/chart07/swpn-all/b.txt: chart07.py $(WORKING)/chart07/swpn-all/data.pickle
 	$(PYTHON) chart07.py swpn-all
 
 .PHONY : parcels-features
