@@ -110,7 +110,6 @@ VALAVM_SW_ALL += $(VALAVM_SW_ALL_JUDITH)
 VALAVM_SW_ALL += $(VALAVM_SW_ALL_X)
 ALL += $(VALAVM_SW_ALL)
 
-# NOTE: make these files only after the valavm swpn-best1 files are remade
 VALAVM_SWP_ALL_HP     += $(WORKING)/valavm/swp-all/swp-all-200512.pickle
 VALAVM_SWP_ALL_HP     += $(WORKING)/valavm/swp-all/swp-all-200601.pickle
 VALAVM_SWP_ALL_HP     += $(WORKING)/valavm/swp-all/swp-all-200602.pickle
@@ -283,11 +282,11 @@ roy-s-all: $(VALAVM_S_ALL)
 .PHONY : roy-sw-all
 roy-sw-all: $(VALAVM_SW_ALL_ROY)
 
-.PHONY : dell-swp-all hp-swp-all judith-swp-all roy-swp-all
-dell-swp-all: $(VALAVM_SWP_ALL_DELL)
-hp-swp-all: $(VALAVM_SWP_ALL_HP)
-judith-swp-all: $(VALAVM_SWP_ALL_JUDTIH)
-roy-swp-all: $(VALAVM_SWP_ALL_ROY)
+.PHONY : valavm-swp-dell valavm-swp-judith valavm-swp-hp valavm-swpn-roy
+valavm-swp-dell: $(VALAVM_SWP_ALL_DELL)
+valavm-swp-judith: $(VALAVM_SWP_ALL_JUDITH)
+valavm-swp-hp: $(VALAVM_SWP_ALL_HP)
+valavm-swp-roy: $(VALAVM_SWP_ALL_ROY)
 
 .PHONY : roy-swpn-all
 roy-swpn-all: $(VALAVM_SWPN_ALL_ROY)
