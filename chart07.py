@@ -117,14 +117,15 @@ def make_chart_b(control, data):
 
     def make_mean_importance_by_feature(test_months):
         'return dict[feature_name] = float, the mean importance of the feature'
-        feature_names = Features().ege_names()
+        feature_names = Features().ege_names(control.arg.features)
         mean_importance = {}  # key = feature_name
         for feature_index, feature_name in enumerate(feature_names):
             # build vector of feature_importances for feature_name
-            feature_importances = np.zeros(len(test_months))
+            feature_importances = np.zeros(len(test_months))  # for feature_name
             for month_index, test_month in enumerate(test_months):
-                month_importances = data[test_month]  # for each feature
-                feature_importances[month_index] = month_importances[feature_index]
+                month_importances = data[ReductionKey(test_month)]  # for each feature
+                all_feature_importances = month_importances.importances['feature_importances']
+                feature_importances[month_index] = all_feature_importances[feature_index]
             mean_importance[feature_name] = np.mean(feature_importances)
         return mean_importance
 
@@ -162,7 +163,6 @@ def make_chart_a(control, data):
 
     def make_details(data, test_months, n_best, n_worst):
         'return a ColumnTable'
-        pdb.set_trace()
         feature_names = Features().ege_names(control.arg.features)
         columns_table = ColumnsTable((
             ('test_month', 6, '%6s', ('test', 'month'), 'test month'),
@@ -172,9 +172,15 @@ def make_chart_a(control, data):
             ),
             verbose=True)
         for test_month in test_months:
-            importances = data[test_month]
+            value = data[ReductionKey(test_month)]
+            importances = value.importances['feature_importances']
+            assert value.importances['features_group'] == control.arg.features, value
+            model = value.model
+            assert type(model) == ResultKeyGbr or type(model) == ResultKeyRfr
             sorted_indices = importances.argsort()  # sorted first lowest, last highest
             for nth_best in xrange(n_best):
+                if nth_best == len(feature_names):
+                    break
                 index = sorted_indices[len(importances) - nth_best - 1]
                 columns_table.append_detail(
                     test_month=test_month,
@@ -183,6 +189,9 @@ def make_chart_a(control, data):
                     feature_name=feature_names[index]
                     )
             for nth in xrange(n_worst):
+                break  # skip, for now
+                if nth == len(feature_names):
+                    break
                 nth_worst = n_worst - nth - 1
                 index = sorted_indices[nth_worst]
                 columns_table.append_detail(
@@ -198,7 +207,6 @@ def make_chart_a(control, data):
         return columns_table
 
     def make_report(n_best, n_worst):
-        pdb.set_trace()
         report = Report()
         make_header(report)
         details = make_details(data, control.test_months, n_best, n_worst)
@@ -211,9 +219,15 @@ def make_chart_a(control, data):
     def add_report(n_best, n_worst):
         reports[(n_best, n_worst)] = make_report(n_best, n_worst)
 
+    def len_feature_group(s):
+        return len(Features().ege_names(s))
+
     add_report(1, 0)
-    add_report(10, 0)
-    add_report(15, 0)
+    add_report(len_feature_group('s'), 0)
+    add_report(len_feature_group('sw'), 0)
+    add_report(len_feature_group('swp'), 0)
+    add_report(len_feature_group('swpn'), 0)
+    return reports  # for now, skip n_worst reports
     add_report(0, 10)
     add_report(0, 20)
     add_report(0, 40)
