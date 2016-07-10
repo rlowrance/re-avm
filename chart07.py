@@ -65,6 +65,7 @@ def make_control(argv):
     parser.add_argument('--test', action='store_true')
     arg = parser.parse_args(argv)
     arg.base_name = 'chart07'
+    arg.features, arg.hps = arg.features_hps.split('-')
 
     random_seed = 123
     random.seed(random_seed)
@@ -102,7 +103,7 @@ def make_control(argv):
 
 
 # the reduction is a dictionary
-ReductionKey = collections.namedtuple('ReductionKey', 'test_month rank_index')
+ReductionKey = collections.namedtuple('ReductionKey', 'test_month')
 ReductionValue = collections.namedtuple('ReductionValue', 'model importances')
 
 
@@ -161,7 +162,8 @@ def make_chart_a(control, data):
 
     def make_details(data, test_months, n_best, n_worst):
         'return a ColumnTable'
-        feature_names = Features().ege_names()
+        pdb.set_trace()
+        feature_names = Features().ege_names(control.arg.features)
         columns_table = ColumnsTable((
             ('test_month', 6, '%6s', ('test', 'month'), 'test month'),
             ('nth', 2, '%2d', (' ', 'n'), 'rank of feature (1 ==> more frequently included)'),
@@ -196,6 +198,7 @@ def make_chart_a(control, data):
         return columns_table
 
     def make_report(n_best, n_worst):
+        pdb.set_trace()
         report = Report()
         make_header(report)
         details = make_details(data, control.test_months, n_best, n_worst)
@@ -234,7 +237,7 @@ def make_charts(control, data):
 
 
 def make_data(control):
-    'return dict[test_month] = coefficients_or_feature_importances'
+    'return the reduction dictionary'
     result = {}
     for test_month in control.test_months:
         path = '%s%s-%s.pickle' % (
@@ -279,7 +282,7 @@ def make_data(control):
                     print 'ignoring UnpicklingError for record %d' % input_record_number
             print 'test_month', test_month, 'type(best_key)', type(best_key)
             print
-            key = ReductionKey(test_month, 0)
+            key = ReductionKey(test_month)
             value = ReductionValue(best_key, best_importances)
             result[key] = value
     return result
