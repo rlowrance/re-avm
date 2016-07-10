@@ -211,7 +211,7 @@ def do_val(control, samples, save, already_exists):
             total,
             model_name,
             control.arg.features_group,
-            control.hps,
+            control.arg.hps,
             )
 
     result = {}
