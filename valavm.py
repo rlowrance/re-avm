@@ -214,7 +214,6 @@ def do_val(control, samples, save, already_exists):
             control.hps,
             )
 
-            
     result = {}
 
     def search_en(samples_test, samples_train):
