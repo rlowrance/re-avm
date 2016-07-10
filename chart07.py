@@ -5,23 +5,28 @@ of data.  So this program re-fits the model, in order to gain access to the
 scikit-learn feature_importances_ attribute.
 
 INVOCATION
- python chart07.py --data
-  create WORKING/chart06/data.pickle
- python chart07.py
-  create the actual charts TODO: define these
+ python chart07.py FEATURESGROUP-HPS [--data] [-test]
+where
+ FEATUREGROUPS is one of {s, sw, swp, swpn}
+ HPS is one of {all, best1}
+ FH  is FEATURESGROUP-HPS
+ --data  causes WORKING/chart06/FH/data.pickle to be created
+ --test  causes non-production behavior
 
-INPUTS
- WORKING/samples-train.csv    Training data needed to fit the models
- WORKING/chart07/data.pickle  Defines the best models
+INPUTS FILE
+ WORKING/chart06/FH/data.pickle  Defines results of models for FH
+ WORKING/chart07/FH/data.pickle  the reduction
 
-OUTPUTS
- WORKING/chart07/data.pickle
- WORKING/chart06/a.txt        TODO: define this
+OUTPUTS FILES
+ WORKING/chart07/FH/data.pickle
+ WORKING/chart06/FH/a-nbest-POSTIVEINT-nworst-POSITIVEINT.txt
+ WORKING/chart06/FH/b.txt
 '''
 
 from __future__ import division
 
 import argparse
+import collections
 import cPickle as pickle
 import numpy as np
 import os
@@ -31,21 +36,31 @@ from pprint import pprint as pp
 import random
 import sys
 
+import arg_type
 from AVM import AVM
 from Bunch import Bunch
-from chart06 import ModelDescription, ModelResults, ColumnDefinitions
+from chart06 import ModelDescription, ModelResults, ColumnDefinitions, errors
 from ColumnsTable import ColumnsTable
 from Features import Features
 from Path import Path
 from Report import Report
 from Timer import Timer
+from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 # cc = columns_contain
+
+# use valavm imports so as to avoid an error message from pyflakes
+if False:
+    print ResultKeyEn
+    print ResultKeyGbr
+    print ResultKeyRfr
+    print ResultValue
 
 
 def make_control(argv):
     'return a Bunch'
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
+    parser.add_argument('features_hps', type=arg_type.features_hps)
     parser.add_argument('--data', action='store_true')
     parser.add_argument('--test', action='store_true')
     arg = parser.parse_args(argv)
@@ -55,7 +70,7 @@ def make_control(argv):
     random.seed(random_seed)
 
     dir_working = Path().dir_working()
-    dir_out = dir_working + arg.base_name + '/'
+    dir_out = dir_working + arg.base_name + '/' + arg.features_hps + '/'
     if not os.path.exists(dir_out):
         os.makedirs(dir_out)
 
@@ -77,13 +92,18 @@ def make_control(argv):
         debug=False,
         k=1,  # number of best models examined
         path_in_data=dir_out + reduced_file_name,
-        path_in_fitted_dir=dir_working + 'valavm/',
+        path_in_valavm_dir=dir_working + ('valavm/%s/' % arg.features_hps),
         path_out_data=dir_out + reduced_file_name,
         path_out_chart_a_template=dir_out + 'a-nbest-%d-nworst-%d.txt',
         path_out_chart_b=dir_out + 'b.txt',
         test_months=test_months,
         timer=Timer(),
     )
+
+
+# the reduction is a dictionary
+ReductionKey = collections.namedtuple('ReductionKey', 'test_month rank_index')
+ReductionValue = collections.namedtuple('ReductionValue', 'model importances')
 
 
 def make_chart_b(control, data):
@@ -217,19 +237,51 @@ def make_data(control):
     'return dict[test_month] = coefficients_or_feature_importances'
     result = {}
     for test_month in control.test_months:
-        path = control.path_in_fitted_dir + 'fitted-' + test_month + '.pickle'
+        path = '%s%s-%s.pickle' % (
+            control.path_in_valavm_dir,
+            control.arg.features_hps,
+            test_month,
+            )
         print 'make_data reading', path
+        assert control.k == 1
         with open(path, 'rb') as f:
-            # reduce only first k records in input
-            for k in xrange(control.k):
-                pickled = pickle.load(f)  # pickled is a tuple
-                index, key, importances = pickled
-                if index != k:
-                    print index, k
-                # we don't handle the coefficients from the en models
-                # but no en model is among the best performing
-                assert key.model == 'gb' or key.model == 'rf', key
-                result[test_month] = importances
+            # read each fitted model and keep the k best
+            lowest_mae = None
+            best_key = None
+            best_importances = None
+            counter = collections.Counter()
+            input_record_number = 0
+            while True:
+                counter['attempted to read'] += 1
+                input_record_number += 1
+                try:
+                    record = pickle.load(f)
+                    key, value = record
+                    actuals_predictions, importances = value
+                    actuals = actuals_predictions.actuals
+                    predictions = actuals_predictions.predictions
+                    rmse, mae, ci95_low, ci95_high = errors(actuals, predictions)
+                    if (lowest_mae is None) or (mae < lowest_mae):
+                        lowest_mae = mae
+                        best_key = key
+                        best_importances = importances
+                except ValueError as e:
+                    counter['ValueError'] += 1
+                    print e
+                    print 'ignoring ValueError for record %d' % input_record_number
+                except EOFError:
+                    counter['EOFError'] += 1
+                    print 'stopping read at EOFError for record %d' % input_record_number
+                    break
+                except pickle.UnpicklingError as e:
+                    counter['UnpicklingError'] += 1
+                    print e
+                    print 'ignoring UnpicklingError for record %d' % input_record_number
+            print 'test_month', test_month, 'type(best_key)', type(best_key)
+            print
+            key = ReductionKey(test_month, 0)
+            value = ReductionValue(best_key, best_importances)
+            result[key] = value
     return result
 
 
