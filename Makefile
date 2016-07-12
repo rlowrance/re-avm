@@ -262,7 +262,9 @@ CHART07 += $(WORKING)/chart07/sw-all/b.txt
 #CHART07 += $(WORKING)/chart07/swp-all/b.txt
 CHART07 += $(WORKING)/chart07/swpn-all/b.txt
 
-ALLCHARTS = $(CHART01) $(CHART06) $(CHART07)
+CHART08 += $(WORKING)/chart08/a.txt
+
+ALLCHARTS = $(CHART01) $(CHART06) $(CHART07) $(CHART08)
 
 ALL += $(ALLCHARTS)
 
@@ -274,6 +276,9 @@ all: $(ALL)
 
 .PHONY : dell-s-all
 dell-s-all: $(VALAVM_S_ALL)
+
+.PHONY : dell-swp-all
+dell-swpn-all: $(VALAVM_SWP_ALL_DELL)
 
 .PHONY : dell-swpn-all
 dell-swpn-all: $(VALAVM_SWPN_ALL_DELL)
@@ -313,6 +318,9 @@ chart06: $(CHART06)
 
 .PHONY: chart07
 chart07: $(CHART07)
+
+.PHONY: chart08
+chart08: $(CHART08)
 
 # census-features-derived.csv
 $(WORKING)/census-features-derived.csv: census-features.py layout_census.py
@@ -366,6 +374,18 @@ $(WORKING)/chart07/swpn-all/data.pickle: chart07.py $(VALAVM_FITTED)
 
 $(WORKING)/chart07/swpn-all/b.txt: chart07.py $(WORKING)/chart07/swpn-all/data.pickle
 	$(PYTHON) chart07.py swpn-all
+
+# chart08
+chart08deps += $(WORKING)/chart07/s-all/data.pickle
+chart08deps += $(WORKING)/chart07/sw-all/data.pickle
+#chart08deps += $(WORKING)/chart07/swp-all/data.pickle
+chart08deps += $(WORKING)/chart07/swpn-all/data.pickle
+
+$(WORKING)/chart08/data.pickle: chart08.py $(chart08deps)
+	$(PYTHON) chart08.py --data
+
+$(WORKING)/chart08/a.txt: chart08.py $(WORKING)/chart08/data.pickle
+	$(PYTHON) chart08.py 
 
 .PHONY : parcels-features
 parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcels-features-zip5.csv
