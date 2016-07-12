@@ -101,9 +101,6 @@ def make_control(argv):
     )
 
 
-ReductionKey = collections.namedTuple
-
-
 def make_chart_b(control, data):
     'return a Report'
     def make_header(report):
@@ -241,7 +238,6 @@ def make_data(control):
             test_month,
             )
         print 'make_data reading', path
-        pdb.set_trace()
         assert control.k == 1
         with open(path, 'rb') as f:
             # read each fitted model and keep the k best
@@ -277,9 +273,7 @@ def make_data(control):
                     print e
                     print 'ignoring UnpicklingError for record %d' % input_record_number
             print 'test_month', test_month, 'type(best_key)', type(best_key)
-            pdb.set_trace()
             result[test_month] = (best_key, best_importances)
-    pdb.set_trace()
     return result
 
 
