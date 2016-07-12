@@ -63,12 +63,12 @@ class ColumnsTable(object):
                 text += header.strip()
             return text
 
-        self._append_line(' ')
-        self._append_line('column legend:')
+        self.append_line(' ')
+        self.append_line('column legend:')
         for cd in self._columns:
             # TODO: replace fix width below with value detemined from column headings
             line = '%16s -> %s' % (cat_headers(cd.headers), cd.legend)
-            self._append_line(line)
+            self.append_line(line)
 
     def iterlines(self):
         for line in self._lines:
@@ -101,9 +101,9 @@ class ColumnsTable(object):
             if len(line) > 0:
                 line += ' '
             line += glyph
-        self._append_line(line)
+        self.append_line(line)
 
-    def _append_line(self, line):
+    def append_line(self, line):
         if self._verbose:
             print line
         self._lines.append(line)
@@ -115,7 +115,7 @@ class ColumnsTable(object):
                 formatter = '%' + str(cd.width) + 's'
                 formatted = formatter % cd.headers[index]
                 line += (' ' if len(line) > 0 else '') + formatted
-            self._append_line(line)
+            self.append_line(line)
 
         for header_line_index in xrange(self._number_of_header_lines):
             append_header(header_line_index)
