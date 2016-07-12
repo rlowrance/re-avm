@@ -88,12 +88,91 @@ def make_control(argv):
         debug=debug,
         path_in_samples=dir_working + 'samples-train.csv',
         path_out_graph=dir_path + 'median-price.pdf',
+        path_out_price_volume=dir_path + 'price-volume.pdf',
         path_out_stats_all=dir_path + 'price-stats-all.txt',
         path_out_stats_2006_2008=dir_path + 'price-stats-2006-2008.txt',
         path_reduction=dir_path + reduced_file_name,
         random_seed=random_seed,
         test=arg.test,
     )
+
+
+def make_chart_price_volume(data, control):
+    'Write pdf'
+    def make_prices_volumes(data):
+        'return tuples of dict[(year,month)] = number'
+        def make_months(year):
+            if year == 2009:
+                return (1, 2, 3)
+            else:
+                return (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+
+        prices = {}
+        volumes = {}
+        for year in (2003, 2004, 2005, 2006, 2007, 2008, 2009):
+            for month in make_months(year):
+                data_for_month = data[make_reduction_key(year, month)]
+                price = data_for_month['median']
+                volume = data_for_month['count']
+                prices[(year, month)] = price
+                volumes[(year, month)] = volume
+        return prices, volumes
+
+    prices, volumes = make_prices_volumes(data)  # 2 dicts
+
+    def make_months(year):
+            if year == 2009:
+                return (1, 2, 3)
+            else:
+                return (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+
+    years = (2003, 2004, 2005, 2006, 2007, 2008, 2009)
+    months = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+    months_2009 = (1, 2, 3)
+    year_month = ['%s-%02d' % (year, month)
+                  for year in years
+                  for month in (months_2009 if year == 2009 else months)]
+    figx = range(len(year_month))
+    fig1y = []
+    for year in (2003, 2004, 2005, 2006, 2007, 2008, 2009):
+        for month in make_months(year):
+            fig1y.append(prices[(year, month)])
+    fig2y = []
+    for year in (2003, 2004, 2005, 2006, 2007, 2008, 2009):
+        for month in make_months(year):
+            fig2y.append(volumes[(year, month)])
+
+    fig = plt.figure()
+    fig1 = fig.add_subplot(211)
+    fig1.plot(figx, fig1y)
+    x_ticks = [year_month[i] if i % 12 == 0 else ' '
+               for i in xrange(len(year_month))
+               ]
+    plt.xticks(range(len(year_month)),
+               x_ticks,
+               # pad=8,
+               size='xx-small',
+               rotation=-30,
+               # rotation='vertical',
+               )
+    plt.yticks(size='xx-small')
+    plt.xlabel('year-month')
+    plt.ylabel('median price ($)')
+    plt.ylim([0, 700000])
+    fig2 = fig.add_subplot(212)
+    fig2.bar(figx, fig2y)
+    plt.xticks(range(len(year_month)),
+               x_ticks,
+               # pad=8,
+               size='xx-small',
+               rotation=-30,
+               # rotation='vertical',
+               )
+    plt.yticks(size='xx-small')
+    plt.xlabel('year-month')
+    plt.ylabel('number of sales')
+    plt.savefig(control.path_out_price_volume)
+    plt.close()
 
 
 def make_chart_graph(data, control):
@@ -222,6 +301,7 @@ def main(argv):
     else:
         with open(control.path_reduction, 'rb') as f:
             data, reduction_control = pickle.load(f)
+        make_chart_price_volume(data, control)
         make_chart_stats_2006_2008(data, control)
         make_chart_stats_all(data, control)
         make_chart_graph(data, control)
