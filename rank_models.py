@@ -79,6 +79,7 @@ def main(argv):
     with open(control.path_in_chart06, 'rb') as f:
         print 'reading ranked models'
         pickled = pickle.load(f)
+        pdb.set_trace()
         reduction, all_actuals, median_price, chart_06_control = pickled
 
     # write the monthly output files
