@@ -10,15 +10,15 @@ where
  FEATUREGROUPS is one of {s, sw, swp, swpn}
  HPS is one of {all, best1}
  FH  is FEATURESGROUP-HPS
- --data  causes WORKING/chart06/FH/data.pickle to be created
+ --data  causes WORKING/chart06/FH/0data.pickle to be created
  --test  causes non-production behavior
 
 INPUTS FILE
  WORKING/valavm/FH/*.pickle      Defines results of models for FH
- WORKING/chart07/FH/data.pickle  the reduction
+ WORKING/chart07/FH/0data.pickle  the reduction
 
 OUTPUTS FILES
- WORKING/chart07/FH/data.pickle
+ WORKING/chart07/FH/0data.pickle
  WORKING/chart07/FH/a-nbest-POSTIVEINT-nworst-POSITIVEINT.txt
  WORKING/chart07/FH/b.txt
 '''
@@ -86,7 +86,8 @@ def make_control(argv):
         '200807', '200808', '200809', '200810', '200811', '200812',
         '200901', '200902',
     )
-    reduced_file_name = 'data.pickle'
+    reduced_file_name = '0data.pickle'
+    pdb.set_trace()
 
     return Bunch(
         arg=arg,
