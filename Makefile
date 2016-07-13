@@ -253,6 +253,7 @@ VALAVM_SWPN_BEST1 += $(WORKING)/valavm/swpn-best1/swpn-best1-200902.pickle
 # name one chart from each set of used chart
 # Note: many charts supported preliminary analysis not in the final paper
 CHART01 += $(WORKING)/chart01/median-price.pdf
+
 CHART06 += $(WORKING)/chart06/s-all/a.pdf
 CHART06 += $(WORKING)/chart06/sw-all/a.pdf
 CHART06 += $(WORKING)/chart06/swpn-all/a.pdf
@@ -331,60 +332,60 @@ $(WORKING)/census-features-derived.csv: census-features.py layout_census.py
 # NOTE: some charts were created and not used ihe final report
 
 # chart01
-$(WORKING)/chart01/data.pickle: chart01.py $(WORKING)/samples-train.csv
+$(WORKING)/chart01/0ata.pickle: chart01.py $(WORKING)/samples-train.csv
 	$(PYTHON) chart01.py --data
 
-$(WORKING)/chart01/median-price.pdf: chart01.py $(WORKING)/chart01/data.pickle
+$(WORKING)/chart01/median-price.pdf: chart01.py $(WORKING)/chart01/0data.pickle
 	$(PYTHON) chart01.py
 	
 # chart06 
-$(WORKING)/chart06/s-all/data.pickle: chart06.py $(WORKING)/chart01/data.pickle $(VALAVM)
+$(WORKING)/chart06/s-all/0data.pickle: chart06.py $(WORKING)/chart01/0data.pickle $(VALAVM)
 	$(PYTHON) chart06.py s-all --data
 
-$(WORKING)/chart06/s-all/a.pdf: chart06.py $(WORKING)/chart06/s-all/data.pickle
+$(WORKING)/chart06/s-all/a.pdf: chart06.py $(WORKING)/chart06/s-all/0data.pickle
 	$(PYTHON) chart06.py s-all
 
-$(WORKING)/chart06/sw-all/data.pickle: chart06.py $(WORKING)/chart01/data.pickle $(VALAVM)
+$(WORKING)/chart06/sw-all/0data.pickle: chart06.py $(WORKING)/chart01/0data.pickle $(VALAVM)
 	$(PYTHON) chart06.py sw-all --data
 
-$(WORKING)/chart06/sw-all/a.pdf: chart06.py $(WORKING)/chart06/sw-all/data.pickle
+$(WORKING)/chart06/sw-all/a.pdf: chart06.py $(WORKING)/chart06/sw-all/0data.pickle
 	$(PYTHON) chart06.py sw-all
 
-$(WORKING)/chart06/swpn-all/data.pickle: chart06.py $(WORKING)/chart01/data.pickle $(VALAVM)
+$(WORKING)/chart06/swpn-all/0data.pickle: chart06.py $(WORKING)/chart01/0data.pickle $(VALAVM)
 	$(PYTHON) chart06.py swpn-all --data
 
-$(WORKING)/chart06/swpn-all/a.pdf: chart06.py $(WORKING)/chart06/swpn-all/data.pickle
+$(WORKING)/chart06/swpn-all/a.pdf: chart06.py $(WORKING)/chart06/swpn-all/0data.pickle
 	$(PYTHON) chart06.py swpn-all
 
 # chart07
-$(WORKING)/chart07/s-all/data.pickle: chart07.py $(VALAVM_FITTED)
+$(WORKING)/chart07/s-all/0data.pickle: chart07.py $(VALAVM_FITTED)
 	$(PYTHON) chart07.py s-all --data
 
-$(WORKING)/chart07/s-all/b.txt: chart07.py $(WORKING)/chart07/s-all/data.pickle
+$(WORKING)/chart07/s-all/b.txt: chart07.py $(WORKING)/chart07/s-all/0data.pickle
 	$(PYTHON) chart07.py s-all
 
-$(WORKING)/chart07/sw-all/data.pickle: chart07.py $(VALAVM_FITTED)
+$(WORKING)/chart07/sw-all/0data.pickle: chart07.py $(VALAVM_FITTED)
 	$(PYTHON) chart07.py sw-all --data
 
-$(WORKING)/chart07/sw-all/b.txt: chart07.py $(WORKING)/chart07/sw-all/data.pickle
+$(WORKING)/chart07/sw-all/b.txt: chart07.py $(WORKING)/chart07/sw-all/0data.pickle
 	$(PYTHON) chart07.py sw-all
 
-$(WORKING)/chart07/swpn-all/data.pickle: chart07.py $(VALAVM_FITTED)
+$(WORKING)/chart07/swpn-all/0data.pickle: chart07.py $(VALAVM_FITTED)
 	$(PYTHON) chart07.py swpn-all --data
 
-$(WORKING)/chart07/swpn-all/b.txt: chart07.py $(WORKING)/chart07/swpn-all/data.pickle
+$(WORKING)/chart07/swpn-all/b.txt: chart07.py $(WORKING)/chart07/swpn-all/0data.pickle
 	$(PYTHON) chart07.py swpn-all
 
 # chart08
-chart08deps += $(WORKING)/chart07/s-all/data.pickle
-chart08deps += $(WORKING)/chart07/sw-all/data.pickle
-#chart08deps += $(WORKING)/chart07/swp-all/data.pickle
-chart08deps += $(WORKING)/chart07/swpn-all/data.pickle
+chart08deps += $(WORKING)/chart07/s-all/0data.pickle
+chart08deps += $(WORKING)/chart07/sw-all/0data.pickle
+#chart08deps += $(WORKING)/chart07/swp-all/0data.pickle
+chart08deps += $(WORKING)/chart07/swpn-all/0data.pickle
 
-$(WORKING)/chart08/data.pickle: chart08.py $(chart08deps)
+$(WORKING)/chart08/0data.pickle: chart08.py $(chart08deps)
 	$(PYTHON) chart08.py --data
 
-$(WORKING)/chart08/a.txt: chart08.py $(WORKING)/chart08/data.pickle
+$(WORKING)/chart08/a.txt: chart08.py $(WORKING)/chart08/0data.pickle
 	$(PYTHON) chart08.py 
 
 .PHONY : parcels-features
