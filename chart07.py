@@ -5,7 +5,7 @@ of data.  So this program re-fits the model, in order to gain access to the
 scikit-learn feature_importances_ attribute.
 
 INVOCATION
- python chart07.py FEATURESGROUP-HPS [--data] [-test]
+ python chart07.py FEATURESGROUP-HPS [--data] [--test]
 where
  FEATUREGROUPS is one of {s, sw, swp, swpn}
  HPS is one of {all, best1}
@@ -65,6 +65,7 @@ def make_control(argv):
     parser.add_argument('--test', action='store_true')
     arg = parser.parse_args(argv)
     arg.base_name = 'chart07'
+    arg.features, arg.hps = arg.features_hps.split('-')
 
     random_seed = 123
     random.seed(random_seed)
@@ -156,7 +157,7 @@ def make_chart_a(control, data):
 
     def make_details(data, test_months, n_best, n_worst):
         'return a ColumnTable'
-        feature_names = Features().ege_names()
+        feature_names = Features().ege_names(control.arg.features)
         columns_table = ColumnsTable((
             ('test_month', 6, '%6s', ('test', 'month'), 'test month'),
             ('nth', 2, '%2d', (' ', 'n'), 'rank of feature (1 ==> more frequently included)'),
