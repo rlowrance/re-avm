@@ -87,7 +87,6 @@ def make_control(argv):
         '200901', '200902',
     )
     reduced_file_name = '0data.pickle'
-    pdb.set_trace()
 
     return Bunch(
         arg=arg,
