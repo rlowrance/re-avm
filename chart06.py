@@ -10,14 +10,14 @@ where
 INPUT FILES
  WORKING/chart01/data.pickle
  WORKING/valavm/FH/YYYYMM.pickle
- WORKING/chart06/FH/data.pickle or WORKING/chart06/data-subset.pickle
+ WORKING/chart06/FH/0data.pickle or WORKING/chart06/0data-subset.pickle
 
 INPUT AND OUTPUT FILES (build with --data)
- WORKING/chart06/FH/data.pickle         | reduced data
- WORKING/chart06/FH/data-subset.pickle  | reduced data test subset; always built, sometimes read
+ WORKING/chart06/FH/0data.pickle         | reduced data
+ WORKING/chart06/FH/0data-subset.pickle  | reduced data test subset; always built, sometimes read
 
 OUTPUT FILES
- WORKING/chart06/FH/data-report.txt | records retained
+ WORKING/chart06/FH/0data-report.txt | records retained
  WORKING/chart06/FH/a.pdf           | range of losses by model (graph)
  WORKING/chart06/FH/b-YYYYMM.txt    | HPs with lowest losses
  WORKING/chart06/FH/c.pdf           | best model each month
@@ -183,8 +183,8 @@ def make_control(argv):
             arg.features_hps,
             arg.features_hps,
             ),
-        path_in_chart_01_reduction=dir_working + 'chart01/data.pickle',
-        path_in_data=dir_out + ('data-subset.pickle' if arg.subset else 'data.pickle'),
+        path_in_chart_01_reduction=dir_working + 'chart01/0data.pickle',
+        path_in_data=dir_out + ('0data-subset.pickle' if arg.subset else '0data.pickle'),
         path_out_a=dir_out + 'a.pdf',
         path_out_b=dir_out + 'b-%d.txt',
         path_out_cd=dir_out + '%s.txt',
@@ -193,8 +193,8 @@ def make_control(argv):
         path_out_f=dir_out + 'f-%04d.txt',
         path_out_g=dir_out + 'g.txt',
         path_out_data=dir_out + 'data.pickle',
-        path_out_data_report=dir_out + 'data-report.txt',
-        path_out_data_subset=dir_out + 'data-subset.pickle',
+        path_out_data_report=dir_out + '0data-report.txt',
+        path_out_data_subset=dir_out + '0data-subset.pickle',
         path_out_log=dir_out + 'log' + ('-data' if arg.data else '') + '.txt',
         random_seed=random_seed,
         sampling_rate=0.02,
