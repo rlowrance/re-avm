@@ -192,7 +192,7 @@ def make_control(argv):
         path_out_e=dir_out + 'e-%04d-%6s.txt',
         path_out_f=dir_out + 'f-%04d.txt',
         path_out_g=dir_out + 'g.txt',
-        path_out_data=dir_out + 'data.pickle',
+        path_out_data=dir_out + '0data.pickle',
         path_out_data_report=dir_out + '0data-report.txt',
         path_out_data_subset=dir_out + '0data-subset.pickle',
         path_out_log=dir_out + 'log' + ('-data' if arg.data else '') + '.txt',
