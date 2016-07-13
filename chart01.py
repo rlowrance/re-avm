@@ -7,7 +7,7 @@ INPUT FILES
  INPUT/samples-train.csv
 
 OUTPUT FILES
- WORKING/chart01/data.pickle   # dict: keys=ReductionKey values=ReductionValue
+ WORKING/chart01/0data.pickle   # dict: keys=ReductionKey values=ReductionValue
  WORKING/chart01/median-price.pdf
  WORKING/chart01/median-price.txt
  WORKING/chart01/median-price_2006_2007.txt
@@ -75,7 +75,7 @@ def make_control(argv):
 
     debug = False
 
-    reduced_file_name = 'data.pickle'
+    reduced_file_name = '0data.pickle'
 
     # assure output directory exists
     dir_path = dir_working + 'chart01/'
