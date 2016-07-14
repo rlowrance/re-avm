@@ -256,6 +256,7 @@ CHART01 += $(WORKING)/chart01/median-price.pdf
 
 CHART06 += $(WORKING)/chart06/s-all/a.pdf
 CHART06 += $(WORKING)/chart06/sw-all/a.pdf
+#CHART06 += $(WORKING)/chart06/swp-all/a.pdf
 CHART06 += $(WORKING)/chart06/swpn-all/a.pdf
 
 CHART07 += $(WORKING)/chart07/s-all/b.txt
@@ -351,6 +352,12 @@ $(WORKING)/chart06/sw-all/0data.pickle: chart06.py $(WORKING)/chart01/0data.pick
 $(WORKING)/chart06/sw-all/a.pdf: chart06.py $(WORKING)/chart06/sw-all/0data.pickle
 	$(PYTHON) chart06.py sw-all
 
+$(WORKING)/chart06/swp-all/0data.pickle: chart06.py $(WORKING)/chart01/0data.pickle $(VALAVM)
+	$(PYTHON) chart06.py swp-all --data
+
+$(WORKING)/chart06/swp-all/a.pdf: chart06.py $(WORKING)/chart06/swp-all/0data.pickle
+	$(PYTHON) chart06.py swp-all
+
 $(WORKING)/chart06/swpn-all/0data.pickle: chart06.py $(WORKING)/chart01/0data.pickle $(VALAVM)
 	$(PYTHON) chart06.py swpn-all --data
 
@@ -369,6 +376,12 @@ $(WORKING)/chart07/sw-all/0data.pickle: chart07.py $(VALAVM_FITTED)
 
 $(WORKING)/chart07/sw-all/b.txt: chart07.py $(WORKING)/chart07/sw-all/0data.pickle
 	$(PYTHON) chart07.py sw-all
+
+$(WORKING)/chart07/swp-all/0data.pickle: chart07.py $(VALAVM_FITTED)
+	$(PYTHON) chart07.py swp-all --data
+
+$(WORKING)/chart07/swp-all/b.txt: chart07.py $(WORKING)/chart07/swp-all/0data.pickle
+	$(PYTHON) chart07.py swp-all
 
 $(WORKING)/chart07/swpn-all/0data.pickle: chart07.py $(VALAVM_FITTED)
 	$(PYTHON) chart07.py swpn-all --data
