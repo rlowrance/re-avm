@@ -72,7 +72,7 @@ def make_control(argv):
         '200807', '200808', '200809', '200810', '200811', '200812',
         '200901', '200902',
     )
-    reduced_file_name = 'data.pickle'
+    reduced_file_name = '0data.pickle'
     reduced_file_path = dir_out + reduced_file_name
 
     return Bunch(
@@ -96,26 +96,33 @@ def make_data(control):
     '''return reduction[test_month][feature_group] = (mae, model)'''
     result = collections.defaultdict(dict)
     for feature_group in control.feature_groups:
-        path = '%s%s-all/data.pickle' % (control.path_in_chart07_dir, feature_group)
+        path = '%s%s-all/0data.pickle' % (control.path_in_chart07_dir, feature_group)
         counter = collections.Counter()
         input_record_number = 0
+        print 'reducting data found in', path
         with open(path, 'rb') as f:
             input_record_number += 1
             while True:
                 counter['attempted to read'] += 1
                 input_record_number += 1
                 try:
+                    input_record_number += 1
+                    print 'loading', path, 'record', 1
                     record = pickle.load(f)
                     d, chart07_control = record
-                    for k, v in d.iteritems():
-                        test_month = k.test_month
-                        model_class = v.model
+                    for chart_07_reduction_key, chart_07_reduction_value in d.iteritems():
+                        assert isinstance(chart_07_reduction_key, ReductionKey)
+                        assert isinstance(chart_07_reduction_value, ReductionValue)
+                        # pull out the field we want
+                        test_month = chart_07_reduction_key.test_month
+                        model_description = chart_07_reduction_value.model
+                        mae = chart_07_reduction_value.mae
                         model = (
-                            'gb' if isinstance(model_class, ResultKeyGbr) else
-                            'rf' if isinstance(model_class, ResultKeyRfr) else
-                            'en' if isinstance(model_class, ResultKeyEn) else
+                            'gb' if isinstance(model_description, ResultKeyGbr) else
+                            'rf' if isinstance(model_description, ResultKeyRfr) else
+                            'en' if isinstance(model_description, ResultKeyEn) else
                             None)
-                        mae = v.mae
+                        print ' ', test_month, feature_group, mae, model
                         result[test_month][feature_group] = Value(
                             mae=mae,
                             model=model,
