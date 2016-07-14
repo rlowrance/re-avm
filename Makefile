@@ -256,12 +256,12 @@ CHART01 += $(WORKING)/chart01/median-price.pdf
 
 CHART06 += $(WORKING)/chart06/s-all/a.pdf
 CHART06 += $(WORKING)/chart06/sw-all/a.pdf
-#CHART06 += $(WORKING)/chart06/swp-all/a.pdf
+CHART06 += $(WORKING)/chart06/swp-all/a.pdf
 CHART06 += $(WORKING)/chart06/swpn-all/a.pdf
 
 CHART07 += $(WORKING)/chart07/s-all/b.txt
 CHART07 += $(WORKING)/chart07/sw-all/b.txt
-#CHART07 += $(WORKING)/chart07/swp-all/b.txt
+CHART07 += $(WORKING)/chart07/swp-all/b.txt
 CHART07 += $(WORKING)/chart07/swpn-all/b.txt
 
 CHART08 += $(WORKING)/chart08/a.txt
