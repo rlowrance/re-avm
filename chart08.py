@@ -79,7 +79,7 @@ def make_control(argv):
         arg=arg,
         debug=False,
         exceptions=['incomplete list of feature groups'],
-        feature_groups=['s', 'sw', 'swpn'],  # missing 'swp' for now
+        feature_groups=['s', 'sw', 'swp', 'swpn'],
         path_in_data=reduced_file_path,
         path_in_chart07_dir=dir_working + 'chart07/',
         path_out_data=reduced_file_path,
@@ -215,7 +215,6 @@ def main(argv):
         control.timer.lap('make charts')
         # write the charts
         for chart_key, chart_value in charts.iteritems():
-            pdb.set_trace()
             if chart_key == 'a':
                 chart_value.write(control.path_out_chart_a)
             else:
