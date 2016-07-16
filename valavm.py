@@ -17,6 +17,9 @@ INVOCATION
    --test   : if present, runs in test mode, output is not usable
    --outddir: if present, write output file to WORKKING/OUTDIR/
 
+NOTE: What is called "test_month" here is called "validation_month" in paper1.
+The test_month is here the month used to estimate the generalization error.
+
 INPUTS
  WORKING/samples-train.csv
  WORKING/PATH
@@ -66,25 +69,25 @@ def make_grid():
     # return Bunch of hyperparameter settings
     return Bunch(
         # HP settings to test across all models
-        n_months_back_seq=(1, 2, 3, 6, 12),
+        n_months_back=(1, 2, 3, 6, 12),
 
         # HP settings to test for ElasticNet models
-        alpha_seq=(0.01, 0.03, 0.1, 0.3, 1.0),  # multiplies the penalty term
-        l1_ratio_seq=(0.0, 0.25, 0.50, 0.75, 1.0),  # 0 ==> L2 penalty, 1 ==> L1 penalty
-        units_X_seq=('natural', 'log'),
-        units_y_seq=('natural', 'log'),
+        alpha=(0.01, 0.03, 0.1, 0.3, 1.0),  # multiplies the penalty term
+        l1_ratio=(0.0, 0.25, 0.50, 0.75, 1.0),  # 0 ==> L2 penalty, 1 ==> L1 penalty
+        units_X=('natural', 'log'),
+        units_y=('natural', 'log'),
 
         # HP settings to test for tree-based models
         # settings based on Anil Kocak's recommendations
-        n_estimators_seq=(10, 30, 100, 300),
-        max_features_seq=(1, 'log2', 'sqrt', 'auto'),
-        max_depth_seq=(1, 3, 10, 30, 100, 300),
+        n_estimators=(10, 30, 100, 300),
+        max_features=(1, 'log2', 'sqrt', 'auto'),
+        max_depth=(1, 3, 10, 30, 100, 300),
 
         # HP setting to test for GradientBoostingRegression models
-        learning_rate_seq=(.10, .25, .50, .75, .99),
+        learning_rate=(.10, .25, .50, .75, .99),
         # experiments demonstrated that the best loss is seldom quantile
         # loss_seq=('ls', 'quantile'),
-        loss_seq=('ls',),
+        loss=('ls',),
     )
 
 
@@ -94,12 +97,23 @@ def make_control(argv):
     print argv
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
-    parser.add_argument('features_hps_month', type=arg_type.features_hps_month)
+    parser.add_argument('features_hps_month_locality', type=arg_type.features_hps_month_locality)
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--outdir')
     arg = parser.parse_args(argv)
     arg.base_name = 'valavm'
-    arg.features_group, arg.hps, arg.test_month = arg.features_hps_month.split('-')
+
+    s = arg.features_hps_month_locality.split('-')
+    if len(s) == 3:
+        arg.features_group, arg.hps, arg.test_month = s
+        arg.locality = 'global'
+    elif len(s) == 4:
+        arg.features_group, arg.hps, arg.test_month, arg.locality = s
+    else:
+        print 'bad features_hps_month_locality'
+        print arg.features_hps_month_locality
+        print s
+        pdb.set_trace()
 
     print arg
 
@@ -125,7 +139,7 @@ def make_control(argv):
         path_in_best1=dir_working + 'rank_models/' + arg.test_month + '.pickle',
         path_out_file=path_out_file,
         path_out_log=dir_path + 'log-' + str(arg.test_month) + '.txt',
-        grid=make_grid(),
+        grid_seq=make_grid(),
         random_seed=random_seed,
         timer=Timer(),
     )
@@ -147,6 +161,73 @@ ResultValue = collections.namedtuple(
     'ResultValue',
     'actuals predictions',
 )
+
+
+def make_result_keys(control):
+    'return list of ResultKey'
+    def en():
+        'return list of ResultKenEn'
+        result = []
+        for n_months_back in control.grid_seq.n_months_back:
+            for units_X in control.grid_seq.units_X:
+                for units_y in control.grid_seq.units_y:
+                    for alpha in control.grid_seq.alpha:
+                        for l1_ratio in control.grid_seq.l1_ratio:
+                            item = ResultKeyEn(
+                                n_months_back=n_months_back,
+                                units_X=units_X,
+                                units_y=units_y,
+                                alpha=alpha,
+                                l1_ratio=l1_ratio,
+                                )
+                            result.append(item)
+        return result
+
+    def gbr():
+        'return list of ResultKeyGbr'
+        result = []
+        for n_months_back in control.grid_seq.n_months_back:
+            for n_estimators in control.grid_seq.n_estimators:
+                for max_features in control.grid_seq.max_features:
+                    for max_depth in control.grid_seq.max_depth:
+                        for loss in control.grid_seq.loss:
+                            for learning_rate in control.grid_seq.learning_rate:
+                                item = ResultKeyGbr(
+                                    n_months_back=n_months_back,
+                                    n_estimators=n_estimators,
+                                    max_features=max_features,
+                                    max_depth=max_depth,
+                                    loss=loss,
+                                    learning_rate=learning_rate,
+                                    )
+                                result.append(item)
+        return result
+
+    def rfr():
+        'return list of ResultKeyRfr'
+        result = []
+        for n_months_back in control.grid_seq.n_months_back:
+            for n_estimators in control.grid_seq.n_estimators:
+                for max_features in control.grid_seq.max_features:
+                    for max_depth in control.grid_seq.max_depth:
+                        item = ResultKeyRfr(
+                            n_months_back=n_months_back,
+                            n_estimators=n_estimators,
+                            max_features=max_features,
+                            max_depth=max_depth,
+                            )
+                        result.append(item)
+        return result
+
+    hps = control.arg.hps
+    result = []
+    if hps == 'all' or hps == 'en':
+        result.extend(en())
+    if hps == 'all' or hps == 'gbr':
+        result.extend(gbr())
+    if hps == 'all' or hps == 'rfr':
+        result.extend(rfr())
+    return result
 
 
 def split_samples(samples, test_month, n_months_back):
@@ -360,6 +441,172 @@ def do_val(control, samples, save, already_exists):
     return result
 
 
+class LocationSelector(object):
+    def __init__(self, locality):
+        locality_column_name = {
+            'census': layout_transactions.census_tract,
+            'city': layout_transactions.city,
+            'global': None,
+            'zip': layout_transactions.zip5,
+            }[locality]
+        self.locality_column_name = locality_column_name
+
+    def location_values(self, df):
+        'return values in the locality column'
+        pdb.set_trace()
+        values = df[self.locality_column_name]
+        return values
+
+    def in_location(self, df, location):
+        'return samples that are in the location'
+        pdb.set_trace()
+        has_location = df[self.locality_column_name] == location
+        subset = df.iloc[has_location]
+        return subset
+
+
+def make_model_name(result_key):
+    if isinstance(result_key, ResultKeyEn):
+        return 'ElasticNet'
+    if isinstance(result_key, ResultKeyGbr):
+        return 'GradientBoostingRegressor'
+    if isinstance(result_key, ResultKeyRfr):
+        return 'RandomForestRegressor'
+    print 'unexpected result_key type', result_key, type(result_key)
+    pdb.set_trace()
+
+
+def fit_and_predict(samples, control, already_exists, save):
+    'call save(ResultKey, ResultValue) for all the hps that do not exist'
+
+    def split_test_train(n_months_back):
+        '''return (test, train)
+        where
+        - test contains only transactions in the test_month
+        - train contains only transactions in the n_months_back preceeding the
+          test_month
+        '''
+        test_month = Month(control.arg.test_month)
+        ss = SampleSelector(samples)
+        samples_test = ss.in_month(test_month)
+        samples_train = ss.between_months(
+            test_month.decrement(n_months_back),
+            test_month.decrement(1),
+            )
+        return samples_test, samples_train
+
+    def make_avm(result_key):
+        'return avm using specified hyperparameters'
+        model_name = make_model_name(result_key)
+        if model_name == 'ElasticNet':
+            return AVM.AVM(
+                model_name=model_name,
+                random_state=control.random_seed,
+                units_X=result_key.units_X,
+                units_y=result_key.units_y,
+                alpha=result_key.alpha,
+                l1_ratio=result_key.l1_ratio,
+                features_group=control.arg.features_group,
+                )
+        elif model_name == 'GradientBoostingRegressor':
+            return AVM.AVM(
+                model_name=model_name,
+                random_state=control.random_seed,
+                learning_rate=result_key.learning_rate,
+                loss=result_key.loss,
+                alpha=0.5 if result_key.loss == 'quantile' else None,
+                n_estimators=result_key.n_estimators,
+                max_depth=result_key.max_depth,
+                max_features=result_key.max_features,
+                features_group=control.arg.features_group,
+                )
+        elif model_name == 'RandomForestRegressor':
+            return AVM.AVM(
+                model_name=model_name,
+                random_state=control.random_seed,
+                n_estimators=result_key.n_estimators,
+                max_depth=result_key.max_depth,
+                max_features=result_key.max_features,
+                features_group=control.arg.features_group,
+                )
+        else:
+            print 'bad result_key.model_name', result_key
+            pdb.set_trace()
+
+    def make_importances(model_name, fitted_avm):
+        if model_name == 'ElasticNet':
+            return {
+                    'intercept': fitted_avm.intercept_,
+                    'coefficients': fitted_avm.coef_,
+                    'features_group': control.arg.features_group,
+                    }
+        else:
+            # the tree-based models have the same structure for their important features
+            return {
+                    'feature_importances': fitted_avm.feature_importances_,
+                    'features_group': control.arg.features_group,
+                    }
+
+    def define_fit_predict_importances(test=None, train=None, hp=None):
+        'return (ResultValue, importances)'
+        assert test is not None
+        assert train is not None
+        assert hp is not None
+        pdb.set_trace()
+        avm = make_avm(hp)
+        fitted_avm = avm.fit(train)
+        predictions = avm.predict(test)
+        actuals = test[layout_transactions.price]
+        return ResultValue(actuals, predictions), make_importances(avm.model_name, fitted_avm)
+
+    def make_result_value(result_key=None, samples_train=None, samples_validate=None):
+        'return ResultValue'
+        avm = make_avm(result_key)
+        fitted_avm = avm.fit(samples_train)
+        predictions = avm.predict(samples_validate)
+        actuals = samples_validate[layout_transactions.price]
+        importances = make_importances(avm.model_name, fitted_avm)
+        return ResultValue(actuals=actuals, predictions=predictions), importances
+
+    location_selector = LocationSelector(control.arg.locality)
+    for result_key in make_result_keys(control):
+        if already_exists(result_key):
+            continue
+        if control.debug and isinstance(result_key, ResultKeyEn):
+            continue
+        if control.debug and isinstance(result_key, ResultKeyGbr):
+            continue
+        all_samples_validate, all_samples_train = split_test_train(result_key.n_months_back)
+        if control.arg.locality == 'global':
+            # fit one model on all the training samples
+            # use it to predict all the validation samples
+            if control.debug:
+                print 'global', result_key
+            result_value, importances = make_result_value(
+                result_key=result_key,
+                samples_train=all_samples_train,
+                samples_validate=all_samples_validate,
+                )
+            save(result_key, (result_value, importances))
+        else:
+            # fit one model for each location in the validation set (ex: city)
+            # use it to predict just the validation samples in the same location
+            pdb.set_trace()
+            locations = location_selector.location_values(all_samples_validate)
+            for location in set(locations):
+                if control.debug:
+                    print 'local', location, result_key
+                pdb.set_trace()
+                location_samples_validate = location_selector.in_location(all_samples_validate, location)
+                location_samples_train = location_selector.in_location(all_samples_train, location)
+                result_value, importances = make_result_value(
+                    result_key=result_key,
+                    samples_train=location_samples_train,
+                    samples_validate=location_samples_validate,
+                    )
+                save(result_key, (result_value, importances))
+
+
 FittedAvm = collections.namedtuple('FittedAVM', 'index key fitted')
 
 
@@ -416,6 +663,7 @@ def process_hps_best1(control, samples):
 
 
 def process_hps_all(control, samples):
+    control.debug = True
     existing_keys_values = {}
     with open(control.path_out_file, 'rb') as prior:
         while True:
@@ -450,12 +698,16 @@ def process_hps_all(control, samples):
 
         # write existing values
         for existing_key, existing_value in existing_keys_values.iteritems():
-            save(existing_key, existing_value)
-        control.timer.lap('write new output file with existings key and values')
+            if not control.debug:
+                save(existing_key, existing_value)
+        if control.debug:
+            print 'since debugging, did not re-write output file'
+        control.timer.lap('wrote new output file with existings key and values')
         existing_keys_values = None
 
         # write new values
-        do_val(control, samples, save, already_exists)
+        # do_val(control, samples, save, already_exists)
+        fit_and_predict(samples, control, already_exists, save)
         control.timer.lap('create additional keys and values')
 
 
