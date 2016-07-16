@@ -39,6 +39,7 @@ census2000_median_household_income = 'median_household_income'  # created in tra
 census2000_avg_commute = 'avg_commute'                          # created in transactions.py
 
 census_tract = 'CENSUS TRACT_parcel'
+city = 'PROPERTY CITY_deed'
 
 gps_latitude = 'G LATITUDE'
 gps_longitude = 'G LONGITUDE'
