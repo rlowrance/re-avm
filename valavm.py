@@ -453,15 +453,14 @@ class LocationSelector(object):
 
     def location_values(self, df):
         'return values in the locality column'
-        pdb.set_trace()
         values = df[self.locality_column_name]
         return values
 
     def in_location(self, df, location):
         'return samples that are in the location'
-        pdb.set_trace()
         has_location = df[self.locality_column_name] == location
-        subset = df.iloc[has_location]
+        subset = df.loc[has_location]
+        assert sum(has_location) == len(subset)
         return subset
 
 
@@ -569,19 +568,17 @@ def fit_and_predict(samples, control, already_exists, save):
         return ResultValue(actuals=actuals, predictions=predictions), importances
 
     location_selector = LocationSelector(control.arg.locality)
-    for result_key in make_result_keys(control):
+    result_keys = make_result_keys(control)
+    for result_key_index, result_key in enumerate(result_keys):
         if already_exists(result_key):
             continue
-        if control.debug and isinstance(result_key, ResultKeyEn):
-            continue
-        if control.debug and isinstance(result_key, ResultKeyGbr):
-            continue
+        print 'result_key %d of %d' % (result_key_index + 1, len(result_keys))
+        print result_key
         all_samples_validate, all_samples_train = split_test_train(result_key.n_months_back)
         if control.arg.locality == 'global':
             # fit one model on all the training samples
             # use it to predict all the validation samples
-            if control.debug:
-                print 'global', result_key
+            print 'global', result_key
             result_value, importances = make_result_value(
                 result_key=result_key,
                 samples_train=all_samples_train,
@@ -591,14 +588,23 @@ def fit_and_predict(samples, control, already_exists, save):
         else:
             # fit one model for each location in the validation set (ex: city)
             # use it to predict just the validation samples in the same location
-            pdb.set_trace()
             locations = location_selector.location_values(all_samples_validate)
-            for location in set(locations):
-                if control.debug:
-                    print 'local', location, result_key
-                pdb.set_trace()
+            unique_locations = set(locations)
+            for location_index, location in enumerate(set(unique_locations)):
+                print control.arg.locality, location
                 location_samples_validate = location_selector.in_location(all_samples_validate, location)
                 location_samples_train = location_selector.in_location(all_samples_train, location)
+                print 'location %s (%d of %d): number of samples: %d training %d validation' % (
+                    str(location),
+                    location_index + 1,
+                    len(unique_locations),
+                    len(location_samples_validate),
+                    len(location_samples_train),
+                    )
+                assert len(location_samples_validate) > 0, location_samples_validate
+                if len(location_samples_train) == 0:
+                    print 'no training samples for location', control.arg.locality, location, result_key
+                    continue
                 result_value, importances = make_result_value(
                     result_key=result_key,
                     samples_train=location_samples_train,
@@ -663,7 +669,6 @@ def process_hps_best1(control, samples):
 
 
 def process_hps_all(control, samples):
-    control.debug = True
     existing_keys_values = {}
     with open(control.path_out_file, 'rb') as prior:
         while True:
@@ -698,8 +703,7 @@ def process_hps_all(control, samples):
 
         # write existing values
         for existing_key, existing_value in existing_keys_values.iteritems():
-            if not control.debug:
-                save(existing_key, existing_value)
+            save(existing_key, existing_value)
         if control.debug:
             print 'since debugging, did not re-write output file'
         control.timer.lap('wrote new output file with existings key and values')
