@@ -220,20 +220,6 @@ def make_result_keys(control):
     return result
 
 
-def split_samples(samples, validation_month, n_months_back):
-    'return test, train'
-    # NOTE: the test data are in the validation month
-    # NOTE: the training data are in the previous n_months_back
-    validation_month = Month(validation_month)
-    ss = SampleSelector(samples)
-    samples_test = ss.in_month(validation_month)
-    samples_train = ss.between_months(
-        validation_month.decrement(n_months_back),
-        validation_month.decrement(1),
-        )
-    return samples_test, samples_train
-
-
 def fit_and_run(avm, samples_test, samples_train, features_group):
     'return a ResultValue and Importances'
     def make_importances(model_name, fitted_avm):
