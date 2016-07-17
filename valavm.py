@@ -153,73 +153,6 @@ ResultValue = collections.namedtuple(
 )
 
 
-def make_result_keys(control):
-    'return list of ResultKey'
-    def en():
-        'return list of ResultKenEn'
-        result = []
-        for n_months_back in control.grid_seq.n_months_back:
-            for units_X in control.grid_seq.units_X:
-                for units_y in control.grid_seq.units_y:
-                    for alpha in control.grid_seq.alpha:
-                        for l1_ratio in control.grid_seq.l1_ratio:
-                            item = ResultKeyEn(
-                                n_months_back=n_months_back,
-                                units_X=units_X,
-                                units_y=units_y,
-                                alpha=alpha,
-                                l1_ratio=l1_ratio,
-                                )
-                            result.append(item)
-        return result
-
-    def gbr():
-        'return list of ResultKeyGbr'
-        result = []
-        for n_months_back in control.grid_seq.n_months_back:
-            for n_estimators in control.grid_seq.n_estimators:
-                for max_features in control.grid_seq.max_features:
-                    for max_depth in control.grid_seq.max_depth:
-                        for loss in control.grid_seq.loss:
-                            for learning_rate in control.grid_seq.learning_rate:
-                                item = ResultKeyGbr(
-                                    n_months_back=n_months_back,
-                                    n_estimators=n_estimators,
-                                    max_features=max_features,
-                                    max_depth=max_depth,
-                                    loss=loss,
-                                    learning_rate=learning_rate,
-                                    )
-                                result.append(item)
-        return result
-
-    def rfr():
-        'return list of ResultKeyRfr'
-        result = []
-        for n_months_back in control.grid_seq.n_months_back:
-            for n_estimators in control.grid_seq.n_estimators:
-                for max_features in control.grid_seq.max_features:
-                    for max_depth in control.grid_seq.max_depth:
-                        item = ResultKeyRfr(
-                            n_months_back=n_months_back,
-                            n_estimators=n_estimators,
-                            max_features=max_features,
-                            max_depth=max_depth,
-                            )
-                        result.append(item)
-        return result
-
-    hps = control.arg.hps
-    result = []
-    if hps == 'all' or hps == 'en':
-        result.extend(en())
-    if hps == 'all' or hps == 'gbr':
-        result.extend(gbr())
-    if hps == 'all' or hps == 'rfr':
-        result.extend(rfr())
-    return result
-
-
 class LocationSelector(object):
     def __init__(self, locality):
         locality_column_name = {
@@ -243,19 +176,74 @@ class LocationSelector(object):
         return subset
 
 
-def make_model_name(result_key):
-    if isinstance(result_key, ResultKeyEn):
-        return 'ElasticNet'
-    if isinstance(result_key, ResultKeyGbr):
-        return 'GradientBoostingRegressor'
-    if isinstance(result_key, ResultKeyRfr):
-        return 'RandomForestRegressor'
-    print 'unexpected result_key type', result_key, type(result_key)
-    pdb.set_trace()
-
-
 def fit_and_predict(samples, control, already_exists, save):
     'call save(ResultKey, ResultValue) for all the hps that do not exist'
+
+    def make_result_keys(control):
+        'return list of ResultKey'
+        def en():
+            'return list of ResultKenEn'
+            result = []
+            for n_months_back in control.grid_seq.n_months_back:
+                for units_X in control.grid_seq.units_X:
+                    for units_y in control.grid_seq.units_y:
+                        for alpha in control.grid_seq.alpha:
+                            for l1_ratio in control.grid_seq.l1_ratio:
+                                item = ResultKeyEn(
+                                    n_months_back=n_months_back,
+                                    units_X=units_X,
+                                    units_y=units_y,
+                                    alpha=alpha,
+                                    l1_ratio=l1_ratio,
+                                    )
+                                result.append(item)
+            return result
+
+        def gbr():
+            'return list of ResultKeyGbr'
+            result = []
+            for n_months_back in control.grid_seq.n_months_back:
+                for n_estimators in control.grid_seq.n_estimators:
+                    for max_features in control.grid_seq.max_features:
+                        for max_depth in control.grid_seq.max_depth:
+                            for loss in control.grid_seq.loss:
+                                for learning_rate in control.grid_seq.learning_rate:
+                                    item = ResultKeyGbr(
+                                        n_months_back=n_months_back,
+                                        n_estimators=n_estimators,
+                                        max_features=max_features,
+                                        max_depth=max_depth,
+                                        loss=loss,
+                                        learning_rate=learning_rate,
+                                        )
+                                    result.append(item)
+            return result
+
+        def rfr():
+            'return list of ResultKeyRfr'
+            result = []
+            for n_months_back in control.grid_seq.n_months_back:
+                for n_estimators in control.grid_seq.n_estimators:
+                    for max_features in control.grid_seq.max_features:
+                        for max_depth in control.grid_seq.max_depth:
+                            item = ResultKeyRfr(
+                                n_months_back=n_months_back,
+                                n_estimators=n_estimators,
+                                max_features=max_features,
+                                max_depth=max_depth,
+                                )
+                            result.append(item)
+            return result
+
+        hps = control.arg.hps
+        result = []
+        if hps == 'all' or hps == 'en':
+            result.extend(en())
+        if hps == 'all' or hps == 'gbr':
+            result.extend(gbr())
+        if hps == 'all' or hps == 'rfr':
+            result.extend(rfr())
+        return result
 
     def split_train_validate(n_months_back):
         '''return (train, validate)
@@ -272,6 +260,16 @@ def fit_and_predict(samples, control, already_exists, save):
             validation_month.decrement(1),
             )
         return samples_train, samples_validate
+
+    def make_model_name(result_key):
+        if isinstance(result_key, ResultKeyEn):
+            return 'ElasticNet'
+        if isinstance(result_key, ResultKeyGbr):
+            return 'GradientBoostingRegressor'
+        if isinstance(result_key, ResultKeyRfr):
+            return 'RandomForestRegressor'
+        print 'unexpected result_key type', result_key, type(result_key)
+        pdb.set_trace()
 
     def make_avm(result_key):
         'return avm using specified hyperparameters'
