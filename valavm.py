@@ -2,7 +2,7 @@
 for AVMs based on 3 models (linear, random forests, gradient boosting regression)
 
 INVOCATION
-  python valavm.py FEATURESGROUP-HPS-TESTMONTH [--test] [--outdir OUTDIR]
+  python valavm.py FEATURESGROUP-HPS-VALIDATIONMONTH [--test] [--outdir OUTDIR]
   where
    TESTMONTH: yyyymm  Month of test data; training uses months just prior
    FEATURES : features to use
@@ -12,18 +12,15 @@ INVOCATION
                swpn: also neighborhood features (of census tract and zip5)
    HPS      : hyperaparameters to sweep; possible values
                all: sweep all
-               best1: sweep just the best 1 in WORKING/rank_models/TEST_MONTH.pickle
+               best1: sweep just the best 1 in WORKING/rank_models/VALIDATE_MONTH.pickle
    HPCOUNT  : number of hps to use if HPS is a PATH; default 1
    --test   : if present, runs in test mode, output is not usable
    --outddir: if present, write output file to WORKKING/OUTDIR/
 
-NOTE: What is called "test_month" here is called "validation_month" in paper1.
-The test_month is here the month used to estimate the generalization error.
-
 INPUTS
  WORKING/samples-train.csv
  WORKING/PATH
-   ex: WORKING/rank_models/TEST_MONTH.pickle  HPs for best models
+   ex: WORKING/rank_models/VALIDATE_MONTH.pickle  HPs for best models
 
 OUTPUTS
  WORKING/valavm/FEAUTRESGROUP-HPS/FEATURESGROUP-HPS-TESTMONTH.pickle
@@ -105,10 +102,10 @@ def make_control(argv):
 
     s = arg.features_hps_month_locality.split('-')
     if len(s) == 3:
-        arg.features_group, arg.hps, arg.test_month = s
+        arg.features_group, arg.hps, arg.validation_month = s
         arg.locality = 'global'
     elif len(s) == 4:
-        arg.features_group, arg.hps, arg.test_month, arg.locality = s
+        arg.features_group, arg.hps, arg.validation_month, arg.locality = s
     else:
         print 'bad features_hps_month_locality'
         print arg.features_hps_month_locality
@@ -127,7 +124,7 @@ def make_control(argv):
         dir_path = dir_working + arg.base_name + '/' + ('%s-%s/') % (arg.features_group, arg.hps)
     else:
         dir_path = dir_working + arg.outdir + '/'
-    out_file_name = '%s-%s-%s.pickle' % (arg.features_group, arg.hps, arg.test_month)
+    out_file_name = '%s-%s-%s-%s.pickle' % (arg.features_group, arg.hps, arg.validation_month, arg.locality)
     path_out_file = dir_path + out_file_name
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -136,9 +133,9 @@ def make_control(argv):
         arg=arg,
         debug=False,
         path_in_samples=dir_working + 'samples-train.csv',
-        path_in_best1=dir_working + 'rank_models/' + arg.test_month + '.pickle',
+        path_in_best1=dir_working + 'rank_models/' + arg.validation_month + '.pickle',
         path_out_file=path_out_file,
-        path_out_log=dir_path + 'log-' + str(arg.test_month) + '.txt',
+        path_out_log=dir_path + 'log-' + str(arg.validation_month) + '.txt',
         grid_seq=make_grid(),
         random_seed=random_seed,
         timer=Timer(),
@@ -230,16 +227,16 @@ def make_result_keys(control):
     return result
 
 
-def split_samples(samples, test_month, n_months_back):
+def split_samples(samples, validation_month, n_months_back):
     'return test, train'
-    # NOTE: the test data are in the test month
+    # NOTE: the test data are in the validation month
     # NOTE: the training data are in the previous n_months_back
-    test_month = Month(test_month)
+    validation_month = Month(validation_month)
     ss = SampleSelector(samples)
-    samples_test = ss.in_month(test_month)
+    samples_test = ss.in_month(validation_month)
     samples_train = ss.between_months(
-        test_month.decrement(n_months_back),
-        test_month.decrement(1),
+        validation_month.decrement(n_months_back),
+        validation_month.decrement(1),
         )
     return samples_test, samples_train
 
@@ -311,7 +308,7 @@ def do_val(control, samples, save, already_exists):
                         count += 1
                         report(count, total, 'en')
                         print (
-                            control.arg.test_month,  'en', n_months_back, units_X[:3], units_y[:3],
+                            control.arg.validation_month,  'en', n_months_back, units_X[:3], units_y[:3],
                             alpha, l1_ratio,
                         )
                         avm = AVM.AVM(
@@ -357,7 +354,7 @@ def do_val(control, samples, save, already_exists):
                             count += 1
                             report(count, total, 'gbr')
                             print (
-                                control.arg.test_month, 'gbr', n_months_back,
+                                control.arg.validation_month, 'gbr', n_months_back,
                                 n_estimators, max_features_s(max_features), max_depth, loss, learning_rate,
                             )
                             avm = AVM.AVM(
@@ -402,7 +399,7 @@ def do_val(control, samples, save, already_exists):
                     count += 1
                     report(count, total, 'rf')
                     print (
-                        control.arg.test_month, 'rfr', n_months_back,
+                        control.arg.validation_month, 'rfr', n_months_back,
                         n_estimators, max_features_s(max_features), max_depth
                     )
                     avm = AVM.AVM(
@@ -432,7 +429,7 @@ def do_val(control, samples, save, already_exists):
 
     # grid search for all model types
     for n_months_back in control.grid.n_months_back_seq:
-        samples_test, samples_train = split_samples(samples, control.arg.test_month, n_months_back)
+        samples_test, samples_train = split_samples(samples, control.arg.validation_month, n_months_back)
 
         search_en(samples_test, samples_train)
         search_gbr(samples_test, samples_train)
@@ -478,21 +475,21 @@ def make_model_name(result_key):
 def fit_and_predict(samples, control, already_exists, save):
     'call save(ResultKey, ResultValue) for all the hps that do not exist'
 
-    def split_test_train(n_months_back):
-        '''return (test, train)
+    def split_train_validate(n_months_back):
+        '''return (train, validate)
         where
-        - test contains only transactions in the test_month
+        - test contains only transactions in the validation_month
         - train contains only transactions in the n_months_back preceeding the
-          test_month
+          validation_month
         '''
-        test_month = Month(control.arg.test_month)
+        validation_month = Month(control.arg.validation_month)
         ss = SampleSelector(samples)
-        samples_test = ss.in_month(test_month)
+        samples_validate = ss.in_month(validation_month)
         samples_train = ss.between_months(
-            test_month.decrement(n_months_back),
-            test_month.decrement(1),
+            validation_month.decrement(n_months_back),
+            validation_month.decrement(1),
             )
-        return samples_test, samples_train
+        return samples_train, samples_validate
 
     def make_avm(result_key):
         'return avm using specified hyperparameters'
@@ -574,7 +571,7 @@ def fit_and_predict(samples, control, already_exists, save):
             continue
         print 'result_key %d of %d' % (result_key_index + 1, len(result_keys))
         print result_key
-        all_samples_validate, all_samples_train = split_test_train(result_key.n_months_back)
+        all_samples_train, all_samples_validate = split_train_validate(result_key.n_months_back)
         if control.arg.locality == 'global':
             # fit one model on all the training samples
             # use it to predict all the validation samples
@@ -635,7 +632,7 @@ def process_hps_best1(control, samples):
                                 'gb': 'GradientBoostingRegressor',
                                 'rf': 'RandomForestRegressor',
                                 }[key.model],
-                            forecast_time_period=control.arg.test_month,
+                            forecast_time_period=control.arg.validate_month,
                             n_months_back=key.n_months_back,
                             random_state=control.random_seed,
                             verbose=True,
@@ -650,7 +647,7 @@ def process_hps_best1(control, samples):
                             loss=key.loss,
                             features_group=control.arg.features_group,
                             )
-                    samples_test, samples_train = split_samples(samples, control.arg.test_month, key.n_months_back)
+                    samples_test, samples_train = split_samples(samples, control.arg.validate_month, key.n_months_back)
                     fitted_value = fit_and_run(
                         avm,
                         samples_test,
@@ -660,7 +657,7 @@ def process_hps_best1(control, samples):
                     record = (key, fitted_value)
                     pickle.dump(record, g)
             except EOFError:
-                print 'found EOF for test_month:', control.arg.test_month
+                print 'found EOF for validate:', control.arg.validate_month
 
     path = control.path_in_best1
     print 'reading ranked model descriptions from', path
