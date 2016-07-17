@@ -2,26 +2,34 @@
 for AVMs based on 3 models (linear, random forests, gradient boosting regression)
 
 INVOCATION
-  python valavm.py FEATURESGROUP-HPS-VALIDATIONMONTH [--test]
+  python valavm.py {features_group}-{hps}-{locality}{-validation_month} [--test]
   where
-   TESTMONTH: yyyymm  Month of test data; training uses months just prior
-   FEATURES : features to use
-               s: just size (lot and house)
-               sw: also weath (3 census track wealth features)
-               swp: also property features (rooms, has_pool, ...)
-               swpn: also neighborhood features (of census tract and zip5)
-   HPS      : hyperaparameters to sweep; possible values
-               all: sweep all
-   HPCOUNT  : number of hps to use if HPS is a PATH; default 1
+   features_group in {s, sw, swp, swpn}
+     features to use
+     s: just size (lot and house)
+     sw: also weath (3 census track wealth features)
+     swp: also property features (rooms, has_pool, ...)
+     swpn: also neighborhood features (of census tract and zip5)
+   hps in {all}
+     hyperaparameters to sweep; possible values
+     all: sweep all
+   validation_month is of the form YYYYMM (year, month)
+     month to use to create the estimated generalization error
+     the training data are in the months just before this month.
+   locality in {global, census, city, zip}
+     if global, a single model is trained on all the data and used for every validation sample
+     otherwise, a model is trained for each location and used to estimate every validation sample
+       in that location
+        if locality is census, a separate model is trained for each census tract
+        if locality is city a separate model is trained for each city
+        if locality is zip, a separate model is trained for each 5-digit zip code
    --test   : if present, runs in test mode, output is not usable
 
 INPUTS
  WORKING/samples-train.csv
- WORKING/PATH
-   ex: WORKING/rank_models/VALIDATE_MONTH.pickle  HPs for best models
 
 OUTPUTS
- WORKING/valavm/FEAUTRESGROUP-HPS/FEATURESGROUP-HPS-TESTMONTH.pickle
+ working/valavm/{features_group}-{hps}-{locality}/{validation_month}.pickle
 
 NOTE 1
 The codes for the FEATURES are used directly in AVM and Features, so if you
@@ -92,22 +100,14 @@ def make_control(argv):
     print argv
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
-    parser.add_argument('features_hps_month_locality', type=arg_type.features_hps_month_locality)
+    parser.add_argument('features_hps_locality_month', type=arg_type.features_hps_locality_month)
     parser.add_argument('--test', action='store_true')
     arg = parser.parse_args(argv)
     arg.base_name = 'valavm'
 
-    s = arg.features_hps_month_locality.split('-')
-    if len(s) == 3:
-        arg.features_group, arg.hps, arg.validation_month = s
-        arg.locality = 'global'
-    elif len(s) == 4:
-        arg.features_group, arg.hps, arg.validation_month, arg.locality = s
-    else:
-        print 'bad features_hps_month_locality'
-        print arg.features_hps_month_locality
-        print s
-        pdb.set_trace()
+    s = arg.features_hps_locality_month.split('-')
+    assert len(s) == 4, s
+    arg.features_group, arg.hps, arg.locality, arg.validation_month = s
 
     print arg
 
@@ -117,8 +117,8 @@ def make_control(argv):
     dir_working = Path().dir_working()
 
     # assure output directory exists
-    dir_path = dir_working + arg.base_name + '/' + ('%s-%s/') % (arg.features_group, arg.hps)
-    out_file_name = '%s-%s-%s-%s.pickle' % (arg.features_group, arg.hps, arg.validation_month, arg.locality)
+    dir_path = '%svalavm/%s-%s-%s/' % (dir_working, arg.features_group, arg.hps, arg.locality)
+    out_file_name = '%s.pickle' % arg.validation_month
     path_out_file = dir_path + out_file_name
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
