@@ -12,7 +12,6 @@ INVOCATION
                swpn: also neighborhood features (of census tract and zip5)
    HPS      : hyperaparameters to sweep; possible values
                all: sweep all
-               best1: sweep just the best 1 in WORKING/rank_models/VALIDATE_MONTH.pickle
    HPCOUNT  : number of hps to use if HPS is a PATH; default 1
    --test   : if present, runs in test mode, output is not usable
 
@@ -128,7 +127,6 @@ def make_control(argv):
         arg=arg,
         debug=False,
         path_in_samples=dir_working + 'samples-train.csv',
-        path_in_best1=dir_working + 'rank_models/' + arg.validation_month + '.pickle',
         path_out_file=path_out_file,
         path_out_log=dir_path + 'log-' + str(arg.validation_month) + '.txt',
         grid_seq=make_grid(),
@@ -608,58 +606,6 @@ def fit_and_predict(samples, control, already_exists, save):
 FittedAvm = collections.namedtuple('FittedAVM', 'index key fitted')
 
 
-def process_hps_best1(control, samples):
-    'write files containing fitted models and feature names'
-    # WRITEME: duplicate some functionality in do_val
-    # get feature names from Features().ege_names(), which returns a tuple of strings
-    def fit_and_write_k_best(best_models_f, k):
-        with open(control.path_out_file, 'wb') as g:
-            try:
-                pickled = pickle.load(best_models_f)  # read until EOF or until K records are processed
-                for index, key in enumerate(pickled):  # process the SortedDictionary
-                    if index >= k:
-                        # process only K best
-                        break
-                    print 'fitting index', index
-                    avm = AVM.AVM(
-                            model_name={
-                                'en': 'ElasticNet',
-                                'gb': 'GradientBoostingRegressor',
-                                'rf': 'RandomForestRegressor',
-                                }[key.model],
-                            forecast_time_period=control.arg.validate_month,
-                            n_months_back=key.n_months_back,
-                            random_state=control.random_seed,
-                            verbose=True,
-                            alpha=key.alpha,
-                            l1_ratio=key.l1_ratio,
-                            units_X=key.units_X,
-                            units_y=key.units_y,
-                            n_estimators=key.n_estimators,
-                            max_depth=key.max_depth,
-                            max_features=key.max_features,
-                            learning_rate=key.learning_rate,
-                            loss=key.loss,
-                            features_group=control.arg.features_group,
-                            )
-                    samples_test, samples_train = split_samples(samples, control.arg.validate_month, key.n_months_back)
-                    fitted_value = fit_and_run(
-                        avm,
-                        samples_test,
-                        samples_train,
-                        control.arg.features_group,
-                        )
-                    record = (key, fitted_value)
-                    pickle.dump(record, g)
-            except EOFError:
-                print 'found EOF for validate:', control.arg.validate_month
-
-    path = control.path_in_best1
-    print 'reading ranked model descriptions from', path
-    with open(path, 'rb') as best_models_f:
-        fit_and_write_k_best(best_models_f, 1)
-
-
 def process_hps_all(control, samples):
     existing_keys_values = {}
     with open(control.path_out_file, 'rb') as prior:
@@ -728,7 +674,8 @@ def main(argv):
     if control.arg.hps == 'all':
         process_hps_all(control, samples)
     else:
-        process_hps_best1(control, samples)
+        print 'invalid arg.hps', control.arg.hps
+        pdb.set_trace()
 
     print control
     if control.arg.test:
