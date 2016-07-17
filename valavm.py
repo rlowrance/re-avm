@@ -181,6 +181,7 @@ def fit_and_predict(samples, control, already_exists, save):
 
     def make_result_keys(control):
         'return list of ResultKey'
+
         def en():
             'return list of ResultKenEn'
             result = []
