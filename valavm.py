@@ -2,7 +2,7 @@
 for AVMs based on 3 models (linear, random forests, gradient boosting regression)
 
 INVOCATION
-  python valavm.py FEATURESGROUP-HPS-VALIDATIONMONTH [--test] [--outdir OUTDIR]
+  python valavm.py FEATURESGROUP-HPS-VALIDATIONMONTH [--test]
   where
    TESTMONTH: yyyymm  Month of test data; training uses months just prior
    FEATURES : features to use
@@ -15,7 +15,6 @@ INVOCATION
                best1: sweep just the best 1 in WORKING/rank_models/VALIDATE_MONTH.pickle
    HPCOUNT  : number of hps to use if HPS is a PATH; default 1
    --test   : if present, runs in test mode, output is not usable
-   --outddir: if present, write output file to WORKKING/OUTDIR/
 
 INPUTS
  WORKING/samples-train.csv
@@ -96,7 +95,6 @@ def make_control(argv):
     parser.add_argument('invocation')
     parser.add_argument('features_hps_month_locality', type=arg_type.features_hps_month_locality)
     parser.add_argument('--test', action='store_true')
-    parser.add_argument('--outdir')
     arg = parser.parse_args(argv)
     arg.base_name = 'valavm'
 
@@ -120,10 +118,7 @@ def make_control(argv):
     dir_working = Path().dir_working()
 
     # assure output directory exists
-    if arg.outdir is None:
-        dir_path = dir_working + arg.base_name + '/' + ('%s-%s/') % (arg.features_group, arg.hps)
-    else:
-        dir_path = dir_working + arg.outdir + '/'
+    dir_path = dir_working + arg.base_name + '/' + ('%s-%s/') % (arg.features_group, arg.hps)
     out_file_name = '%s-%s-%s-%s.pickle' % (arg.features_group, arg.hps, arg.validation_month, arg.locality)
     path_out_file = dir_path + out_file_name
     if not os.path.exists(dir_path):
