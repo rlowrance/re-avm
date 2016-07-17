@@ -220,34 +220,6 @@ def make_result_keys(control):
     return result
 
 
-def fit_and_run(avm, samples_test, samples_train, features_group):
-    'return a ResultValue and Importances'
-    def make_importances(model_name, fitted_avm):
-        if model_name == 'ElasticNet':
-            return {
-                    'intercept': fitted_avm.intercept_,
-                    'coefficients': fitted_avm.coef_,
-                    'features_group': features_group,
-                    }
-        else:
-            # the tree-based models have the same structure for their important features
-                return {
-                        'feature_importances': fitted_avm.feature_importances_,
-                        'features_group': features_group,
-                        }
-
-    fitted_model = avm.fit(samples_train)
-    predictions = avm.predict(samples_test)
-    if predictions is None:
-        print 'no predictions!'
-        pdb.set_trace()
-    actuals = samples_test[layout_transactions.price]
-    return (
-        ResultValue(actuals, predictions),
-        make_importances(avm.model_name, fitted_model),
-        )
-
-
 class LocationSelector(object):
     def __init__(self, locality):
         locality_column_name = {
