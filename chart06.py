@@ -1,21 +1,17 @@
 '''create charts showing results of valgbr.py
-
 INVOCATION
   python chart06.py FEATURESGROUP-HPS [--data] [--test] [--subset]
 where
   FEAUTURES is one of {s, sw, swp, swpn}
   HPS is one of {all, best1}
   FH is FEATURESGROUP-HPS
-
 INPUT FILES
  WORKING/chart01/data.pickle
  WORKING/valavm/FH/YYYYMM.pickle
  WORKING/chart06/FH/0data.pickle or WORKING/chart06/0data-subset.pickle
-
 INPUT AND OUTPUT FILES (build with --data)
  WORKING/chart06/FH/0data.pickle         | reduced data
  WORKING/chart06/FH/0data-subset.pickle  | reduced data test subset; always built, sometimes read
-
 OUTPUT FILES
  WORKING/chart06/FH/0data-report.txt | records retained
  WORKING/chart06/FH/a.pdf           | range of losses by model (graph)
@@ -24,8 +20,7 @@ OUTPUT FILES
  WORKING/chart06/FH/c.pdf           | best model each month
  WORKING/chart06/FH/d.pdf           | best & 50th best each month
  WORKING/chart06/FH/e.pdf           | best 50 models each month (was chart07)
- WORKING/chart06/FH/best.pickle     | dataframe with best choices each month # CHECK
-'''
+ WORKING/chart06/FH/best.pickle     | dataframe with best choices each month # CHECK'''
 
 from __future__ import division
 
@@ -320,7 +315,7 @@ class ChartBReport(object):
         self._report.write(path)
 
 
-def make_chart_b(reduction, control):
+def make_chart_b(reduction, control, median_price):
     def make_models_maes(validation_month):
         'return model names and MAEs for K best models in the valdation month'
         k = 50  # report on the first k models in the sorted subset
@@ -331,11 +326,11 @@ def make_chart_b(reduction, control):
         for key, value in first_k_items:
             graphY.append(value.mae)
             graphX.append(key.model)
+
         return graphX, graphY
 
     def make_figure():
         'make and write figure'
-        pdb.set_trace()
         plt.figure()  # new figure
         validation_months = control.validation_months
         row_seq = (1, 2, 3, 4)
@@ -397,13 +392,16 @@ def make_chart_b(reduction, control):
         assert len(models) > 0
         # the reduction is sorted by increasing mae
         # Jonathan
+        fig = plt.figure()
+        fig1 = fig.add_subplot(211)
+
         plt.title(
             'Validation Month: %s' % (validation_month),
             loc='right',
             fontdict={'fontsize': 'large', 'style': 'italic'},
             )
         for i, model in enumerate(models):
-            plt.bar(i, maes[i], color=bar_color[model])
+            fig1.bar(i, maes[i], color=bar_color[model])
         plt.yticks(size='xx-small')
         plt.xticks([])
         plt.xlabel('Models in order of increasing MAE')
@@ -423,14 +421,39 @@ def make_chart_b(reduction, control):
             )
 
         plt.legend(handles=[white_patch, black_patch], loc=2)
+        plt.ylim(0, 180000)
 
+        fig2 = fig.add_subplot(212)
+        for i, model in enumerate(models):
+            fig2.bar(i, maes[i]/median_price[str(validation_month)], color=bar_color[model])
+
+        plt.yticks(size='xx-small')
+        plt.xticks([])
+        plt.xlabel('Models in order of increasing MAE')
+        plt.ylabel('Absolute Relative Error')
+        plt.ylim(0, .3)
+
+        white_patch = mpatches.Patch(
+            facecolor='white',
+            edgecolor='black',
+            lw=1,
+            label="Gradient Boosting",
+            )
+        black_patch = mpatches.Patch(
+            facecolor='black',
+            edgecolor='black',
+            lw=1,
+            label="Random Forest",
+            )
+
+        plt.legend(handles=[white_patch, black_patch], loc=2)
         plt.savefig(control.path_out_b_pdf % int(validation_month))
         plt.close()
 
     # produce the pdf files
     for validation_month in control.validation_months:  # TODO: validation_month_long
         make_figure2(validation_month)
-    # make_figures()
+    make_figure()
 
     def write_report(year, month):
         validation_month = str(year * 100 + month)
@@ -507,9 +530,10 @@ def make_chart_cd(reduction, median_prices, control, detail_line_indices, report
     r = ChartCDReport(control.column_definitions, control.test)
     my_validation_months = []
     my_price = []
-    the_maes = []
+    my_mae = []
     for validation_month in control.validation_months_long:
         median_price = median_prices[str(validation_month)]
+
         if validation_month not in reduction:
             control.exceptions.append('reduction is missing month %s' % validation_month)
             continue
@@ -541,13 +565,7 @@ def make_chart_cd(reduction, median_prices, control, detail_line_indices, report
                 units_X=k.units_X[:3],
                 units_y=k.units_y[:3],
             )
-            the_maes.append(v.mae)  # Jonathan: Does this hold the same value as your my_mae below
-
-    # TODO: Jonathan, don't hard code the results in my_mae
-    # Perhaps the new variable "the_maes" has the same value
-    # Does it?
-
-    my_mae = [42646.129173793161, 43566.932182080694, 43806.520583176403, 43586.719298294454, 44194.297470251913, 44419.765861295047, 44895.87795697854, 44237.533635317697, 43407.504551520746, 43745.558304677397, 46036.52646385337, 48022.816683359677, 49477.284981566889, 49715.719049871841, 52129.096142188762, 51723.62595767132, 53820.675392988545, 58695.114367147558, 61386.216287345218, 61329.007178943721, 65005.876694351784, 72399.730734650395, 80385.356611968018, 81088.950306553161, 82052.392944369116, 84352.298134795565, 83850.323999738263, 81915.344433787046, 71570.865323479433, 68668.226051923586, 64840.597663278459, 60240.105915647757, 60277.774444248178, 55577.092842704325, 52590.44608837954, 52623.344610188477, 50518.823347391939, 49530.195941607992, 52562.391832780384]
+        my_mae.append(reduction[validation_month][month_result_keys[0]].mae)
 
     fig = plt.figure()
     fig1 = fig.add_subplot(211)
@@ -877,7 +895,7 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
         width,
         color='black',
         )
-    plt.ylim(0, 1)
+    plt.ylim(0, .5)
     labels = my_validation_months
     plt.xticks(
         [x+.4 for x in range(len(my_validation_months))],
@@ -910,9 +928,6 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
 
     plt.close()
 
-    median_prices = median_price
-    print "bob"
-    print median_prices
     f = ChartFReport(k, ensemble_weighting, control.column_definitions, control.test)
     regrets = []
     relative_errors = []
@@ -927,7 +942,7 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
             mae_index0=mae[validation_month].index0,
             mae_ensemble=mae[validation_month].ensemble,
             mae_best_next_month=mae[validation_month].best_next_month,
-            median_price=median_prices[str(validation_month)],
+            median_price=median_price[str(validation_month)],
             fraction_median_price_next_month_index0=mae[validation_month].index0 / median_price[str(next_month)],
             fraction_median_price_next_month_ensemble=mae[validation_month].ensemble / median_price[str(next_month)],
             fraction_median_price_next_month_best=mae[validation_month].best_next_month / median_price[str(next_month)],
@@ -987,7 +1002,7 @@ def make_charts(reduction, actuals, median_prices, control):
     print 'making charts'
 
     make_chart_a(reduction, median_prices, control)
-    make_chart_b(reduction, control)
+    make_chart_b(reduction, control, median_prices)
 
     make_chart_cd(reduction, median_prices, control, (0,), 'c')
     for n_best in (5, 100):
