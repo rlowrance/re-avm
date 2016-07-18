@@ -2,7 +2,7 @@
 for AVMs based on 3 models (linear, random forests, gradient boosting regression)
 
 INVOCATION
-  python valavm.py {features_group}-{hps}-{locality}{-validation_month} [--test]
+  python valavm.py {features_group}-{hps}-{locality}{-validation_month} [--test] [--renameoutput]
   where
    features_group in {s, sw, swp, swpn}
      features to use
@@ -24,6 +24,10 @@ INVOCATION
         if locality is city a separate model is trained for each city
         if locality is zip, a separate model is trained for each 5-digit zip code
    --test   : if present, runs in test mode, output is not usable
+   --renameoutput
+     change output file names to conform to new output file scheme
+     from WORKING/valavm/{features_group}-{hps}/{features_group}-{hps}-{month}.pickle
+     to   WORKING/valavm/{features_group}-{hps}-{city}/{month}.pickle
 
 INPUTS
  WORKING/samples-train.csv
@@ -102,6 +106,7 @@ def make_control(argv):
     parser.add_argument('invocation')
     parser.add_argument('features_hps_locality_month', type=arg_type.features_hps_locality_month)
     parser.add_argument('--test', action='store_true')
+    parser.add_argument('--renameoutput', action='store_true')
     arg = parser.parse_args(argv)
     arg.base_name = 'valavm'
 
@@ -126,9 +131,10 @@ def make_control(argv):
     return Bunch(
         arg=arg,
         debug=False,
+        dir_working=dir_working,
+        file_out_log='valavm-%s' % arg.features_hps_locality_month,
         path_in_samples=dir_working + 'samples-train.csv',
         path_out_file=path_out_file,
-        path_out_log=dir_path + 'log-' + str(arg.validation_month) + '.txt',
         grid_seq=make_grid(),
         random_seed=random_seed,
         timer=Timer(),
@@ -440,12 +446,57 @@ def process_hps_all(control, samples):
         control.timer.lap('create additional keys and values')
 
 
+def renameoutput(control):
+    'rename files, not directories'
+    def make_initial_path():
+        initial_path = '%s%s/' % (control.dir_working, control.arg.basename)
+        return initial_path
+
+    def make_dir_path(features_group, hps):
+        return '%svalavm/%s-%s/' % (control.dir_working, features_group, hps)
+
+    def make_new_file_path(features_group, hps, month):
+        dir_path = make_dir_path(features_group, hps)
+        file_name = '%s.pickle' % month
+        file_path = dir_path + file_name
+        return file_path
+
+    def make_old_file_path(features_group, hps, month):
+        dir_path = make_dir_path(features_group, hps)
+        file_name = '%s-%s-%s.pickle' % (features_group, hps, month)
+        file_path = dir_path + file_name
+        return file_path
+
+    months = (
+        '200512',
+        '200601', '200602', '200603', '200604', '200605', '200606',
+        '200607', '200608', '200609', '200610', '200611', '200612',
+        '200701', '200702', '200703', '200704', '200705', '200706',
+        '200707', '200708', '200709', '200710', '200711', '200712',
+        '200801', '200802', '200803', '200804', '200805', '200806',
+        '200807', '200808', '200809', '200810', '200811', '200812',
+        '200901', '200902')
+
+    for features_group in ('s', 'sw', 'swp', 'swpn'):
+        for hps in ('all',):
+            for month in months:
+                old_file_path = make_old_file_path(features_group, hps, month)
+                new_file_path = make_new_file_path(features_group, hps, month)
+                print 'rename', old_file_path, new_file_path
+                os.rename(old_file_path, new_file_path)
+
+
 def main(argv):
     control = make_control(argv)
-    if False:
+    if True:
         # avoid error in sklearn that requires flush to have no arguments
-        sys.stdout = Logger(log_file_path=control.path_out_log)
+        pdb.set_trace()
+        sys.stdout = Logger(base_name=control.file_out_log)
     print control
+
+    if control.arg.renameoutput:
+        renameoutput(control)
+        sys.exit()
 
     samples = pd.read_csv(
         control.path_in_samples,
