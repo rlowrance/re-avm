@@ -2,7 +2,8 @@
 for AVMs based on 3 models (linear, random forests, gradient boosting regression)
 
 INVOCATION
-  python valavm.py {features_group}-{hps}-{locality}{-validation_month} [--test] [--renameoutput]
+  python valavm.py {features_group}-{hps}-{locality}{-validation_month} \
+                   [--test] [--renameoutput] [--makefile [{system} {threads} ...]]
   where
    features_group in {s, sw, swp, swpn}
      features to use
@@ -28,12 +29,17 @@ INVOCATION
      change output file names to conform to new output file scheme
      from WORKING/valavm/{features_group}-{hps}/{features_group}-{hps}-{month}.pickle
      to   WORKING/valavm/{features_group}-{hps}-{city}/{month}.pickle
+   --makefile
+     create valavm.makefile containing rules that make valavm outputs on the specified
+     {system}s each of which has the specified number of {threads}.
+     Default arg is 'dell 16 roy 12 judith 7 hp 4'
 
 INPUTS
  WORKING/samples-train.csv
 
 OUTPUTS
  working/valavm/{features_group}-{hps}-{locality}/{validation_month}.pickle
+ SRC/valavm.makefile
 
 NOTE 1
 The codes for the FEATURES are used directly in AVM and Features, so if you
@@ -49,6 +55,7 @@ from __future__ import division
 import argparse
 import collections
 import cPickle as pickle
+import itertools
 import numpy as np
 import os
 import pandas as pd
@@ -66,6 +73,7 @@ import layout_transactions
 from Logger import Logger
 from Month import Month
 from Path import Path
+from Report import Report
 from SampleSelector import SampleSelector
 from Timer import Timer
 # from TimeSeriesCV import TimeSeriesCV
@@ -104,17 +112,45 @@ def make_control(argv):
     print argv
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
-    parser.add_argument('features_hps_locality_month', type=arg_type.features_hps_locality_month)
+    parser.add_argument(
+        'features_hps_locality_month',
+        nargs='?',
+        default=None,
+        type=arg_type.features_hps_locality_month,
+        )
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--renameoutput', action='store_true')
+    parser.add_argument('--makefile', nargs='*')
     arg = parser.parse_args(argv)
     arg.base_name = 'valavm'
+
+    print arg
+
+    dir_working = Path().dir_working()
+    path_in_samples = dir_working + 'samples-train.csv'
+    if arg.makefile is not None:
+        if len(arg.makefile) == 0:
+            arg.makefile = 'dell 16 roy 12 judith 7 hp 4'
+        if len(arg.makefile) % 2 != 0:
+            print 'must supply {system} {threads} ... pairs as argument to --makefile'
+            os.exit(1)
+        return Bunch(
+            arg=arg,
+            file_out_log='valavm-makefile',
+            path_in_samples=path_in_samples,
+            path_out_makefile=Path().dir_src() + 'valavm.makefile',
+            path_out_src=Path().dir_src(),
+            )
+    if arg.renameoutput is not None:
+        return Bunch(
+            arg=arg,
+            file_out_log='valavm-renameoutput',
+            path_out_src=Path().dir_src(),
+            )
 
     s = arg.features_hps_locality_month.split('-')
     assert len(s) == 4, s
     arg.features_group, arg.hps, arg.locality, arg.validation_month = s
-
-    print arg
 
     random_seed = 123
     random.seed(random_seed)
@@ -486,16 +522,80 @@ def renameoutput(control):
                 os.rename(old_file_path, new_file_path)
 
 
+def makefile(control):
+    'write file valavm.makefile'
+    months = (
+        '200512',
+        '200601', '200602', '200603', '200604', '200605', '200606',
+        '200607', '200608', '200609', '200610', '200611', '200612',
+        '200701', '200702', '200703', '200704', '200705', '200706',
+        '200707', '200708', '200709', '200710', '200711', '200712',
+        '200801', '200802', '200803', '200804', '200805', '200806',
+        '200807', '200808', '200809', '200810', '200811', '200812',
+        '200901', '200902')
+
+    def make_jobs(args):
+        jobs = {}
+        for index in range(0, len(args), 2):
+            system_name = args[index]
+            hardware_threads = args[index + 1]
+            jobs[system_name] = int(hardware_threads)
+        return jobs
+
+    def make_system_generator(jobs):
+        systems = jobs.keys()
+        for system in itertools.cycle(systems):
+            for index in xrange(jobs[system]):
+                yield system
+
+    def append_lines(report, feature_group, hps, locality, month, system):
+        system_lhs = 'valavm-%s-%s-%s-%s' % (feature_group, hps, locality, system)
+        system_rhs = '../data/working/valavm/%s-%s-%s/%s.pickle' % (feature_group, hps, locality, month)
+        system = '%s += %s' % (system_lhs, system_rhs)
+        report.append(system)
+
+        target_lhs = system_rhs
+        target_rhs = 'valavm.py ' + control.path_in_samples
+        target = '%s: %s' % (target_lhs, target_rhs)
+        report.append(target)
+
+        recipe = '\t~/anaconda2/bin/python valavm.py %s-%s-%s-%s' % (feature_group, hps, locality, month)
+        report.append(recipe)
+
+    def append_target(report, feature_group, hps, locality, system):
+        thing = 'valavm-%s-%s-%s-%s' % (feature_group, hps, locality, system)
+        line = '%s: $(%s)' % (thing, thing)
+        report.append(line)
+
+    args = control.arg.makefile.split(' ')
+    jobs = make_jobs(args)
+    # m = Makefile(jobs, control.path_in_samples)
+    report = Report()
+    report2 = Report()
+    system_generator = make_system_generator(jobs)
+    for feature_group in ('s', 'sw', 'swp', 'swpn'):
+        for hps in ('all',):
+            for locality in ('census', 'city', 'global'):
+                for month in months:
+                    system = system_generator.next()
+                    append_lines(report, feature_group, hps, locality, month, system)
+                    append_target(report, feature_group, hps, locality, system)
+    for line in report2.iterlines():
+        report.append(line)
+    report.write(control.path_out_makefile)
+
+
 def main(argv):
     control = make_control(argv)
-    if True:
-        # avoid error in sklearn that requires flush to have no arguments
-        pdb.set_trace()
-        sys.stdout = Logger(base_name=control.file_out_log)
+    sys.stdout = Logger(base_name=control.file_out_log)
     print control
 
     if control.arg.renameoutput:
         renameoutput(control)
+        sys.exit()
+
+    if control.arg.makefile is not None:
+        makefile(control)
         sys.exit()
 
     samples = pd.read_csv(
