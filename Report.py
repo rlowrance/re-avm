@@ -29,5 +29,9 @@ class Report(object):
             f.write('\n')
         f.close()
 
+    def iterlines(self):
+        for line in self._lines:
+            yield line
+
     def lines(self):
         return self._lines
