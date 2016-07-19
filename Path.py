@@ -48,9 +48,8 @@ class Path(object):
             pdb.set_trace()
 
     def dir_src(self, file_id=None):
-        pdb.set_trace()
         if file_id is None:
-            return self._dir_source
+            return self._dir_src
         else:
             print 'bad file_id', file_id
             pdb.set_trace()
