@@ -523,7 +523,10 @@ def renameoutput(control):
 
 
 def makefile(control):
-    'write file valavm.makefile'
+    '''write file valavm.makefile with these targets
+    valavm-{feature_group}-{locality}-{system}
+    all
+    '''
     months = (
         '200512',
         '200601', '200602', '200603', '200604', '200605', '200606',
@@ -548,41 +551,56 @@ def makefile(control):
             for index in xrange(jobs[system]):
                 yield system
 
-    def append_lines(report, feature_group, hps, locality, month, system):
-        system_lhs = 'valavm-%s-%s-%s-%s' % (feature_group, hps, locality, system)
-        system_rhs = '../data/working/valavm/%s-%s-%s/%s.pickle' % (feature_group, hps, locality, month)
-        system = '%s += %s' % (system_lhs, system_rhs)
-        report.append(system)
+    def make_system_months(jobs, months):
+        result = collections.defaultdict(list)
+        system_generator = make_system_generator(jobs)
+        for month in months:
+            system = system_generator.next()
+            result[system].append(month)
+        return result
 
-        target_lhs = system_rhs
+    def make_variable(feature_group, locality, system, month):
+        lhs = 'valavm-%s-all-%s-%s' % (feature_group, locality, system)
+        rhs = '../data/working/valavm/%s-all-%s/%s' % (feature_group, locality, month)
+        line = '%s += %s' % (lhs, rhs)
+        return line
+
+    def make_target(feature_group, locality, system):
+        var = 'valavm-%s-all-%s-%s' % (feature_group, locality, system)
+        line = '%s : $(%s)' % (var, var)
+        return line
+
+    def make_rule(feature_group, locality, month):
+        target_lhs = '../data/working/valavm/%s-all-%s/%s' % (feature_group, locality, month)
         target_rhs = 'valavm.py ' + control.path_in_samples
-        target = '%s: %s' % (target_lhs, target_rhs)
-        report.append(target)
+        target_line = '%s : %s' % (target_lhs, target_rhs)
 
-        recipe = '\t~/anaconda2/bin/python valavm.py %s-%s-%s-%s' % (feature_group, hps, locality, month)
-        report.append(recipe)
+        recipe_line = '\t~/bin/anaconda2/python valavm.py %s-all-%s-%s' % (feature_group, locality, month)
 
-    def append_target(report, feature_group, hps, locality, system):
-        thing = 'valavm-%s-%s-%s-%s' % (feature_group, hps, locality, system)
-        line = '%s: $(%s)' % (thing, thing)
-        report.append(line)
+        return (target_line, recipe_line)
 
     args = control.arg.makefile.split(' ')
     jobs = make_jobs(args)
-    # m = Makefile(jobs, control.path_in_samples)
-    report = Report()
-    report2 = Report()
-    system_generator = make_system_generator(jobs)
+    system_months = make_system_months(jobs, months)
+
+    report_variables = Report()
+    report_variables.append('# valavm variables')
+    report_targets = Report()
+    report_targets.append('# valavm targets')
+    report_rules = Report()
+    report_rules.append('# valavm rules')
+    # for now, only implement hps 'all'
     for feature_group in ('s', 'sw', 'swp', 'swpn'):
-        for hps in ('all',):
-            for locality in ('census', 'city', 'global'):
-                for month in months:
-                    system = system_generator.next()
-                    append_lines(report, feature_group, hps, locality, month, system)
-                    append_target(report, feature_group, hps, locality, system)
-    for line in report2.iterlines():
-        report.append(line)
-    report.write(control.path_out_makefile)
+        for locality in ('city', 'global'):
+            for system in jobs.keys():
+                for month in system_months[system]:
+                    report_variables.append(make_variable(feature_group, locality, system, month))
+                    report_targets.append(make_target(feature_group, locality, system))
+                    report_rules.append_lines(make_rule(feature_group, locality, month))
+    report_variables.append_report(report_targets)
+    report_variables.append_report(report_rules)
+    report_variables.write(control.path_out_makefile)
+    return
 
 
 def main(argv):
