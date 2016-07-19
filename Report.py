@@ -13,6 +13,14 @@ class Report(object):
         if self._also_print:
             print line
 
+    def append_lines(self, lines):
+        for line in lines:
+            self.append(line)
+
+    def append_report(self, other_report):
+        for line in other_report.iterlines():
+            self.append(line)
+
     def extend(self, lines):
         for line in lines:
             self.append(line)
