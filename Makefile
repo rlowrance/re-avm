@@ -254,10 +254,10 @@ VALAVM_SWPN_BEST1 += $(WORKING)/valavm/swpn-best1/swpn-best1-200902.pickle
 # Note: many charts supported preliminary analysis not in the final paper
 CHART01 += $(WORKING)/chart01/median-price.pdf
 
-CHART06 += $(WORKING)/chart06/s-all/a.pdf
-CHART06 += $(WORKING)/chart06/sw-all/a.pdf
-CHART06 += $(WORKING)/chart06/swp-all/a.pdf
-CHART06 += $(WORKING)/chart06/swpn-all/a.pdf
+CHART06 += $(WORKING)/chart06/s-all-global/a.pdf
+CHART06 += $(WORKING)/chart06/sw-all-global/a.pdf
+CHART06 += $(WORKING)/chart06/swp-all-global/a.pdf
+CHART06 += $(WORKING)/chart06/swpn-all-global/a.pdf
 
 CHART07 += $(WORKING)/chart07/s-all/b.txt
 CHART07 += $(WORKING)/chart07/sw-all/b.txt
@@ -333,36 +333,20 @@ $(WORKING)/census-features-derived.csv: census-features.py layout_census.py
 # NOTE: some charts were created and not used ihe final report
 
 # chart01
-$(WORKING)/chart01/0ata.pickle: chart01.py $(WORKING)/samples-train.csv
+$(WORKING)/chart01/0data.pickle: chart01.py $(WORKING)/samples-train.csv
 	$(PYTHON) chart01.py --data
 
 $(WORKING)/chart01/median-price.pdf: chart01.py $(WORKING)/chart01/0data.pickle
 	$(PYTHON) chart01.py
 	
 # chart06 
-$(WORKING)/chart06/s-all/0data.pickle: chart06.py $(WORKING)/chart01/0data.pickle $(VALAVM)
-	$(PYTHON) chart06.py s-all --data
+$(WORKING)/chart06/%/0data.pickle: chart06.py $(WORKING)/chart01/0data.pickle $(VALAVM)
+	$(PYTHON) chart06.py $* --data
 
-$(WORKING)/chart06/s-all/a.pdf: chart06.py $(WORKING)/chart06/s-all/0data.pickle
-	$(PYTHON) chart06.py s-all
+$(WORKING)/chart06/%/a.pdf: chart06.py $(WORKING)/chart06/%/0data.pickle
+	$(PYTHON) chart06.py $* 
 
-$(WORKING)/chart06/sw-all/0data.pickle: chart06.py $(WORKING)/chart01/0data.pickle $(VALAVM)
-	$(PYTHON) chart06.py sw-all --data
-
-$(WORKING)/chart06/sw-all/a.pdf: chart06.py $(WORKING)/chart06/sw-all/0data.pickle
-	$(PYTHON) chart06.py sw-all
-
-$(WORKING)/chart06/swp-all/0data.pickle: chart06.py $(WORKING)/chart01/0data.pickle $(VALAVM)
-	$(PYTHON) chart06.py swp-all --data
-
-$(WORKING)/chart06/swp-all/a.pdf: chart06.py $(WORKING)/chart06/swp-all/0data.pickle
-	$(PYTHON) chart06.py swp-all
-
-$(WORKING)/chart06/swpn-all/0data.pickle: chart06.py $(WORKING)/chart01/0data.pickle $(VALAVM)
-	$(PYTHON) chart06.py swpn-all --data
-
-$(WORKING)/chart06/swpn-all/a.pdf: chart06.py $(WORKING)/chart06/swpn-all/0data.pickle
-	$(PYTHON) chart06.py swpn-all
+.PRECIOUS: $(WORKING)/chart06/%/0data.pickle  # otherwise make deletes intermediate files
 
 # chart07
 $(WORKING)/chart07/s-all/0data.pickle: chart07.py $(VALAVM_FITTED)
