@@ -1,26 +1,27 @@
 '''create charts showing results of valgbr.py
 INVOCATION
-  python chart06.py FEATURESGROUP-HPS [--data] [--test] [--subset]
+  python chart06.py FEATURESGROUP-HPS-LOCALITY [--data] [--test] [--subset]
 where
   FEAUTURES is one of {s, sw, swp, swpn}
   HPS is one of {all, best1}
-  FH is FEATURESGROUP-HPS
+  LOCALILTY is one of {census, city, global, zip}
+  FHL is FEATURESGROUP-HPS
 INPUT FILES
  WORKING/chart01/data.pickle
- WORKING/valavm/FH/YYYYMM.pickle
- WORKING/chart06/FH/0data.pickle or WORKING/chart06/0data-subset.pickle
+ WORKING/valavm/FHL/YYYYMM.pickle
+ WORKING/chart06/FHL/0data.pickle or WORKING/chart06/0data-subset.pickle
 INPUT AND OUTPUT FILES (build with --data)
- WORKING/chart06/FH/0data.pickle         | reduced data
- WORKING/chart06/FH/0data-subset.pickle  | reduced data test subset; always built, sometimes read
+ WORKING/chart06/FHL/0data.pickle         | reduced data
+ WORKING/chart06/FHL/0data-subset.pickle  | reduced data test subset; always built, sometimes read
 OUTPUT FILES
- WORKING/chart06/FH/0data-report.txt | records retained
- WORKING/chart06/FH/a.pdf           | range of losses by model (graph)
- WORKING/chart06/FH/b-YYYYMM.pdf    | HPs with lowest losses
- WORKING/chart06/FH/b-YYYYMM.txt    | HPs with lowest losses
- WORKING/chart06/FH/c.pdf           | best model each month
- WORKING/chart06/FH/d.pdf           | best & 50th best each month
- WORKING/chart06/FH/e.pdf           | best 50 models each month (was chart07)
- WORKING/chart06/FH/best.pickle     | dataframe with best choices each month # CHECK'''
+ WORKING/chart06/FHL/0data-report.txt | records retained
+ WORKING/chart06/FHL/a.pdf           | range of losses by model (graph)
+ WORKING/chart06/FHL/b-YYYYMM.pdf    | HPs with lowest losses
+ WORKING/chart06/FHL/b-YYYYMM.txt    | HPs with lowest losses
+ WORKING/chart06/FHL/c.pdf           | best model each month
+ WORKING/chart06/FHL/d.pdf           | best & 50th best each month
+ WORKING/chart06/FHL/e.pdf           | best 50 models each month (was chart07)
+ WORKING/chart06/FHL/best.pickle     | dataframe with best choices each month # CHECK'''
 
 from __future__ import division
 
@@ -138,19 +139,25 @@ def make_control(argv):
     print argv
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
-    parser.add_argument('features_hps', type=arg_type.features_hps)
+    parser.add_argument('features_hps_locality', type=arg_type.features_hps_locality)
     parser.add_argument('--data', action='store_true')
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--subset', action='store_true')
     arg = parser.parse_args(argv)  # arg.__dict__ contains the bindings
     arg.base_name = 'chart06'
 
+    # for now, we only know how to process global files
+    # local files will probably have a different path in WORKING/valavm/
+    # details to be determined
+    arg.features, arg.hps, arg.locality = arg.features_hps_locality.split('-')
+    assert arg.locality == 'global', (arg.features_hps_locality, arg.locality)
+
     random_seed = 123
     random.seed(random_seed)
 
     # assure output directory exists
     dir_working = Path().dir_working()
-    dir_out = dir_working + 'chart06/' + arg.features_hps + '/'
+    dir_out = dir_working + 'chart06/' + arg.features_hps_locality + '/'
     if not os.path.exists(dir_out):
         os.makedirs(dir_out)
 
@@ -175,10 +182,9 @@ def make_control(argv):
         debug=False,
         errors=[],
         exceptions=[],
-        path_in_ege='%svalavm/%s/%s-??????.pickle' % (
+        path_in_valavm='%svalavm/%s/??????.pickle' % (
             dir_working,
-            arg.features_hps,
-            arg.features_hps,
+            arg.features_hps_locality,
             ),
         path_in_chart_01_reduction=dir_working + 'chart01/0data.pickle',
         path_in_data=dir_out + ('0data-subset.pickle' if arg.subset else '0data.pickle'),
@@ -1130,7 +1136,7 @@ def make_data(control):
 
     reduction = collections.defaultdict(dict)
     all_actuals = {}
-    paths = sorted(glob.glob(control.path_in_ege))
+    paths = sorted(glob.glob(control.path_in_valavm))
     assert len(paths) > 0, paths
     if control.test:
         pdb.set_trace()
