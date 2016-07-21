@@ -9,16 +9,6 @@ WORKING = ../data/working
 
 ALL += $(WORKING)/census-features-derived.csv
 
-# define targets $(WORKING)/valavm/{feature_group}-all-{locality}-{system}
-# so that these invocations of make will work
-#   make -j N {feature_group}-all-{locality}-{system}
-# where N is 
-#  16 on {system} = dell
-#   4 on {system} = hp
-#   7 on {system} = judith
-#   8 on {system} = roy
-include valavm.makefile
-
 ALL += valavm.makefile
 
 # define the charts
@@ -179,6 +169,16 @@ valavm_dep += AVM_elastic_net.py
 valavm_dep += $(WORKING)/samples-train.csv
 
 # valavm
+
+# define targets $(WORKING)/valavm/{feature_group}-all-{locality}-{system}
+# so that these invocations of make will work
+#   make -j N {feature_group}-all-{locality}-{system}
+# where N is 
+#  16 on {system} = dell
+#   4 on {system} = hp
+#   7 on {system} = judith
+#   8 on {system} = roy
+include valavm.makefile
 
 valavm.makefile: valavm.py
 	$(PYTHON) valavm.py --makefile
