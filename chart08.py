@@ -168,7 +168,7 @@ def make_chart_a(control, data):
             ),
             verbose=True,
             )
-        my_info=[]
+        my_info = []
         for month in control.test_months:
             for features in control.feature_groups:
                 mae_model = data[month][features]
@@ -187,52 +187,52 @@ def make_chart_a(control, data):
         return ct, my_info
 
     def make_plots(info):
-        info=[info[i:i+4] for i in xrange(0, len(info), 4)]
+        info = [info[i:i+4] for i in xrange(0, len(info), 4)]
 
         def make_subplot1(validation_month, data):
-            y = [data[k][3] for k in (0,1,2,3)]
+            y = [data[k][3] for k in (0, 1, 2, 3)]
             plt.title(validation_month)
-            plt.bar([1,2,3,4],y)  # the reduction is sorted by increasing mae
+            plt.bar([1, 2, 3, 4], y)  # the reduction is sorted by increasing mae
             plt.yticks(size='xx-small')
-            plt.ylim(0,140000)
-            plt.xticks([1.2,2.2,3.2,4.6],['s','sw','swp','swpn'],size='medium')  # no ticks on x axis
+            plt.ylim(0, 140000)
+            plt.xticks([1.2, 2.2, 3.2, 4.6], ['s', 'sw', 'swp', 'swpn'], size='medium')  # no ticks on x axis
             return
 
         def make_subplot2(validation_month, data):
-            y = [data[k][3] for k in (0,1,2,3)]
+            y = [data[k][3] for k in (0, 1, 2, 3)]
             plt.title(validation_month)
-            plt.bar([1,2,3,4],y)  # the reduction is sorted by increasing mae
+            plt.bar([1, 2, 3, 4], y)  # the reduction is sorted by increasing mae
             plt.yticks([])
-            plt.xticks([1.4,2.4,3.4,4.4],['s','sw','swp','swpn'],rotation=-70,size='xx-small')  # no ticks on x axis
-            plt.ylim(0,140000)
+            plt.xticks([1.4, 2.4, 3.4, 4.4], ['s', 'sw', 'swp', 'swpn'], rotation=-70, size='xx-small')  # no ticks on x axis
+            plt.ylim(0, 140000)
             return
 
-        def make_figures(path,data,kind):
-            if kind =='maeall':
-                rows=6
-                cols=6
+        def make_figures(path, data, kind):
+            if kind == 'maeall':
+                rows = 6
+                cols = 6
                 axes_number = 0
-            if kind=='mae2007':
-                rows=3
-                cols=4
+            if kind == 'mae2007':
+                rows = 3
+                cols = 4
                 axes_number = 0
-            
-            plt.figure()  # new figure            
-            validation_months_2007 = ('200612', '200701', '200702', '200703', '200704', '200705',
-                             '200706', '200707', '200708', '200709', '200710', '200711',
-                             )
-            row_seq = range(1,rows+1)
-            col_seq = range(1,cols+1)
+
+            plt.figure()  # new figure
+#            validation_months_2007 = ('200612', '200701', '200702', '200703', '200704', '200705',
+#                             '200706', '200707', '200708', '200709', '200710', '200711',
+#                             )
+            row_seq = range(1, rows+1)
+            col_seq = range(1, cols+1)
             for row in row_seq:
                 for col in col_seq:
-                    if kind=='maeall':
-                        tempData=data[axes_number]
+                    if kind == 'maeall':
+                        tempData = data[axes_number]
                     else:
-                        tempData=data[axes_number+12]
+                        tempData = data[axes_number+12]
                     validation_month = tempData[0][0]
                     axes_number += 1  # count across rows
                     plt.subplot(len(row_seq), len(col_seq), axes_number)
-                    if kind== 'maeall':
+                    if kind == 'maeall':
                         make_subplot2(validation_month, tempData)
                     else:
                         make_subplot1(validation_month, tempData)
@@ -250,12 +250,12 @@ def make_chart_a(control, data):
             plt.savefig(path)
             plt.close()
 
-        make_figures(control.path_out_plt_a_mae_all,info,'maeall')
-        make_figures(control.path_out_plt_a_mae_2007,info,'mae2007')
+        make_figures(control.path_out_plt_a_mae_all, info, 'maeall')
+        make_figures(control.path_out_plt_a_mae_2007, info, 'mae2007')
 
     report = Report()
     make_header(report)
-    his_details, my_info=make_details(data, control)
+    his_details, my_info = make_details(data, control)
     make_plots(my_info)
     for line in his_details.iterlines():
         report.append(line)
