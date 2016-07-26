@@ -47,6 +47,7 @@ from Bunch import Bunch
 from chart06type import ModelDescription, ModelResults, ColumnDefinitions
 from ColumnsTable import ColumnsTable
 from columns_contain import columns_contain
+import errors
 from Logger import Logger
 from Month import Month
 from Path import Path
@@ -739,7 +740,7 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
         # to the ensemble model
         trace_if_interesting()
         ensemble_predictions = cum_weighted_predictions / cum_weights
-        ensemble_rmse, ensemble_mae, ensemble_ci95_low, ensemble_ci95_high = errors(
+        ensemble_rmse, ensemble_mae, ensemble_ci95_low, ensemble_ci95_high = errors.errors(
             actuals[next_month],
             ensemble_predictions,
         )
@@ -955,24 +956,6 @@ def make_charts(reduction, actuals, median_prices, control):
     make_charts_efg(reduction, actuals, median_prices, control)
 
 
-def errors(actuals, predictions):
-    'return root_mean_squared_error, median_absolute_error'
-    def make_ci95(v):
-        'return tuple with 95 percent confidence interval for the value in np.array v'
-        n_samples = 10000
-        samples = np.random.choice(v, size=n_samples, replace=True)  # draw with replacement
-        sorted_samples = np.sort(samples)
-        ci = (sorted_samples[int(n_samples * 0.025) - 1], sorted_samples[int(n_samples * 0.975) - 1])
-        return ci
-
-    errors = actuals - predictions
-    mse = np.sum(errors * errors) / len(errors)
-    root_mean_squared_error = np.sqrt(mse)
-    median_absolute_error = np.median(np.abs(errors))
-    ci95_low, ci95_high = make_ci95(errors)
-    return root_mean_squared_error, median_absolute_error, ci95_low, ci95_high
-
-
 def extract_yyyymm(path):
     file_name = path.split('/')[-1]
     base, suffix = file_name.split('.')
@@ -1008,7 +991,7 @@ def make_data(control):
             return result
 
         def make_model_result(value):
-            rmse, mae, low, high = errors(value.actuals, value.predictions)
+            rmse, mae, low, high = errors.errors(value.actuals, value.predictions)
             result = ModelResults(
                 rmse=rmse,
                 mae=mae,
