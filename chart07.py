@@ -41,7 +41,7 @@ from Features import Features
 from Path import Path
 from Report import Report
 from Timer import Timer
-from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
+from valavmtypes import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 import matplotlib.pyplot as plt
 
 # use valavm imports so as to avoid an error message from pyflakes
