@@ -1,9 +1,7 @@
 '''Determine most important features for the very best K models in each test month
-
 valavm.py didn't save the fitted models, because that would have created a lot
 of data.  So this program re-fits the model, in order to gain access to the
 scikit-learn feature_importances_ attribute.
-
 INVOCATION
  python chart07.py FEATURESGROUP-HPS [--data] [-test]
 where
@@ -12,11 +10,9 @@ where
  FH  is FEATURESGROUP-HPS
  --data  causes WORKING/chart06/FH/0data.pickle to be created
  --test  causes non-production behavior
-
 INPUTS FILE
  WORKING/valavm/FH/*.pickle      Defines results of models for FH
  WORKING/chart07/FH/0data.pickle  the reduction
-
 OUTPUTS FILES
  WORKING/chart07/FH/0data.pickle
  WORKING/chart07/FH/a-nbest-POSTIVEINT-nworst-POSITIVEINT.txt
@@ -46,7 +42,7 @@ from Path import Path
 from Report import Report
 from Timer import Timer
 from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
-# cc = columns_contain
+import matplotlib.pyplot as plt
 
 # use valavm imports so as to avoid an error message from pyflakes
 if False:
@@ -96,7 +92,9 @@ def make_control(argv):
         path_in_valavm_dir=dir_working + ('valavm/%s/' % arg.features_hps),
         path_out_data=dir_out + reduced_file_name,
         path_out_chart_a_template=dir_out + 'a-nbest-%d-nworst-%d.txt',
+        path_out_chart_a_pdf=dir_out + 'a-nbest-%d-nworst-%d.pdf',
         path_out_chart_b=dir_out + 'b.txt',
+        path_out_chart_b_pdf=dir_out + 'b.pdf',
         test_months=test_months,
         timer=Timer(),
     )
@@ -136,18 +134,36 @@ def make_chart_b(control, data):
             ('feature_name', 40, '%40s', (' ', 'feature name'), 'name of feature'),
             ),
             verbose=True)
+        my_prob=[]
+        my_featname=[]
         mean_importance = make_mean_importance_by_feature(test_months)
         for feature_name in sorted(mean_importance, key=mean_importance.get, reverse=True):
             columns_table.append_detail(
                 mean_prob=mean_importance[feature_name] * 100.0,
                 feature_name=feature_name,
             )
+            if mean_importance[feature_name] * 100.0>=1:
+                my_prob.append(mean_importance[feature_name] * 100.0)
+                my_featname.append(feature_name)
         columns_table.append_legend()
-        return columns_table
+        return columns_table, my_featname, my_prob
+
+    def make_plt(feats, probs):
+        plt.bar(range(len(feats)), probs, color='blue')
+        labels = feats
+        plt.xticks([x+.6 for x in range(len(feats))], labels, rotation=-70, size='small')
+
+        plt.yticks(size='xx-small')
+        plt.ylabel('Probability Feature in a Decision Tree (%)')
+        plt.xlabel('Features That Occur More Than 1 Percent of Time')
+        plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+        plt.savefig(control.path_out_chart_b_pdf)
+        plt.close()
 
     report = Report()
     make_header(report)
-    details = make_details(data, control.test_months)
+    details, my_feats, my_probs = make_details(data, control.test_months)
+    make_plt(my_feats, my_probs)
     for line in details.iterlines():
         report.append(line)
     return report
@@ -163,6 +179,7 @@ def make_chart_a(control, data):
 
     def make_details(data, test_months, n_best, n_worst):
         'return a ColumnTable'
+        extra_info=[]
         feature_names = Features().ege_names(control.arg.features)
         columns_table = ColumnsTable((
             ('test_month', 6, '%6s', ('test', 'month'), 'test month'),
@@ -188,6 +205,7 @@ def make_chart_a(control, data):
                     probability=importances[index] * 100.0,
                     feature_name=feature_names[index]
                     )
+                extra_info.append([test_month,nth_best+1,importances[index]*100.0,feature_names[index]])
             for nth in xrange(n_worst):
                 break  # skip, for now
                 if nth == len(feature_names):
@@ -204,14 +222,58 @@ def make_chart_a(control, data):
                 # insert blank line between test_months if more than 1 row in a month
                 columns_table.append_detail()
         columns_table.append_legend()
-        return columns_table
+        return columns_table, extra_info
+
+    def make_plt(data, info,n_best,n_worst):
+        months = (
+        '200512',
+        '200601', '200602', '200603', '200604', '200605', '200606',
+        '200607', '200608', '200609', '200610', '200611', '200612',
+        '200701', '200702', '200703', '200704', '200705', '200706',
+        '200707', '200708', '200709', '200710', '200711', '200712',
+        '200801', '200802', '200803', '200804', '200805', '200806',
+        '200807', '200808', '200809', '200810', '200811', '200812',
+        '200901', '200902',
+        )
+        month_range={}
+        for i in range(len(months)):
+            month_range[months[i]]=i+1
+
+        redX=[]
+        redY=[]
+        blueX=[]
+        blueY=[]
+        for i in range(len(info)):
+            if info[i][3]=='LIVING SQUARE FEET' or info[i][3]=='LAND SQUARE FOOTAGE' or info[i][3]=='median_household_income' or info[i][3]=='fraction_owner_occupied' or info[i][3]=='avg_commute':
+                redX.append(month_range[info[i][0]])
+                redY.append(info[i][2])
+            else:
+                blueX.append(month_range[info[i][0]])
+                blueY.append(info[i][2])
+        fig = plt.figure()
+        ax = plt.subplot(111)
+        ax.plot(redX,redY,'ro',label='sw')
+        ax.plot(blueX,blueY,'bs',label='other')
+        plt.ylim(0,50)
+        plt.ylabel("Probability feature in a decision tree (%)")
+        plt.xlabel("Validation Month")
+        plt.legend(bbox_to_anchor=(1, 1), ncol=1, fancybox=True, shadow=True)
+        plt.xticks([x+.3 for x in range(1,len(month_range)+1)], months, rotation=-70, size='xx-small')
+        plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+        path = control.path_out_chart_a_pdf % (n_best, n_worst)
+        plt.savefig(path)
+        plt.close()
+        #print info
 
     def make_report(n_best, n_worst):
         report = Report()
         make_header(report)
-        details = make_details(data, control.test_months, n_best, n_worst)
+        details, extra_info = make_details(data, control.test_months, n_best, n_worst)
+        #print "hello"
+        #print extra_info
         for line in details.iterlines():
             report.append(line)
+        plt = make_plt(data, extra_info,n_best,n_worst)
         return report
 
     reports = {}
