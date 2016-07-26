@@ -44,6 +44,7 @@ import sys
 import arg_type
 from AVM import AVM
 from Bunch import Bunch
+from chart06type import ModelDescription, ModelResults
 from ColumnsTable import ColumnsTable
 from columns_contain import columns_contain
 from Logger import Logger
@@ -51,21 +52,8 @@ from Month import Month
 from Path import Path
 from Report import Report
 from Timer import Timer
-from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
+from valavmtypes import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 cc = columns_contain
-
-
-ModelDescription = collections.namedtuple(
-    'ModelDescription',
-    'model n_months_back units_X units_y alpha l1_ratio ' +
-    'n_estimators max_features max_depth loss learning_rate'
-)
-
-
-ModelResults = collections.namedtuple(
-    'ModelResults',
-    'rmse mae ci95_low ci95_high predictions'
-)
 
 
 class ColumnDefinitions(object):
