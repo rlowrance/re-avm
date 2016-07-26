@@ -1,15 +1,12 @@
 '''Compare best model MAEs by time period by feature set
-
 INVOCATION
  python chart08.py [--data] [--test]
 where
  --data cuases WORKING/chart08/data.pickle to be created
  --test causes unusable output
-
 INPUT FILES
- WORKING/chart07/*/data.pickle  Contains best model descriptions and MAEs
- WORKING/chart08/data.pickle    Reduction of above files
-
+ WORKING/chart07/*/0data.pickle  Contains best model descriptions and MAEs
+ WORKING/chart08/0data.pickle    Reduction of above files
 OUTPUT FILES
  WORKING/chart08/a.txt         The comparison
  WORKING/chart08/data.pickle   Reduction of key input files
@@ -34,6 +31,7 @@ from Path import Path
 from Report import Report
 from Timer import Timer
 from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr
+import matplotlib.pyplot as plt
 
 if False:
     # avoid pyflakes errors
@@ -84,6 +82,8 @@ def make_control(argv):
         path_in_chart07_dir=dir_working + 'chart07/',
         path_out_data=reduced_file_path,
         path_out_chart_a=dir_out + 'a.txt',
+        path_out_plt_a_mae_all=dir_out + 'chart08a-mae-all.pdf',
+        path_out_plt_a_mae_2007=dir_out + 'chart08a-mae-2007.pdf',
         test_months=test_months,
         timer=Timer(),
     )
@@ -168,6 +168,7 @@ def make_chart_a(control, data):
             ),
             verbose=True,
             )
+        my_info=[]
         for month in control.test_months:
             for features in control.feature_groups:
                 mae_model = data[month][features]
@@ -177,15 +178,86 @@ def make_chart_a(control, data):
                     model=mae_model.model,
                     mae=mae_model.mae,
                     )
+                my_info.append([month, features, mae_model.model, mae_model.mae])
+
             ct.append_detail()  # blank line separates each month
         ct.append_legend()
         append_feature_group_description(ct)
 
-        return ct
+        return ct, my_info
+
+    def make_plots(info):
+        info=[info[i:i+4] for i in xrange(0, len(info), 4)]
+
+        def make_subplot1(validation_month, data):
+            y = [data[k][3] for k in (0,1,2,3)]
+            plt.title(validation_month)
+            plt.bar([1,2,3,4],y)  # the reduction is sorted by increasing mae
+            plt.yticks(size='xx-small')
+            plt.ylim(0,140000)
+            plt.xticks([1.2,2.2,3.2,4.6],['s','sw','swp','swpn'],size='medium')  # no ticks on x axis
+            return
+
+        def make_subplot2(validation_month, data):
+            y = [data[k][3] for k in (0,1,2,3)]
+            plt.title(validation_month)
+            plt.bar([1,2,3,4],y)  # the reduction is sorted by increasing mae
+            plt.yticks([])
+            plt.xticks([1.4,2.4,3.4,4.4],['s','sw','swp','swpn'],rotation=-70,size='xx-small')  # no ticks on x axis
+            plt.ylim(0,140000)
+            return
+
+        def make_figures(path,data,kind):
+            if kind =='maeall':
+                rows=6
+                cols=6
+                axes_number = 0
+            if kind=='mae2007':
+                rows=3
+                cols=4
+                axes_number = 0
+            
+            plt.figure()  # new figure            
+            validation_months_2007 = ('200612', '200701', '200702', '200703', '200704', '200705',
+                             '200706', '200707', '200708', '200709', '200710', '200711',
+                             )
+            row_seq = range(1,rows+1)
+            col_seq = range(1,cols+1)
+            for row in row_seq:
+                for col in col_seq:
+                    if kind=='maeall':
+                        tempData=data[axes_number]
+                    else:
+                        tempData=data[axes_number+12]
+                    validation_month = tempData[0][0]
+                    axes_number += 1  # count across rows
+                    plt.subplot(len(row_seq), len(col_seq), axes_number)
+                    if kind== 'maeall':
+                        make_subplot2(validation_month, tempData)
+                    else:
+                        make_subplot1(validation_month, tempData)
+                    # annotate the bottom row only
+                    if row == rows:
+                        if col == 1:
+                            plt.xlabel('features')
+                            plt.ylabel('mae ($)')
+
+            if kind == 'mae2007':
+                plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+            else:
+                plt.tight_layout(pad=0.1, w_pad=0.1, h_pad=0.1)
+
+            plt.savefig(path)
+            plt.close()
+
+        make_figures(control.path_out_plt_a_mae_all,info,'maeall')
+        make_figures(control.path_out_plt_a_mae_2007,info,'mae2007')
 
     report = Report()
     make_header(report)
-    for line in make_details(data, control).iterlines():
+    his_details, my_info=make_details(data, control)
+    make_plots(my_info)
+    for line in his_details.iterlines():
         report.append(line)
     return report
 
