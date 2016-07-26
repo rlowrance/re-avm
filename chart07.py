@@ -3,20 +3,20 @@ valavm.py didn't save the fitted models, because that would have created a lot
 of data.  So this program re-fits the model, in order to gain access to the
 scikit-learn feature_importances_ attribute.
 INVOCATION
- python chart07.py FEATURESGROUP-HPS [--data] [-test]
+ python chart07.py {features_group}-{hps}-{locality} [--data] [-test]
 where
- FEATUREGROUPS is one of {s, sw, swp, swpn}
- HPS is one of {all, best1}
- FH  is FEATURESGROUP-HPS
- --data  causes WORKING/chart06/FH/0data.pickle to be created
+ features_groput is one of {s, sw, swp, swpn}
+ hps is one of {all, best1}
+ locality is in {'census', 'city,' 'global', 'zip'}
+ --data  causes WORKING/chart06/FHL/0data.pickle to be created
  --test  causes non-production behavior
 INPUTS FILE
- WORKING/valavm/FH/*.pickle      Defines results of models for FH
- WORKING/chart07/FH/0data.pickle  the reduction
+ WORKING/valavm/{features_group}-{hps}-{locality}/{validation_month}.pickle
+ WORKING/chart07/{features_group}-{hps}-{locality}/0data.pickle  the reduction
 OUTPUTS FILES
- WORKING/chart07/FH/0data.pickle
- WORKING/chart07/FH/a-nbest-POSTIVEINT-nworst-POSITIVEINT.txt
- WORKING/chart07/FH/b.txt
+ WORKING/chart07/{features_group}-{hps}-{locality}/0data.pickle
+ WORKING/chart07/{features_group}-{hps}-{locality}/a-nbest-POSTIVEINT-nworst-POSITIVEINT.txt
+ WORKING/chart07/{features_group}-{hps}-{locality}/b.txt
 '''
 
 from __future__ import division
@@ -56,18 +56,18 @@ def make_control(argv):
     'return a Bunch'
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
-    parser.add_argument('features_hps', type=arg_type.features_hps)
+    parser.add_argument('features_hps_locality', type=arg_type.features_hps_locality)
     parser.add_argument('--data', action='store_true')
     parser.add_argument('--test', action='store_true')
     arg = parser.parse_args(argv)
     arg.base_name = 'chart07'
-    arg.features, arg.hps = arg.features_hps.split('-')
+    arg.features, arg.hps, arg.locality = arg.features_hps_locality.split('-')
 
     random_seed = 123
     random.seed(random_seed)
 
     dir_working = Path().dir_working()
-    dir_out = dir_working + arg.base_name + '/' + arg.features_hps + '/'
+    dir_out = dir_working + arg.base_name + '/' + arg.features_hps_locality + '/'
     if not os.path.exists(dir_out):
         os.makedirs(dir_out)
 
@@ -89,7 +89,7 @@ def make_control(argv):
         debug=False,
         k=1,  # number of best models examined
         path_in_data=dir_out + reduced_file_name,
-        path_in_valavm_dir=dir_working + ('valavm/%s/' % arg.features_hps),
+        path_in_valavm_dir=dir_working + ('valavm/%s/' % arg.features_hps_locality),
         path_out_data=dir_out + reduced_file_name,
         path_out_chart_a_template=dir_out + 'a-nbest-%d-nworst-%d.txt',
         path_out_chart_a_pdf=dir_out + 'a-nbest-%d-nworst-%d.pdf',
@@ -324,9 +324,8 @@ def make_data(control):
     'return the reduction dictionary'
     result = {}
     for test_month in control.test_months:
-        path = '%s%s-%s.pickle' % (
+        path = '%s%s.pickle' % (
             control.path_in_valavm_dir,
-            control.arg.features_hps,
             test_month,
             )
         print 'make_data reading', path
