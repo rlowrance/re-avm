@@ -111,10 +111,10 @@ $(WORKING)/chart07/%/b.txt: chart07.py $(WORKING)/chart07/%/0data.pickle
 #	$(PYTHON) chart07.py swpn-all
 #
 # chart08
-chart08deps += $(WORKING)/chart07/s-all/0data.pickle
-chart08deps += $(WORKING)/chart07/sw-all/0data.pickle
-#chart08deps += $(WORKING)/chart07/swp-all/0data.pickle
-chart08deps += $(WORKING)/chart07/swpn-all/0data.pickle
+chart08deps += $(WORKING)/chart07/s-all-global/0data.pickle
+chart08deps += $(WORKING)/chart07/sw-all-global/0data.pickle
+chart08deps += $(WORKING)/chart07/swp-all-global/0data.pickle
+chart08deps += $(WORKING)/chart07/swpn-all-global/0data.pickle
 
 $(WORKING)/chart08/0data.pickle: chart08.py $(chart08deps)
 	$(PYTHON) chart08.py --data
