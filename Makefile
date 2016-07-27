@@ -9,7 +9,7 @@ WORKING = ../data/working
 
 ALL += $(WORKING)/census-features-derived.csv
 
-ALL += valavm.makefile
+#ALL += valavm.makefile
 
 # define the charts
 # NOTE: many charts of historic interest only and were not used in the final report
@@ -23,10 +23,10 @@ CHART06 += $(WORKING)/chart06/sw-all-global/a.pdf
 CHART06 += $(WORKING)/chart06/swp-all-global/a.pdf
 CHART06 += $(WORKING)/chart06/swpn-all-global/a.pdf
 
-CHART07 += $(WORKING)/chart07/s-all/b.txt
-CHART07 += $(WORKING)/chart07/sw-all/b.txt
-CHART07 += $(WORKING)/chart07/swp-all/b.txt
-CHART07 += $(WORKING)/chart07/swpn-all/b.txt
+CHART07 += $(WORKING)/chart07/s-all-global/b.txt
+CHART07 += $(WORKING)/chart07/sw-all-global/b.txt
+CHART07 += $(WORKING)/chart07/swp-all-global/b.txt
+CHART07 += $(WORKING)/chart07/swpn-all-global/b.txt
 
 CHART08 += $(WORKING)/chart08/a.txt
 
@@ -77,30 +77,39 @@ $(WORKING)/chart06/%/a.pdf: chart06.py $(WORKING)/chart06/%/0data.pickle
 .PRECIOUS: $(WORKING)/chart06/%/0data.pickle  # otherwise make deletes intermediate files
 
 # chart07
-$(WORKING)/chart07/s-all/0data.pickle: chart07.py $(VALAVM_FITTED)
-	$(PYTHON) chart07.py s-all --data
+$(WORKING)/chart07/%/0data.pickle: chart07.py $(WORKING)/valavm/%/200512.pickle
+	$(PYTHON) chart07.py $* --data
 
-$(WORKING)/chart07/s-all/b.txt: chart07.py $(WORKING)/chart07/s-all/0data.pickle
-	$(PYTHON) chart07.py s-all
+$(WORKING)/chart07/%/b.txt: chart07.py $(WORKING)/chart07/%/0data.pickle
+	$(PYTHON) chart07.py $* 
 
-$(WORKING)/chart07/sw-all/0data.pickle: chart07.py $(VALAVM_FITTED)
-	$(PYTHON) chart07.py sw-all --data
+.PRECIOUS: $(WORKING)/chart07/%/0data.pickle  # otherwise make deletes intermediate files
 
-$(WORKING)/chart07/sw-all/b.txt: chart07.py $(WORKING)/chart07/sw-all/0data.pickle
-	$(PYTHON) chart07.py sw-all
-
-$(WORKING)/chart07/swp-all/0data.pickle: chart07.py $(VALAVM_FITTED)
-	$(PYTHON) chart07.py swp-all --data
-
-$(WORKING)/chart07/swp-all/b.txt: chart07.py $(WORKING)/chart07/swp-all/0data.pickle
-	$(PYTHON) chart07.py swp-all
-
-$(WORKING)/chart07/swpn-all/0data.pickle: chart07.py $(VALAVM_FITTED)
-	$(PYTHON) chart07.py swpn-all --data
-
-$(WORKING)/chart07/swpn-all/b.txt: chart07.py $(WORKING)/chart07/swpn-all/0data.pickle
-	$(PYTHON) chart07.py swpn-all
-
+# OLD chart07
+#$(WORKING)/chart07/s-all/0data.pickle: chart07.py $(VALAVM_FITTED)
+#	$(PYTHON) chart07.py s-all --data
+#
+#$(WORKING)/chart07/s-all/b.txt: chart07.py $(WORKING)/chart07/s-all/0data.pickle
+#	$(PYTHON) chart07.py s-all
+#
+#$(WORKING)/chart07/sw-all/0data.pickle: chart07.py $(VALAVM_FITTED)
+#	$(PYTHON) chart07.py sw-all --data
+#
+#$(WORKING)/chart07/sw-all/b.txt: chart07.py $(WORKING)/chart07/sw-all/0data.pickle
+#	$(PYTHON) chart07.py sw-all
+#
+#$(WORKING)/chart07/swp-all/0data.pickle: chart07.py $(VALAVM_FITTED)
+#	$(PYTHON) chart07.py swp-all --data
+#
+#$(WORKING)/chart07/swp-all/b.txt: chart07.py $(WORKING)/chart07/swp-all/0data.pickle
+#	$(PYTHON) chart07.py swp-all
+#
+#$(WORKING)/chart07/swpn-all/0data.pickle: chart07.py $(VALAVM_FITTED)
+#	$(PYTHON) chart07.py swpn-all --data
+#
+#$(WORKING)/chart07/swpn-all/b.txt: chart07.py $(WORKING)/chart07/swpn-all/0data.pickle
+#	$(PYTHON) chart07.py swpn-all
+#
 # chart08
 chart08deps += $(WORKING)/chart07/s-all/0data.pickle
 chart08deps += $(WORKING)/chart07/sw-all/0data.pickle
@@ -178,7 +187,8 @@ valavm_dep += $(WORKING)/samples-train.csv
 #   4 on {system} = hp
 #   7 on {system} = judith
 #   8 on {system} = roy
-include valavm.makefile
+
+#include valavm.makefile
 
 valavm.makefile: valavm.py
 	$(PYTHON) valavm.py --makefile
