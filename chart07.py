@@ -35,8 +35,10 @@ import sys
 import arg_type
 from AVM import AVM
 from Bunch import Bunch
-from chart06 import ModelDescription, ModelResults, ColumnDefinitions, errors
+from chart06types import ModelDescription, ModelResults, ColumnDefinitions
+from chart07types import ReductionKey, ReductionValue
 from ColumnsTable import ColumnsTable
+import errors
 from Features import Features
 from Path import Path
 from Report import Report
@@ -101,9 +103,6 @@ def make_control(argv):
 
 
 # the reduction is a dictionary
-ReductionKey = collections.namedtuple('ReductionKey', 'test_month')
-ReductionValue = collections.namedtuple('ReductionValue', 'model importances mae')
-
 
 def make_chart_b(control, data):
     'return a Report'
@@ -346,7 +345,7 @@ def make_data(control):
                     actuals_predictions, importances = value
                     actuals = actuals_predictions.actuals
                     predictions = actuals_predictions.predictions
-                    rmse, mae, ci95_low, ci95_high = errors(actuals, predictions)
+                    rmse, mae, ci95_low, ci95_high = errors.errors(actuals, predictions)
                     if (lowest_mae is None) or (mae < lowest_mae):
                         lowest_mae = mae
                         best_key = key
