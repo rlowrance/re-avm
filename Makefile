@@ -52,6 +52,9 @@ chart07: $(CHART07)
 .PHONY: chart08
 chart08: $(CHART08)
 
+.PHONY: charts
+charts: chart01 chart06 chart07 chart08
+
 # census-features-derived.csv
 $(WORKING)/census-features-derived.csv: census-features.py layout_census.py
 	$(PYTHON) census-features.py
