@@ -9,7 +9,7 @@ INPUT FILES
  WORKING/chart08/0data.pickle    Reduction of above files
 OUTPUT FILES
  WORKING/chart08/a.txt         The comparison
- WORKING/chart08/data.pickle   Reduction of key input files
+ WORKING/chart08/0data.pickle   Reduction of key input files
 '''
 
 from __future__ import division
@@ -17,6 +17,7 @@ from __future__ import division
 import argparse
 import collections
 import cPickle as pickle
+import matplotlib.pyplot as plt
 import os
 import pdb
 from pprint import pprint as pp
@@ -24,14 +25,13 @@ import random
 import sys
 
 from Bunch import Bunch
-from chart07 import ReductionKey, ReductionValue
+from chart07types import ReductionKey, ReductionValue
 from ColumnsTable import ColumnsTable
 from Features import Features
 from Path import Path
 from Report import Report
 from Timer import Timer
-from valavm import ResultKeyEn, ResultKeyGbr, ResultKeyRfr
-import matplotlib.pyplot as plt
+from valavmtypes import ResultKeyEn, ResultKeyGbr, ResultKeyRfr
 
 if False:
     # avoid pyflakes errors
@@ -96,7 +96,7 @@ def make_data(control):
     '''return reduction[test_month][feature_group] = (mae, model)'''
     result = collections.defaultdict(dict)
     for feature_group in control.feature_groups:
-        path = '%s%s-all/0data.pickle' % (control.path_in_chart07_dir, feature_group)
+        path = '%s%s-all-global/0data.pickle' % (control.path_in_chart07_dir, feature_group)
         counter = collections.Counter()
         input_record_number = 0
         print 'reducting data found in', path
