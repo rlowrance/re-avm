@@ -249,7 +249,7 @@ def make_chart_a(control, data):
             'fraction_owner_occupied',
             'avg_commute',)
         for i in range(len(info)):
-            pdb.set_trace()  # which check this the one field?
+            # pdb.set_trace()  # which check this the one field?
             if info[i][3] in important_fields:
                 # OLD CODE in next line
                 # if info[i][3] == 'LIVING SQUARE FEET' or info[i][3] == 'LAND SQUARE FOOTAGE' \
