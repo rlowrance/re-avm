@@ -44,7 +44,7 @@ import sys
 import arg_type
 from AVM import AVM
 from Bunch import Bunch
-from chart06type import ModelDescription, ModelResults, ColumnDefinitions
+from chart06types import ModelDescription, ModelResults, ColumnDefinitions
 from ColumnsTable import ColumnsTable
 from columns_contain import columns_contain
 import errors
