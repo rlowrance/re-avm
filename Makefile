@@ -191,7 +191,7 @@ valavm_dep += $(WORKING)/samples-train.csv
 #   7 on {system} = judith
 #   8 on {system} = roy
 
-#include valavm.makefile
+include valavm.makefile
 
 valavm.makefile: valavm.py
 	$(PYTHON) valavm.py --makefile
