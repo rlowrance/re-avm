@@ -729,8 +729,8 @@ def makefile(control):
             for system in jobs.keys():
                 for month in system_months[system]:
                     report_variables.append(make_variable(feature_group, locality, system, month))
-                    report_targets.append(make_target(feature_group, locality, system))
                     report_rules.append_lines(make_rule(feature_group, locality, month))
+                report_targets.append(make_target(feature_group, locality, system))
     report_variables.append_report(report_targets)
     report_variables.append_report(report_rules)
     report_variables.write(control.path_out_makefile)
