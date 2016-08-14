@@ -709,7 +709,7 @@ def makefile(control):
         target_rhs = 'valavm.py ' + control.path_in_samples
         target_line = '%s : %s' % (target_lhs, target_rhs)
 
-        recipe_line = '\t~/bin/anaconda2/python valavm.py %s-all-%s-%s' % (feature_group, locality, month)
+        recipe_line = '\t~/anaconda2/bin/python valavm.py %s-all-%s-%s' % (feature_group, locality, month)
 
         return (target_line, recipe_line)
 
