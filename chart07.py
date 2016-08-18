@@ -122,6 +122,12 @@ def make_chart_b(control, data):
             for month_index, test_month in enumerate(test_months):
                 month_importances = data[ReductionKey(test_month)]  # for each feature
                 all_feature_importances = month_importances.importances['feature_importances']
+                if 'feature_importances' not in month_importances.imporances:
+                    print 'chart b sees an unexpected ensemble model'
+                    print 'test_month', test_month
+                    print 'month_importances', month_importances
+                    print 'skipping the test month'
+                    continue
                 feature_importances[month_index] = all_feature_importances[feature_index]
             mean_importance[feature_name] = np.mean(feature_importances)
         return mean_importance
@@ -189,6 +195,15 @@ def make_chart_a(control, data):
             verbose=True)
         for test_month in test_months:
             value = data[ReductionKey(test_month)]
+            if 'feature_importances' not in value.importances:
+                # one month has an ensemble model
+                # skip that month
+                print 'chart a sees an unexpected ensemble model'
+                print 'test_month', test_month
+                print 'value', value
+                print 'value.importance', value.importances
+                print 'skipping the test month'
+                continue
             importances = value.importances['feature_importances']
             assert value.importances['features_group'] == control.arg.features, value
             model = value.model
