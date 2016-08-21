@@ -7,17 +7,20 @@ INPUT FILES
  INPUT/samples-train.csv
 
 OUTPUT FILES
- WORKING/chart01/0data.pickle   # dict: keys=ReductionKey values=ReductionValue
+ WORKING/chart01/0data.pickle   # pd.DataFrame with columns date, month, city, price
  WORKING/chart01/median-price.pdf
  WORKING/chart01/median-price.txt
  WORKING/chart01/median-price_2006_2007.txt
+ WORKING/chart01/prices-global.pdf
+ WORKING/chart01/prices-cities.pdf
+ WORKING/chart01/prices-city-{cityname}.pdf
 '''
 
 from __future__ import division
 
 import argparse
-import collections
 import cPickle as pickle
+import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -31,6 +34,7 @@ from Bunch import Bunch
 from ColumnsTable import ColumnsTable
 from columns_contain import columns_contain
 from Logger import Logger
+from Month import Month
 from Path import Path
 from Report import Report
 import layout_transactions as t
@@ -268,25 +272,36 @@ def make_chart_stats_2006_2008(data, control):
     r.write(control.path_out_stats_2006_2008)
 
 
-def make_data(control):
-    transactions = pd.read_csv(control.path_in_samples,
-                               nrows=1000 if control.test else None,
-                               )
-    # accumulate prices of transactions in each period into dict
-    # key = yyyymm (the period), an
-    # value = list of prices
-    prices = collections.defaultdict(list)
-    for index, row in transactions.iterrows():
-        yyyymm = row[t.yyyymm]  # an int
-        prices[yyyymm].append(row[t.price])
+def make_charts_prices(data, control):
+    'write output files'
+    pdb .set_trace()
+    pass
 
-    # build dictionary of statistics of prices in each period
-    # key = yyyymm (an int)
-    # value = ReductionValue(...)
-    reduction = {}
-    for yyyymm, prices in prices.iteritems():
-        reduction[make_reduction_key1(yyyymm)] = make_reduction_value(prices)
-    return reduction
+
+def make_data(control):
+    'return DataFrame'
+    def to_datetime_date(x):
+        year = int(x / 10000.0)
+        x -= year * 10000.0
+        month = int(x / 100.0)
+        x -= month * 100
+        day = int(x)
+        return datetime.date(year, month, day)
+
+    transactions = pd.read_csv(control.path_in_samples,
+                               nrows=10 if control.test else None,
+                               )
+
+    dates = [to_datetime_date(x) for x in transactions[t.sale_date]]
+    months = [Month(date.year, date.month) for date in dates]
+
+    result = pd.DataFrame({
+        'price': transactions[t.price],
+        'city': transactions[t.city],
+        'date': dates,
+        'month': months,
+        })
+    return result
 
 
 def main(argv):
@@ -301,6 +316,7 @@ def main(argv):
     else:
         with open(control.path_reduction, 'rb') as f:
             data, reduction_control = pickle.load(f)
+        make_charts_prices(data, control)
         make_chart_price_volume(data, control)
         make_chart_stats_2006_2008(data, control)
         make_chart_stats_all(data, control)
