@@ -40,26 +40,6 @@ from Report import Report
 import layout_transactions as t
 cc = columns_contain
 
-# ReductionKey = collections.namedtuple('ReductionKey', 'year month')
-# ReductionValue = collections.namedtuple('ReductionValue', 'count mean median standarddeviation')
-
-
-def make_reduction_key(yyyy, mm):
-    return yyyy * 100 + mm
-
-
-def make_reduction_key1(yyyymm):
-    return yyyymm
-
-
-def make_reduction_value(prices):
-    return {
-        'count': len(prices),
-        'mean': np.mean(prices),
-        'median': np.median(prices),
-        'standarddeviation': np.std(prices),
-    }
-
 
 def make_control(argv):
     # return a Bunch
@@ -92,6 +72,9 @@ def make_control(argv):
         debug=debug,
         path_in_samples=dir_working + 'samples-train.csv',
         path_out_graph=dir_path + 'median-price.pdf',
+        path_out_price_statistics_city_name=dir_path + 'price-statistics-city-name.txt',
+        path_out_price_statistics_count=dir_path + 'price-statistics-count.txt',
+        path_out_price_statistics_median_price=dir_path + 'price-statistics-median-price.txt',
         path_out_price_volume=dir_path + 'price-volume.pdf',
         path_out_stats_all=dir_path + 'price-stats-all.txt',
         path_out_stats_2006_2008=dir_path + 'price-stats-2006-2008.txt',
@@ -278,6 +261,77 @@ def make_charts_prices(data, control):
     pass
 
 
+def make_chart_price_statistics(data, path_out, cities, sorted_by_tag):
+    'write txt file'
+    def make_column_table():
+        def append_detail_line(ct, city_name, prices):
+            ct.append_detail(
+                city=city_name,
+                mean=prices.mean(),
+                median=prices.median(),
+                stddev=prices.std(),
+                count=len(prices),
+                )
+
+        ct = ColumnsTable((
+            ('city', 30, '%30s', ('city'), 'name of city'),
+            ('mean', 7, '%7.0f', ('mean'), 'mean price across time periods'),
+            ('median', 7, '%7.0f', ('median'), 'median price across time periods'),
+            ('stddev', 7, '%7.0f', ('stddev'), 'standard deviation of prices across time periods'),
+            ('count', 7, '%7.0f', ('count'), 'number of transactions across time periods'),
+            ))
+        for city in cities:
+            in_city = data.city == city
+            city_data = data[in_city]
+            prices = city_data.price
+            append_detail_line(ct, city, prices)
+
+        # summary line is across all the cities
+        append_detail_line(ct, '* all cities *', data.price)
+
+        ct.append_legend()
+
+        return ct
+
+    r = Report()
+    r.append('Price Statistics by City')
+    r.append('Sorted by %s' % sorted_by_tag)
+    r.append('Transactions from %s to %s' % (data.date.min(), data.date.max()))
+    r.append(' ')
+    ct = make_column_table()
+    for line in ct.iterlines():
+        r.append(line)
+    r.write(path_out)
+
+
+def make_charts_price_statistics(data, control):
+    city_names = set(data.city)
+
+    def in_city(city_name):
+        'return DataFrame'
+        is_in_city = data.city == city_name
+        return data[is_in_city]
+
+    def cities_by_city_name():
+        'return iterable of cities orderd by city name'
+        result = sorted(city_names)
+        return result
+
+    def cities_by_count():
+        'return iterable of cities orderd by count'
+        result = sorted(city_names, key=lambda city_name: len(in_city(city_name)))
+        return result
+
+    def cities_by_median_price():
+        'return iterable of cities orderd by median_price'
+        result = sorted(city_names, key=lambda city_name: in_city(city_name).price.median())
+        return result
+
+    make_chart_price_statistics(data, control.path_out_price_statistics_city_name, cities_by_city_name(), 'City Name')
+    make_chart_price_statistics(data, control.path_out_price_statistics_count, cities_by_count(), 'Count')
+    make_chart_price_statistics(data, control.path_out_price_statistics_median_price, cities_by_median_price(), 'Median Price')
+
+
 def make_data(control):
     'return DataFrame'
     def to_datetime_date(x):
@@ -316,6 +370,7 @@ def main(argv):
     else:
         with open(control.path_reduction, 'rb') as f:
             data, reduction_control = pickle.load(f)
+        make_charts_price_statistics(data, control)
         make_charts_prices(data, control)
         make_chart_price_volume(data, control)
         make_chart_stats_2006_2008(data, control)
