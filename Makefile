@@ -8,6 +8,7 @@ PYTHON = ~/anaconda2/bin/python
 WORKING = ../data/working
 
 ALL += $(WORKING)/census-features-derived.csv
+ALL += $(WORKING)/interesting-cities.txt
 
 #ALL += valavm.makefile
 
@@ -128,6 +129,9 @@ $(WORKING)/chart08/a.txt: chart08.py $(WORKING)/chart08/0data.pickle
 .PHONY : parcels-features
 parcels-features: $(WORKING)/parcels-features-census_tract.csv $(WORKING)/parcels-features-zip5.csv
 
+# interesting cities
+$(WORKING)/interesting-cities.txt: interesting_cities.py
+	$(PYTHON) interesting_cities.py > interesting_cities.txt
 
 # rank_models
 $(WORKING)/rank_models/200512.pickle: rank_models.py $(WORKING)/chart06/data.pickle
