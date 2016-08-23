@@ -171,7 +171,9 @@ def make_reduction_key():
     pass  # stub
 
 
-def make_chart_graph(data, control):
+def make_chart_median_price(data, control):
+    'median price across cities'
+    # TODO: median price for each city
     years = (2003, 2004, 2005, 2006, 2007, 2008, 2009)
     months = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
     months_2009 = (1, 2, 3)
@@ -181,9 +183,16 @@ def make_chart_graph(data, control):
                   ]
     x = range(len(year_month))
     y = []
+    pdb.set_trace()
     for year in years:
         for month in (months_2009 if year == 2009 else months):
-            y.append(data[make_reduction_key(year, month)]['median'])
+            yyyymm = Month(year, month)
+            in_yyyymm = data.month == yyyymm
+            df = data[in_yyyymm]
+            assert len(df) > 0, (year, month)
+            med = df.price.median()
+            y.append(med)
+
     plt.plot(x, y)
     x_ticks = [year_month[i] if i % 12 == 0 else ' '
                for i in xrange(len(year_month))
@@ -436,12 +445,14 @@ def main(argv):
         # interesting_cities = read_interesting_cities(control.path_in_interesting_cities)
         with open(control.path_reduction, 'rb') as f:
             data, reduction_control = pickle.load(f)
+        make_chart_median_price(data, control)
+        print 'TESTING'
+        return
         make_charts_date_price(data, control)
         make_charts_price_statistics(data, control)
         make_chart_price_volume(data, control)
         make_chart_stats_2006_2008(data, control)
         make_chart_stats_all(data, control)
-        make_chart_graph(data, control)
 
     print control
     if control.test:
