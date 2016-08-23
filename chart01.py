@@ -65,9 +65,14 @@ def make_control(argv):
     reduced_file_name = '0data.pickle'
 
     # assure output directory exists
-    dir_path = dir_working + 'chart01/'
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
+    def assure_exists(dir_path):
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        return dir_path
+
+    dir_path = assure_exists(dir_working + 'chart01/')
+    dir_date_price = assure_exists(dir_path + 'date-price/')
+    dir_median_price = assure_exists(dir_path + 'median-price/')
 
     return Bunch(
         arg=arg,
@@ -75,8 +80,8 @@ def make_control(argv):
         debug=debug,
         path_in_interesting_cities=dir_working + 'interesting_cities.txt',
         path_in_samples=dir_working + 'samples-train.csv',
-        path_out_graph=dir_path + 'median-price.pdf',
-        path_out_date_price=dir_path + 'date-price/',
+        path_out_median_price=dir_median_price,
+        path_out_date_price=dir_date_price,
         path_out_price_statistics_city_name=dir_path + 'price-statistics-city-name.txt',
         path_out_price_statistics_count=dir_path + 'price-statistics-count.txt',
         path_out_price_statistics_median_price=dir_path + 'price-statistics-median-price.txt',
@@ -171,46 +176,75 @@ def make_reduction_key():
     pass  # stub
 
 
-def make_chart_median_price(data, control):
-    'median price across cities'
-    # TODO: median price for each city
-    years = (2003, 2004, 2005, 2006, 2007, 2008, 2009)
-    months = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-    months_2009 = (1, 2, 3)
-    year_month = ['%s-%02d' % (year, month)
-                  for year in years
-                  for month in (months_2009 if year == 2009 else months)
-                  ]
-    x = range(len(year_month))
-    y = []
-    pdb.set_trace()
-    for year in years:
-        for month in (months_2009 if year == 2009 else months):
-            yyyymm = Month(year, month)
-            in_yyyymm = data.month == yyyymm
-            df = data[in_yyyymm]
-            assert len(df) > 0, (year, month)
-            med = df.price.median()
-            y.append(med)
+def make_charts_median_price(data, control):
+    'write pdf file'
+    # fix error in processing all cities at once: exceeded cell block limit in savefig() call below
+    mpl.rcParams['agg.path.chunksize'] = 2000000  # fix error: exceeded cell block limit in savefig() call below
 
-    plt.plot(x, y)
-    x_ticks = [year_month[i] if i % 12 == 0 else ' '
-               for i in xrange(len(year_month))
-               ]
-    plt.xticks(range(len(year_month)),
-               x_ticks,
-               # pad=8,
-               size='xx-small',
-               rotation=-30,
-               # rotation='vertical',
-               )
-    plt.yticks(size='xx-small')
-    plt.xlabel('year-month')
-    plt.ylabel('median price ($)')
-    plt.ylim([0, 700000])
-    plt.savefig(control.path_out_graph)
+    def make_year_months():
+        result = []
+        for year in (2003, 2004, 2005, 2006, 2007, 2008, 2009):
+            months = (1, 2, 3) if year == 2009 else (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+            for month in months:
+                result.append((year, month))
+        return result
 
-    plt.close()
+    def fill_ax(ax, months, prices, title):
+        'mutate axes ax'
+        def median_price_for_year_month(year, month):
+            in_year_month = months == Month(year, month)
+            #  assert sum(in_year_month) > 0, (year, month)
+            return prices[in_year_month].median()  # return NaN if no transactions in the (year,month)
+
+        def x_tick_value(year, month):
+            return '%4d-%02d' % (year, month) if month == 1 else ' '
+
+        year_months = make_year_months()
+        x = range(len(year_months))
+        y = [median_price_for_year_month(year, month) for year, month in year_months]
+        ax.plot(x, y)
+        x_ticks = [x_tick_value(year, month) for year, month in year_months]
+        plt.xticks(x, x_ticks, size='xx-small', rotation=-30)
+        plt.yticks(size='xx-small')
+        ax.set_xlabel('year-month')
+        ax.set_ylabel('median price')
+        if False:
+            # impose the same y axis scale on each city
+            # NOTE: An earlier version used the same y scale for each city
+            # However, the largest median price in one month is about $10,000,000
+            # and that was much larger than typical, so each city chart has its
+            # own y scale.
+            ylim_value = 10e6  # an upper bound on the largest median value
+            ys = np.array(y)
+            largest_y = ys[~ np.isnan(ys)].max()
+            if largest_y > ylim_value:
+                print largest_y, ylim_value
+                pdb.set_trace()
+            assert largest_y <= ylim_value, (y, largest_y, ylim_value)
+            ax.set_ylim([0, ylim_value])
+        ax.set_ylim(ymin=0)
+        ax.set_title(title)
+
+    def make_figure(months, prices, title):
+        fig, ax = plt.subplots(1, 1)
+        fill_ax(ax, months, prices, title)
+        return fig
+
+    def write_fig(fig, city):
+        fig.savefig(control.path_out_median_price + city + '.pdf', format='pdf')
+
+    for city in set(data.city):
+        in_city = data.city == city
+        local = data[in_city]
+        print city, len(local)
+        fig = make_figure(local.month, local.price, city)
+        write_fig(fig, city)
+        plt.close(fig)
+
+    # process all cities at once
+    fig = make_figure(data.month, data.price, 'all cities')
+    write_fig(fig, 'all-cities')
+    plt.close(fig)
 
 
 def make_chart_stats(data, control, filter_f):
@@ -424,12 +458,13 @@ def make_charts_date_price(data, control):
         in_city = data.city == city
         local = data[in_city]
         fig = make_figure(local.date, local.price, city)
-        fig.savefig(control.path_out_date_price + city, format='pdf')
+        fig.savefig(control.path_out_date_price + city + '.pdf', format='pdf')
         plt.close(fig)
 
     # process all cities at once
     fig = make_figure(data.date, data.price, 'all cities')
-    fig.savefig(control.path_out_date_price + 'all', format='pdf')
+    fig.savefig(control.path_out_date_price + 'all-cities', format='pdf')
+    plt.close(fig)
 
 
 def main(argv):
@@ -445,7 +480,7 @@ def main(argv):
         # interesting_cities = read_interesting_cities(control.path_in_interesting_cities)
         with open(control.path_reduction, 'rb') as f:
             data, reduction_control = pickle.load(f)
-        make_chart_median_price(data, control)
+        make_charts_median_price(data, control)
         print 'TESTING'
         return
         make_charts_date_price(data, control)
