@@ -66,8 +66,19 @@ class Month(object):
     def equal(self, other):
         return self.year == other.year and self.month == other.month
 
+    def __eq__(self, other):
+        return self.equal(other)
+
 
 class TestMonth(unittest.TestCase):
+    def test_eq_based_on_content(self):
+        a = Month(2003, 1)
+        b = Month(2003, 1)
+        c = Month(2003, 2)
+        self.assertTrue(a == b)
+        self.assertFalse(a == c)
+        self.assertTrue(a == a)
+
     def test_constructor(self):
         self.assertTrue(Month('200703').equal(Month(2007, 03)))
         self.assertTrue(Month(200703).equal(Month(2007, 03)))
