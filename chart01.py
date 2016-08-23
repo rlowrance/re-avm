@@ -104,18 +104,19 @@ def make_chart_price_volume(data, control):
             else:
                 return (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
 
-        prices = {}
+        median_prices = {}
         volumes = {}
         for year in (2003, 2004, 2005, 2006, 2007, 2008, 2009):
             for month in make_months(year):
-                data_for_month = data[make_reduction_key(year, month)]
-                price = data_for_month['median']
-                volume = data_for_month['count']
-                prices[(year, month)] = price
+                in_year_month = data.month == Month(year, month)
+                data_for_month = data[in_year_month]
+                price = data_for_month.price.median()
+                volume = len(data_for_month.price)
+                median_prices[(year, month)] = price
                 volumes[(year, month)] = volume
-        return prices, volumes
+        return median_prices, volumes
 
-    prices, volumes = make_prices_volumes(data)  # 2 dicts
+    median_prices, volumes = make_prices_volumes(data)  # 2 dicts
 
     def make_months(year):
             if year == 2009:
@@ -133,7 +134,7 @@ def make_chart_price_volume(data, control):
     fig1y = []
     for year in (2003, 2004, 2005, 2006, 2007, 2008, 2009):
         for month in make_months(year):
-            fig1y.append(prices[(year, month)])
+            fig1y.append(median_prices[(year, month)])
     fig2y = []
     for year in (2003, 2004, 2005, 2006, 2007, 2008, 2009):
         for month in make_months(year):
@@ -480,12 +481,14 @@ def main(argv):
         # interesting_cities = read_interesting_cities(control.path_in_interesting_cities)
         with open(control.path_reduction, 'rb') as f:
             data, reduction_control = pickle.load(f)
-        make_charts_median_price(data, control)
+        make_chart_price_volume(data, control)
         print 'TESTING'
         return
+        make_charts_median_price(data, control)
         make_charts_date_price(data, control)
         make_charts_price_statistics(data, control)
-        make_chart_price_volume(data, control)
+
+        # BELOW ME HAVE NOT BEEN CONVERTED TO NEW REDUCTION DATA
         make_chart_stats_2006_2008(data, control)
         make_chart_stats_all(data, control)
 
