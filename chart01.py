@@ -4,6 +4,7 @@ INVOCATION
   python chart01.py [--data] [--test]
 
 INPUT FILES
+ INPUT/interesting_cities.txt
  INPUT/samples-train.csv
 
 OUTPUT FILES
@@ -21,6 +22,8 @@ from __future__ import division
 import argparse
 import cPickle as pickle
 import datetime
+import math
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -70,8 +73,10 @@ def make_control(argv):
         arg=arg,
         base_name=base_name,
         debug=debug,
+        path_in_interesting_cities=dir_working + 'interesting_cities.txt',
         path_in_samples=dir_working + 'samples-train.csv',
         path_out_graph=dir_path + 'median-price.pdf',
+        path_out_date_price=dir_path + 'date-price/',
         path_out_price_statistics_city_name=dir_path + 'price-statistics-city-name.txt',
         path_out_price_statistics_count=dir_path + 'price-statistics-count.txt',
         path_out_price_statistics_median_price=dir_path + 'price-statistics-median-price.txt',
@@ -160,6 +165,10 @@ def make_chart_price_volume(data, control):
     plt.ylabel('number of sales')
     plt.savefig(control.path_out_price_volume)
     plt.close()
+
+
+def make_reduction_key():
+    pass  # stub
 
 
 def make_chart_graph(data, control):
@@ -261,9 +270,8 @@ def make_charts_prices(data, control):
     pass
 
 
-def make_chart_price_statistics(data, path_out, cities, sorted_by_tag):
-    'write txt file'
-    def make_column_table():
+def make_charts_price_statistics(data, control):
+    def make_column_table(cities, data):
         def append_detail_line(ct, city_name, prices):
             ct.append_detail(
                 city=city_name,
@@ -293,18 +301,22 @@ def make_chart_price_statistics(data, path_out, cities, sorted_by_tag):
 
         return ct
 
-    r = Report()
-    r.append('Price Statistics by City')
-    r.append('Sorted by %s' % sorted_by_tag)
-    r.append('Transactions from %s to %s' % (data.date.min(), data.date.max()))
-    r.append(' ')
-    ct = make_column_table()
-    for line in ct.iterlines():
-        r.append(line)
-    r.write(path_out)
+    def make_report(data, cities, sorted_by_tag):
+        'return a Report'
+        r = Report()
+        r.append('Price Statistics by City')
+        r.append('Sorted by %s' % sorted_by_tag)
+        r.append('Transactions from %s to %s' % (data.date.min(), data.date.max()))
+        r.append(' ')
+        ct = make_column_table(cities, data)
+        for line in ct.iterlines():
+            r.append(line)
+        return r
 
+    def write_file(data, path_out, cities, sorted_by_tag):
+        r = make_report(data, cities, sorted_by_tag)
+        r.write(path_out)
 
-def make_charts_price_statistics(data, control):
     city_names = set(data.city)
 
     def in_city(city_name):
@@ -327,9 +339,9 @@ def make_charts_price_statistics(data, control):
         result = sorted(city_names, key=lambda city_name: in_city(city_name).price.median())
         return result
 
-    make_chart_price_statistics(data, control.path_out_price_statistics_city_name, cities_by_city_name(), 'City Name')
-    make_chart_price_statistics(data, control.path_out_price_statistics_count, cities_by_count(), 'Count')
-    make_chart_price_statistics(data, control.path_out_price_statistics_median_price, cities_by_median_price(), 'Median Price')
+    write_file(data, control.path_out_price_statistics_city_name, cities_by_city_name(), 'City Name')
+    write_file(data, control.path_out_price_statistics_count, cities_by_count(), 'Count')
+    write_file(data, control.path_out_price_statistics_median_price, cities_by_median_price(), 'Median Price')
 
 
 def make_data(control):
@@ -358,6 +370,59 @@ def make_data(control):
     return result
 
 
+def read_interesting_cities(path_in):
+    'return lines in input file'
+    pdb.set_trace()
+    result = []
+    with open(path_in) as f:
+        for line in f:
+            result.append(line)
+    return result
+
+
+def make_charts_date_price(data, control):
+    'write files with x-y plots for date and price'
+
+    # fix error in processing all cities at once: exceeded cell block limit in savefig() call below
+    mpl.rcParams['agg.path.chunksize'] = 2000000  # fix error: exceeded cell block limit in savefig() call below
+
+    def fill_ax(ax, x, y, title, xlabel, ylabel, ylimit):
+        'mutate axes ax'
+        ax.plot(x, y, 'bo')
+        if xlabel is not None:
+            ax.set_xlabel(xlabel)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel)
+        if title is not None:
+            ax.set_title('%s N=%d' % (title, len(x)))
+        ymax = y.max() + 1 if ylimit is None else ylimit
+        ax.set_ylim([0, ymax])
+
+    def make_figure(x, y, title):
+        print 'make_figure', title
+        fig, ax = plt.subplots(2, 1)
+
+        uniform_scaling = False
+        logymax = int(math.log10(y.max()) + 1) if uniform_scaling else None
+        ymax = 10 ** logymax if uniform_scaling else None
+
+        fill_ax(ax[0], x, y, title, None, 'price', ymax)
+        fill_ax(ax[1], x, np.log10(y), None, 'sale date', 'log10(price)', logymax)
+
+        return fig
+
+    for city in set(data.city):
+        in_city = data.city == city
+        local = data[in_city]
+        fig = make_figure(local.date, local.price, city)
+        fig.savefig(control.path_out_date_price + city, format='pdf')
+        plt.close(fig)
+
+    # process all cities at once
+    fig = make_figure(data.date, data.price, 'all cities')
+    fig.savefig(control.path_out_date_price + 'all', format='pdf')
+
+
 def main(argv):
     control = make_control(argv)
     sys.stdout = Logger(base_name=control.base_name)
@@ -368,10 +433,11 @@ def main(argv):
         with open(control.path_reduction, 'wb') as f:
             pickle.dump((data, control), f)
     else:
+        # interesting_cities = read_interesting_cities(control.path_in_interesting_cities)
         with open(control.path_reduction, 'rb') as f:
             data, reduction_control = pickle.load(f)
+        make_charts_date_price(data, control)
         make_charts_price_statistics(data, control)
-        make_charts_prices(data, control)
         make_chart_price_volume(data, control)
         make_chart_stats_2006_2008(data, control)
         make_chart_stats_all(data, control)
