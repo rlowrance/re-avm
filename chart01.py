@@ -9,12 +9,14 @@ INPUT FILES
 
 OUTPUT FILES
  WORKING/chart01/0data.pickle   # pd.DataFrame with columns date, month, city, price
- WORKING/chart01/median-price.pdf
- WORKING/chart01/median-price.txt
- WORKING/chart01/median-price_2006_2007.txt
- WORKING/chart01/prices-global.pdf
- WORKING/chart01/prices-cities.pdf
- WORKING/chart01/prices-city-{cityname}.pdf
+ WORKING/chart01/date-price/{city}.pdf
+ WORKING/chart01/median-price/{city}.pdf
+ WORKING/chart01/price-statistics-city-name.txt
+ WORKING/chart01/price-statistics-count.txt
+ WORKING/chart01/price-statistics-median-price.txt
+ WORKING/chart01/price-stats-2006-2008.txt
+ WORKING/chart01/price-stats-all.txt
+ WORKING/chart01/price-volume.pdf
 '''
 
 from __future__ import division
@@ -94,7 +96,7 @@ def make_control(argv):
     )
 
 
-def make_chart_price_volume(data, control):
+def make_figure_price_volume(data, control):
     'Write pdf'
     def make_prices_volumes(data):
         'return tuples of dict[(year,month)] = number'
@@ -177,7 +179,7 @@ def make_reduction_key():
     pass  # stub
 
 
-def make_charts_median_price(data, control):
+def make_figures_median_price(data, control):
     'write pdf file'
     # fix error in processing all cities at once: exceeded cell block limit in savefig() call below
     mpl.rcParams['agg.path.chunksize'] = 2000000  # fix error: exceeded cell block limit in savefig() call below
@@ -248,7 +250,7 @@ def make_charts_median_price(data, control):
     plt.close(fig)
 
 
-def make_chart_stats(data, control, in_report_p):
+def make_table_stats(data, control, in_report_p):
     'return Report with statistics for years and months that obey the filter'
     r = Report()
     r.append('Prices by Month')
@@ -290,29 +292,29 @@ def make_chart_stats(data, control, in_report_p):
     return r
 
 
-def make_chart_stats_all(data, control):
+def make_table_stats_all(data, control):
     def filter_f(year, month):
         return (1 <= month <= 3) if year == 20009 else True
 
-    r = make_chart_stats(data, control, filter_f)
+    r = make_table_stats(data, control, filter_f)
     r.write(control.path_out_stats_all)
 
 
-def make_chart_stats_2006_2008(data, control):
+def make_table_stats_2006_2008(data, control):
     def filter_f(year, month):
         return year in (2006, 2007, 2008)
 
-    r = make_chart_stats(data, control, filter_f)
+    r = make_table_stats(data, control, filter_f)
     r.write(control.path_out_stats_2006_2008)
 
 
-def make_charts_prices(data, control):
+def make_figures_prices(data, control):
     'write output files'
     pdb .set_trace()
     pass
 
 
-def make_charts_price_statistics(data, control):
+def make_figures_price_statistics(data, control):
     def make_column_table(cities, data):
         def append_detail_line(ct, city_name, prices):
             ct.append_detail(
@@ -422,7 +424,7 @@ def read_interesting_cities(path_in):
     return result
 
 
-def make_charts_date_price(data, control):
+def make_figures_date_price(data, control):
     'write files with x-y plots for date and price'
 
     # fix error in processing all cities at once: exceeded cell block limit in savefig() call below
@@ -476,19 +478,15 @@ def main(argv):
         with open(control.path_reduction, 'wb') as f:
             pickle.dump((data, control), f)
     else:
-        # interesting_cities = read_interesting_cities(control.path_in_interesting_cities)
         with open(control.path_reduction, 'rb') as f:
             data, reduction_control = pickle.load(f)
-        make_chart_stats_all(data, control)
-        print 'TESTING'
-        return
-        make_chart_price_volume(data, control)
-        make_charts_median_price(data, control)
-        make_charts_date_price(data, control)
-        make_charts_price_statistics(data, control)
 
-        # BELOW ME HAVE NOT BEEN CONVERTED TO NEW REDUCTION DATA
-        make_chart_stats_2006_2008(data, control)
+            make_figure_price_volume(data, control)
+            make_figures_median_price(data, control)
+            make_figures_date_price(data, control)
+            make_figures_price_statistics(data, control)
+            make_table_stats_all(data, control)
+            make_table_stats_2006_2008(data, control)
 
     print control
     if control.test:
