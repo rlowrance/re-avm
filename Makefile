@@ -17,7 +17,7 @@ ALL += $(WORKING)/interesting_cities.txt
 #
 # name one chart from each set of used chart
 # Note: many charts supported preliminary analysis not in the final paper
-CHART01 += $(WORKING)/chart01/median-price.pdf
+CHART01 += $(WORKING)/chart01/price-volume.pdf
 
 CHART06 += $(WORKING)/chart06/s-all-global/a.pdf
 CHART06 += $(WORKING)/chart06/sw-all-global/a.pdf
@@ -68,7 +68,7 @@ $(WORKING)/census-features-derived.csv: census-features.py layout_census.py
 $(WORKING)/chart01/0data.pickle: chart01.py $(WORKING)/samples-train.csv
 	$(PYTHON) chart01.py --data
 
-$(WORKING)/chart01/median-price.pdf: chart01.py $(WORKING)/chart01/0data.pickle
+$(WORKING)/chart01/price-volume.pdf: chart01.py $(WORKING)/chart01/0data.pickle
 	$(PYTHON) chart01.py
 	
 # chart06 
