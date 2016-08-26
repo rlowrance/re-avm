@@ -67,10 +67,67 @@ class Month(object):
         return self.year == other.year and self.month == other.month
 
     def __eq__(self, other):
-        return self.equal(other)
+        result = self.year == other.year and self.month == other.month
+        return result
+
+    def __hash__(self):
+        return hash((self.year, self.month))  # hash of tuple of properties
 
 
 class TestMonth(unittest.TestCase):
+    def test_eq_2_with_same_content(self):
+        a = Month(2003, 1)
+        b = Month(2003, 1)
+        self.assertTrue(a == b)
+
+    def test_eq_copy(self):
+        a = Month(2003, 1)
+        b = a
+        self.assertTrue(a == b)
+
+    def test_neq_different(self):
+        a = Month(2003, 1)
+        b = Month(2003, 2)
+        self.assertFalse(a == b)
+        self.assertFalse(b == a)
+        c = Month(2004, 1)
+        self.assertFalse(a == c)
+        self.assertFalse(c == a)
+
+    def test_eq_same(self):
+        a = Month(2003, 1)
+        self.assertTrue(a == a)
+
+    def test_set_with_same_element_len_2b(self):
+        a = Month(2003, 1)
+        b = Month(2003, 2)
+        c = Month(2003, 1)
+        assert a == c, (a, c)
+        s = set([a, b, c])
+        assert len(s) == 2
+        self.assertEqual(len(s), 2)
+        return
+
+    def test_set_with_2_element_len_2(self):
+        a = Month(2003, 1)
+        b = Month(2003, 2)
+        s = set([a, b])
+        self.assertEqual(len(s), 2)
+        return
+
+    def test_set_with_same_element_len_1b(self):
+        a = Month(2003, 1)
+        a2 = a
+        s = set([a, a2])
+        self.assertEqual(len(s), 1)
+        return
+
+    def test_set_with_same_element_len_1(self):
+        a = Month(2003, 1)
+        s = set([a, a])
+        self.assertEqual(len(s), 1)
+        return
+
     def test_eq_based_on_content(self):
         a = Month(2003, 1)
         b = Month(2003, 1)
