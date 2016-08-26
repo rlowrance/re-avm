@@ -1132,17 +1132,17 @@ def make_subset(reduction, fraction):
 
 
 def make_median_price(path):
+    'return dict[month] -> median_price'
+    def median_price(df, month):
+        'return median price for the month'
+        print 'make_median_price', month
+        in_month = df.month == month
+        return df[in_month].price.median()
+
     with open(path, 'rb') as f:
-        d, reduction_control = pickle.load(f)
-        median_price = {}
-
-        for validation_month, v in d.iteritems():
-            median_price[str(validation_month)] = v['median']
-
-        print "over here"
-        print d.iteritems()
-        print median_price
-        return median_price
+        df, reduction_control = pickle.load(f)
+        median_price = {month: median_price(df, month) for month in set(df.month)}
+    return median_price
 
 
 class ReportReduction(object):
@@ -1172,8 +1172,8 @@ def main(argv):
 
     if control.arg.data:
         median_price = make_median_price(control.path_in_chart_01_reduction)
-        print "water"
         lap('make_median_price')
+        pdb.set_trace()
         reduction, all_actuals, counters = make_data(control)
         if len(control.errors) > 0:
             print 'stopping because of errors'
