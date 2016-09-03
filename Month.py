@@ -1,5 +1,6 @@
 'A month, as in 200703; immutable'
 
+import datetime
 import pdb
 import unittest
 
@@ -10,6 +11,7 @@ class Month(object):
            Month('200703')
            Month(200703)
            Month(2007, 3)
+           Month(datetime.date)
         '''
 
         if value2 is None:
@@ -20,6 +22,9 @@ class Month(object):
                 self.month = value1 % 100
                 self.year = (value1 - self.month) / 100
             elif isinstance(value1, Month):
+                self.month = value1.month
+                self.year = value1.year
+            elif isinstance(value1, datetime.date):
                 self.month = value1.month
                 self.year = value1.year
             else:
@@ -75,6 +80,14 @@ class Month(object):
 
 
 class TestMonth(unittest.TestCase):
+    def test_from_datetimedate(self):
+        pdb.set_trace()
+        dt = datetime.date(2007, 5, 2)
+        m = Month(dt)
+        self.assertTrue(m.year == 2007)
+        self.assertTrue(m.month == 5)
+        
+        
     def test_eq_2_with_same_content(self):
         a = Month(2003, 1)
         b = Month(2003, 1)
