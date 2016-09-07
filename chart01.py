@@ -11,6 +11,7 @@ OUTPUT FILES
  WORKING/chart01/0data.pickle   # pd.DataFrame with columns date, month, city, price
  WORKING/chart01/date-price/{city}.pdf
  WORKING/chart01/median-price/{city}.pdf
+ WORKING/chart01/price-volume/{city}.pdf
  WORKING/chart01/price-statistics-city-name.txt
  WORKING/chart01/price-statistics-count.txt
  WORKING/chart01/price-statistics-median-price.txt
@@ -22,8 +23,10 @@ OUTPUT FILES
 from __future__ import division
 
 import argparse
+import collections
 import cPickle as pickle
 import datetime
+import itertools
 import math
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -70,20 +73,25 @@ def make_control(argv):
     def assure_exists(dir_path):
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
-        return dir_path
+        return dir_path + '/'
 
     dir_path = assure_exists(dir_working + 'chart01/')
-    dir_date_price = assure_exists(dir_path + 'date-price/')
-    dir_median_price = assure_exists(dir_path + 'median-price/')
+
+    all_months = [Month(year, month)
+                  for year in (2003, 2004, 2005, 2006, 2007, 2008, 2009)
+                  for month in ((1, 2, 3) if year == 2009 else (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12))
+                  ]
 
     return Bunch(
+        all_months=all_months,
         arg=arg,
         base_name=base_name,
         debug=debug,
         path_in_interesting_cities=dir_working + 'interesting_cities.txt',
         path_in_samples=dir_working + 'samples-train.csv',
-        path_out_median_price=dir_median_price,
-        path_out_date_price=dir_date_price,
+        path_out_dir_date_price=assure_exists(dir_path + 'date_price'),
+        path_out_dir_median_price=assure_exists(dir_path + 'median_price'),
+        path_out_dir_prices_volume=assure_exists(dir_path + 'prices_volume'),
         path_out_price_statistics_city_name=dir_path + 'price-statistics-city-name.txt',
         path_out_price_statistics_count=dir_path + 'price-statistics-count.txt',
         path_out_price_statistics_median_price=dir_path + 'price-statistics-median-price.txt',
@@ -234,7 +242,7 @@ def make_figures_median_price(data, control):
         return fig
 
     def write_fig(fig, city):
-        fig.savefig(control.path_out_median_price + city + '.pdf', format='pdf')
+        fig.savefig(control.path_out_dir_median_price + city + '.pdf', format='pdf')
 
     for city in set(data.city):
         in_city = data.city == city
@@ -256,14 +264,14 @@ def make_table_stats(data, control, in_report_p):
     r.append('Prices by Month')
     r.append('')
     ct = ColumnsTable((
-            ('year', 4, '%4d', (' ', ' ', 'year'), 'year of transaction'),
-            ('month', 5, '%5d', (' ', ' ', 'month'), 'month of transaction'),
-            ('mean_price', 6, '%6.0f', (' ', ' mean', 'price'), 'mean price in dollars'),
-            ('median_price', 6, '%6.0f', (' ', 'median', 'price'), 'median price in dollars'),
-            ('mean_price_ratio', 6, '%6.3f', (' mean', ' price', ' ratio'), 'ratio of price in current month to prior month'),
-            ('median_price_ratio', 6, '%6.3f', ('median', ' price', ' ratio'), 'ratio of price in current month to prior month'),
-            ('number_trades', 6, '%6d', ('number', 'of', 'trades'), 'number of trades in the month'),
-            ))
+        ('year', 4, '%4d', (' ', ' ', 'year'), 'year of transaction'),
+        ('month', 5, '%5d', (' ', ' ', 'month'), 'month of transaction'),
+        ('mean_price', 6, '%6.0f', (' ', ' mean', 'price'), 'mean price in dollars'),
+        ('median_price', 6, '%6.0f', (' ', 'median', 'price'), 'median price in dollars'),
+        ('mean_price_ratio', 6, '%6.3f', (' mean', ' price', ' ratio'), 'ratio of price in current month to prior month'),
+        ('median_price_ratio', 6, '%6.3f', ('median', ' price', ' ratio'), 'ratio of price in current month to prior month'),
+        ('number_trades', 6, '%6d', ('number', 'of', 'trades'), 'number of trades in the month'),
+        ))
 
     prior_mean_price = None
     prior_median_price = None
@@ -459,16 +467,96 @@ def make_figures_date_price(data, control):
         in_city = data.city == city
         local = data[in_city]
         fig = make_figure(local.date, local.price, city)
-        fig.savefig(control.path_out_date_price + city + '.pdf', format='pdf')
+        fig.savefig(control.path_out_dir_date_price + city + '.pdf', format='pdf')
         plt.close(fig)
 
     # process all cities at once
     fig = make_figure(data.date, data.price, 'all cities')
-    fig.savefig(control.path_out_date_price + 'all-cities', format='pdf')
+    fig.savefig(control.path_out_dir_date_price + 'all-cities', format='pdf')
+    plt.close(fig)
+
+
+def by_month(dates, xs):
+    'return dict[Month] = [x]'
+    result = collections.defaultdict(list)
+    for date, x in itertools.izip(dates, xs):
+        month = Month(date)
+        result[month].append(x)
+    return result
+
+
+def make_figures_prices_volume(data, control):
+    'write files with box-whiskers chart for prices and bar chart for volumes'
+
+    # fix error in processing all cities at once: exceeded cell block limit in savefig() call below
+    mpl.rcParams['agg.path.chunksize'] = 2000000  # fix error: exceeded cell block limit in savefig() call below
+
+    def make_figure(dates, prices, title):
+        # dates::vector of dates, prices::vector of prices
+        print 'make_figure', title
+        fig, ax = plt.subplots(2, 1)
+
+        monthly_prices = by_month(dates, prices)
+
+        # create data for both plots
+        data_prices = []
+        data_volume = [None]
+        data_volumes = []
+        for month in control.all_months:
+            prices_this_month = monthly_prices[month]
+            # data_prices.append(None if len(prices_this_month) == 0 else prices_this_month)
+            data_prices.append([0] if len(prices_this_month) == 0 else prices_this_month)
+            data_volume.append(len(prices_this_month))
+            data_volumes.append(np.array(len(prices_this_month)))
+        prices_labels = ['' for x in control.all_months]
+        labels_months = [month_year.year if month_year.month == 1 else '' for month_year in control.all_months]
+
+        if title == 'LAKE BALBOA' and False:  # fix no transactions in some months
+            pdb.set_trace()
+        ax0 = plt.subplot(211)
+        ax0.boxplot(x=data_prices, labels=prices_labels)
+        ax0.set_ylabel('prices')
+        plt.setp(ax0.get_xticklabels(), visible=False)
+
+        ax1 = plt.subplot(212, sharex=ax0)
+        ax1.plot(data_volume, 'bo')
+        ax1.set_ylabel('transactions')
+        ax1.set_xlabel('transaction month')
+        ax1.set_xticklabels(labels_months, size='xx-small', rotation=-60)
+
+        fig.suptitle(title)
+
+        return fig
+
+    def save_fig(fig, city):
+        fig.savefig(control.path_out_dir_prices_volume + city + '.pdf', format='pdf')
+
+    for city in set(data.city):
+        in_city = data.city == city
+        local = data[in_city]
+        fig = make_figure(local.date, local.price, city)
+        save_fig(fig, city)
+        plt.close(fig)
+
+    # process all cities at once
+    fig = make_figure(data.date, data.price, 'all cities')
+    save_fig(fig, 'all-cities')
     plt.close(fig)
 
 
 def main(argv):
+    def all_figures(data, control):
+        make_figures_prices_volume(data, control)
+        if control.test:
+            return
+
+        make_figure_price_volume(data, control)
+        make_figures_median_price(data, control)
+        make_figures_date_price(data, control)
+        make_figures_price_statistics(data, control)
+        make_table_stats_all(data, control)
+        make_table_stats_2006_2008(data, control)
+
     control = make_control(argv)
     sys.stdout = Logger(base_name=control.base_name)
     print control
@@ -480,13 +568,7 @@ def main(argv):
     else:
         with open(control.path_reduction, 'rb') as f:
             data, reduction_control = pickle.load(f)
-
-            make_figure_price_volume(data, control)
-            make_figures_median_price(data, control)
-            make_figures_date_price(data, control)
-            make_figures_price_statistics(data, control)
-            make_table_stats_all(data, control)
-            make_table_stats_2006_2008(data, control)
+            all_figures(data, control)
 
     print control
     if control.test:
