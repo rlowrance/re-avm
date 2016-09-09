@@ -70,7 +70,7 @@ $(WORKING)/chart01/0data.pickle: chart01.py $(WORKING)/samples-train.csv
 
 $(WORKING)/chart01/price-volume.pdf: chart01.py $(WORKING)/chart01/0data.pickle
 	$(PYTHON) chart01.py
-	
+
 # chart06 
 $(WORKING)/chart06/%/0data.pickle: chart06.py $(WORKING)/chart01/0data.pickle $(VALAVM)
 	$(PYTHON) chart06.py $* --data
