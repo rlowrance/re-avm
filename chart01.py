@@ -41,6 +41,7 @@ import sys
 from Bunch import Bunch
 from ColumnsTable import ColumnsTable
 from columns_contain import columns_contain
+import dirutilities
 from Logger import Logger
 from Month import Month
 from Path import Path
@@ -71,9 +72,7 @@ def make_control(argv):
 
     # assure output directory exists
     def assure_exists(dir_path):
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-        return dir_path + '/'
+        return dirutilities.assure_exists(dir_path) + '/'
 
     dir_path = assure_exists(dir_working + 'chart01/')
 
