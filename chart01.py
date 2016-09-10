@@ -31,7 +31,6 @@ import math
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import pandas as pd
 import pdb
 from pprint import pprint
@@ -41,7 +40,7 @@ import sys
 from Bunch import Bunch
 from ColumnsTable import ColumnsTable
 from columns_contain import columns_contain
-import dirutilities
+import dirutility
 from Logger import Logger
 from Month import Month
 from Path import Path
@@ -72,7 +71,7 @@ def make_control(argv):
 
     # assure output directory exists
     def assure_exists(dir_path):
-        return dirutilities.assure_exists(dir_path) + '/'
+        return dirutility.assure_exists(dir_path) + '/'
 
     dir_path = assure_exists(dir_working + 'chart01/')
 
