@@ -1,6 +1,7 @@
 '''create charts showing results of valgbr.py
 INVOCATION
-  python chart06.py FEATURESGROUP-HPS-LOCALITY [--data] [--test] [--subset]
+  python chart06.py --data
+  python chart06.py FEATURESGROUP-HPS-LOCALITY [--test] [--subset]
 where
   FEAUTURES is one of {s, sw, swp, swpn}
   HPS is one of {all, best1}
@@ -11,17 +12,26 @@ INPUT FILES
  WORKING/valavm/FHL/YYYYMM.pickle
  WORKING/chart06/FHL/0data.pickle or WORKING/chart06/0data-subset.pickle
 INPUT AND OUTPUT FILES (build with --data)
- WORKING/chart06/FHL/0data.pickle         | reduced data
- WORKING/chart06/FHL/0data-subset.pickle  | reduced data test subset; always built, sometimes read
+ WORKING/chart06/0data.pickle         | reduction DataFrame (see below for def)
+ WORKING/chart06/0data-subset.pickle  | subset for testing
 OUTPUT FILES
- WORKING/chart06/FHL/0data-report.txt | records retained
+ WORKING/chart06/FHL/0data-report.txt | records retained TODO: Decide whether to keep
  WORKING/chart06/FHL/a.pdf           | range of losses by model (graph)
  WORKING/chart06/FHL/b-YYYYMM.pdf    | HPs with lowest losses
  WORKING/chart06/FHL/b-YYYYMM.txt    | HPs with lowest losses
  WORKING/chart06/FHL/c.pdf           | best model each month
  WORKING/chart06/FHL/d.pdf           | best & 50th best each month
  WORKING/chart06/FHL/e.pdf           | best 50 models each month (was chart07)
- WORKING/chart06/FHL/best.pickle     | dataframe with best choices each month # CHECK'''
+ WORKING/chart06/FHL/best.pickle     | dataframe with best choices each month # CHECK
+
+The reduction is a DataFrame with these columns:
+ features_group string in {'s', 'sw', 'swp', 'swpn'}
+ city string
+ MAE float
+ validation_month Month
+ model_description ModelDescription (defined locally)
+ model_results ModelResults (defined locally)
+'''
 
 from __future__ import division
 
@@ -34,7 +44,6 @@ import math
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import pandas as pd
 import pdb
 from pprint import pprint
@@ -47,6 +56,7 @@ from Bunch import Bunch
 from chart06types import ModelDescription, ModelResults, ColumnDefinitions
 from ColumnsTable import ColumnsTable
 from columns_contain import columns_contain
+import dirutility
 import errors
 from Logger import Logger
 from Month import Month
@@ -73,28 +83,27 @@ def make_control(argv):
     'return a Bunch'
     print argv
     parser = argparse.ArgumentParser()
-    parser.add_argument('invocation')
-    parser.add_argument('features_hps_locality', type=arg_type.features_hps_locality)
+    parser.add_argument('--fhl', type=arg_type.features_hps_locality)
     parser.add_argument('--data', action='store_true')
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--subset', action='store_true')
-    arg = parser.parse_args(argv)  # arg.__dict__ contains the bindings
+    arg = parser.parse_args(argv[1:])  # arg.__dict__ contains the bindings
     arg.base_name = 'chart06'
 
     # for now, we only know how to process global files
     # local files will probably have a different path in WORKING/valavm/
     # details to be determined
-    arg.features, arg.hps, arg.locality = arg.features_hps_locality.split('-')
-    assert arg.locality == 'global', (arg.features_hps_locality, arg.locality)
+    if arg.fhl is not None:
+        arg.features, arg.hps, arg.locality = arg.fhl.split('-')
+        assert arg.locality == 'global' or arg.locality == 'city', (arg.features_hps_locality, arg.locality)
 
     random_seed = 123
     random.seed(random_seed)
 
     # assure output directory exists
     dir_working = Path().dir_working()
-    dir_out = dir_working + 'chart06/' + arg.features_hps_locality + '/'
-    if not os.path.exists(dir_out):
-        os.makedirs(dir_out)
+    dir_out_reduction = dirutility.assure_exists(dir_working + arg.base_name) + '/'
+    dir_out = '*unused*' if arg.fhl is None else dirutility.assure_exists(dir_out_reduction + arg.fhl) + '/'
 
     validation_months = (
             '200612',
@@ -117,9 +126,9 @@ def make_control(argv):
         debug=False,
         errors=[],
         exceptions=[],
-        path_in_valavm='%svalavm/%s/??????.pickle' % (
+        path_in_valavm=None if arg.fhl is None else '%svalavm/%s/??????.pickle' % (
             dir_working,
-            arg.features_hps_locality,
+            arg.fhl,
             ),
         path_in_chart_01_reduction=dir_working + 'chart01/0data.pickle',
         path_in_data=dir_out + ('0data-subset.pickle' if arg.subset else '0data.pickle'),
@@ -135,8 +144,8 @@ def make_control(argv):
         path_out_f=dir_out + 'f-%04d.txt',
         path_out_g=dir_out + 'g.txt',
         path_out_data=dir_out + '0data.pickle',
-        path_out_data_report=dir_out + '0data-report.txt',
-        path_out_data_subset=dir_out + '0data-subset.pickle',
+        path_out_data_report=dir_out_reduction + '0data-report.txt',
+        path_out_data_subset=dir_out_reduction + '0data-subset.pickle',
         path_out_log=dir_out + 'log' + ('-data' if arg.data else '') + '.txt',
         random_seed=random_seed,
         sampling_rate=0.02,
@@ -963,9 +972,107 @@ def extract_yyyymm(path):
     return yyyymm
 
 
+class ReductionIndex(object):
+    'reduction DataFrame multiindex object'
+    def __init__(self, city, validation_month, model_description):
+        self.city = city
+        self.validation_month = validation_month
+        self.model_description = model_description
+
+    def __hash__(self):
+        return hash((self.city, self.validation_month, self.model_description))
+
+    def __repr__(self):
+        pattern = 'ReductionIndex(city=%s, validation_month=%s, model_description=%s)'
+        return pattern % (self.city, self.validation_month, self.model_description)
+
+
+class ReductionValue(object):
+    'reduction DataFrame value object'
+    def __init__(self, mae, model_results, feature_group):
+        self.mae = mae
+        self.model_results = model_results
+        self.feature_group = feature_group
+
+    def __hash__(self):
+        return hash((self.mae, self.model_results, self.feature_group))
+
+    def __repr__(self):
+        pattern = 'ReductionValue(mae = %f, model_results=%s, feature_group=%s)'
+        return pattern % (self.mae, self.model_results, self.feature_group)
+
+
 def make_data(control):
-    '''(reduction[validation_month][ModelDescription] = ModelResults, sorted by increasing MAE,
-    all_actuals[validation_month])'''
+    '''return the reduction DataFrame'''
+
+    # proof of principle
+    def build_dict_of_parallel_lists():
+        'return dict with values in the parallel list'
+        return {
+            'city': ['city1', 'city1'],
+            'validation_month': [Month(2007, 5), Month(2007, 5)],
+            'model_description': [('model1', 'rf'), ('model2', 'gb')],
+            'mae': [100.0, 101.0],
+            'model_result': [[[1, 2], [2, 1]], [[10, 20], [20, 10]]],
+            'feature_group': ['s-all-global', 'swpn-all-city'],
+            }
+    parallel_lists = build_dict_of_parallel_lists()
+    multi_index_tuples = list(zip(
+        parallel_lists['city'],
+        parallel_lists['validation_month'],
+        parallel_lists['model_description'],
+        ))
+    multi_index = pd.MultiIndex.from_tuples(
+        multi_index_tuples,
+        names=['city', 'validation_month', 'model_description'],
+        )
+    df = pd.DataFrame(
+        {
+            'mae': parallel_lists['mae'],
+            'model_result': parallel_lists['model_result'],
+            'feature_group': parallel_lists['feature_group'],
+            },
+        index=multi_index,
+        )
+    # print 'df', df.columns, len(df)
+
+    # TODO: build the real reduction data frame
+    def reduce(fg, hps, locality):
+        'return parallel lists (index_objects, value_objects) from specified valavm records'
+        print 'reduce STUB', fg, hps, locality
+        pdb.set_trace()
+        md = ModelDescription('model', 1, 'natural', 'natural', 0.1, 0.2, 100, 10, 10, 'loss', 0.1)
+        indices = (ReductionIndex(locality, Month(2007, 1), md),
+                   ReductionIndex(locality, Month(2007, 2), md),
+                   )
+        mr = ModelResults(100000.0, 80000.0, 50000.0, 200000.0, [100, 200])
+        values = (ReductionValue(10000.0, mr, fg),
+                  ReductionValue(11000.0, mr, fg),
+                  )
+        return indices, values
+
+    control.test = True  # TODO: do all valavm subdirectories
+    indices1, values1 = reduce('s', 'all', 'global')
+    indices2, values2 = reduce('swpn', 'all', 'city')
+    # TODO: also reduce other valavm subdirectories
+    values = list(values1)
+    values.extend(values2)
+    pdb.set_trace()
+    data = {
+        'mae': map(lambda x: x.mae, values),
+        'model_results': map(lambda x: x.model_results, values),
+        'feature_group': map(lambda x: x.feature_group, values),
+        }
+    indices = list(indices1)
+    indices.extend(indices2)
+    multi_index = pd.MultiIndex.from_tuples(
+        indices,
+        names=['city', 'validation_month', 'model_description'],
+        )
+    df = pd.DataFrame(data=data, index=multi_index)
+    return df
+
+    # OLD BELOW ME
 
     def process_records(path):
         '''(validation_month, model[ModelDescription] = ModelResult, actuals[validation_month])
@@ -1055,9 +1162,6 @@ def make_data(control):
     all_actuals = {}
     paths = sorted(glob.glob(control.path_in_valavm))
     assert len(paths) > 0, paths
-    if control.test:
-        pdb.set_trace()
-        paths = ['../data/working/valavm/swpn-all-200902.pickle']
     counters = {}
     for path in paths:
         validation_month, model, actuals, counter = process_records(path)
@@ -1171,7 +1275,9 @@ def main(argv):
     lap = control.timer.lap
 
     if control.arg.data:
-        median_price = make_median_price(control.path_in_chart_01_reduction)
+        control.test = True
+        if not control.test:
+            median_price = make_median_price(control.path_in_chart_01_reduction)
         lap('make_median_price')
         pdb.set_trace()
         reduction, all_actuals, counters = make_data(control)
