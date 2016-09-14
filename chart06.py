@@ -24,13 +24,13 @@ OUTPUT FILES
  WORKING/chart06/FHL/e.pdf           | best 50 models each month (was chart07)
  WORKING/chart06/FHL/best.pickle     | dataframe with best choices each month # CHECK
 
-The reduction is a DataFrame with these columns:
- features_group string in {'s', 'sw', 'swp', 'swpn'}
- city string
- MAE float
- validation_month Month
- model_description ModelDescription (defined locally)
- model_results ModelResults (defined locally)
+The reduction is a dictionary.
+- if LOCALITY is 'global', the type of the reduction is
+  dict[validation_month] sd
+  where sd is a sorted dictionary with type
+  dict[ModelDescription] ModelResults, sorted by increasing ModelResults.mae
+- if LOCALITY is 'city', the type of the reduction is
+  dict[city_name] dict[validation_month] sd
 '''
 
 from __future__ import division
@@ -83,7 +83,7 @@ def make_control(argv):
     'return a Bunch'
     print argv
     parser = argparse.ArgumentParser()
-    parser.add_argument('--fhl', type=arg_type.features_hps_locality)
+    parser.add_argument('fhl', type=arg_type.features_hps_locality)
     parser.add_argument('--data', action='store_true')
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--subset', action='store_true')
@@ -93,9 +93,8 @@ def make_control(argv):
     # for now, we only know how to process global files
     # local files will probably have a different path in WORKING/valavm/
     # details to be determined
-    if arg.fhl is not None:
-        arg.features, arg.hps, arg.locality = arg.fhl.split('-')
-        assert arg.locality == 'global' or arg.locality == 'city', (arg.features_hps_locality, arg.locality)
+    arg.features, arg.hsheps, arg.locality = arg.fhl.split('-')
+    assert arg.locality == 'global' or arg.locality == 'city', arg.fhl
 
     random_seed = 123
     random.seed(random_seed)
@@ -103,7 +102,7 @@ def make_control(argv):
     # assure output directory exists
     dir_working = Path().dir_working()
     dir_out_reduction = dirutility.assure_exists(dir_working + arg.base_name) + '/'
-    dir_out = '*unused*' if arg.fhl is None else dirutility.assure_exists(dir_out_reduction + arg.fhl) + '/'
+    dir_out = dirutility.assure_exists(dir_out_reduction + arg.fhl) + '/'
 
     validation_months = (
             '200612',
@@ -126,12 +125,13 @@ def make_control(argv):
         debug=False,
         errors=[],
         exceptions=[],
-        path_in_valavm=None if arg.fhl is None else '%svalavm/%s/??????.pickle' % (
+        path_in_valavm='%svalavm/%s/*.pickle' % (
             dir_working,
             arg.fhl,
             ),
         path_in_chart_01_reduction=dir_working + 'chart01/0data.pickle',
         path_in_data=dir_out + ('0data-subset.pickle' if arg.subset else '0data.pickle'),
+        path_in_interesting_cities=dir_working + 'interesting-cities.txt',
         path_out_a=dir_out + 'a.pdf',
         path_out_b=dir_out + 'b-%d.txt',
         path_out_cd=dir_out + '%s.txt',
@@ -1003,80 +1003,12 @@ class ReductionValue(object):
 
 
 def make_data(control):
-    '''return the reduction DataFrame'''
-
-    # proof of principle
-    def build_dict_of_parallel_lists():
-        'return dict with values in the parallel list'
-        return {
-            'city': ['city1', 'city1'],
-            'validation_month': [Month(2007, 5), Month(2007, 5)],
-            'model_description': [('model1', 'rf'), ('model2', 'gb')],
-            'mae': [100.0, 101.0],
-            'model_result': [[[1, 2], [2, 1]], [[10, 20], [20, 10]]],
-            'feature_group': ['s-all-global', 'swpn-all-city'],
-            }
-    parallel_lists = build_dict_of_parallel_lists()
-    multi_index_tuples = list(zip(
-        parallel_lists['city'],
-        parallel_lists['validation_month'],
-        parallel_lists['model_description'],
-        ))
-    multi_index = pd.MultiIndex.from_tuples(
-        multi_index_tuples,
-        names=['city', 'validation_month', 'model_description'],
-        )
-    df = pd.DataFrame(
-        {
-            'mae': parallel_lists['mae'],
-            'model_result': parallel_lists['model_result'],
-            'feature_group': parallel_lists['feature_group'],
-            },
-        index=multi_index,
-        )
-    # print 'df', df.columns, len(df)
-
-    # TODO: build the real reduction data frame
-    def reduce(fg, hps, locality):
-        'return parallel lists (index_objects, value_objects) from specified valavm records'
-        print 'reduce STUB', fg, hps, locality
-        pdb.set_trace()
-        md = ModelDescription('model', 1, 'natural', 'natural', 0.1, 0.2, 100, 10, 10, 'loss', 0.1)
-        indices = (ReductionIndex(locality, Month(2007, 1), md),
-                   ReductionIndex(locality, Month(2007, 2), md),
-                   )
-        mr = ModelResults(100000.0, 80000.0, 50000.0, 200000.0, [100, 200])
-        values = (ReductionValue(10000.0, mr, fg),
-                  ReductionValue(11000.0, mr, fg),
-                  )
-        return indices, values
-
-    control.test = True  # TODO: do all valavm subdirectories
-    indices1, values1 = reduce('s', 'all', 'global')
-    indices2, values2 = reduce('swpn', 'all', 'city')
-    # TODO: also reduce other valavm subdirectories
-    values = list(values1)
-    values.extend(values2)
-    pdb.set_trace()
-    data = {
-        'mae': map(lambda x: x.mae, values),
-        'model_results': map(lambda x: x.model_results, values),
-        'feature_group': map(lambda x: x.feature_group, values),
-        }
-    indices = list(indices1)
-    indices.extend(indices2)
-    multi_index = pd.MultiIndex.from_tuples(
-        indices,
-        names=['city', 'validation_month', 'model_description'],
-        )
-    df = pd.DataFrame(data=data, index=multi_index)
-    return df
-
-    # OLD BELOW ME
+    '''return the reduction dict'''
 
     def process_records(path):
-        '''(validation_month, model[ModelDescription] = ModelResult, actuals[validation_month])
-        for the validation_month in the path'''
+        ''' return (dict, actuals, counter) for the path where
+        dict has type dict[ModelDescription] ModelResult
+        '''
         def make_model_description(key):
             is_en = isinstance(key, ResultKeyEn)
             is_gbr = isinstance(key, ResultKeyGbr)
@@ -1109,7 +1041,6 @@ def make_data(control):
             return result
 
         print 'reducing', path
-        validation_month = extract_yyyymm(path)
         model = {}
         counter = collections.Counter()
         input_record_number = 0
@@ -1126,20 +1057,21 @@ def make_data(control):
                     assert len(record) == 2, len(record)
                     key, value = record
                     assert len(value) == 2, len(value)
-                    actuals_predictions, importances = value
+                    # NOTE: importances is not used
+                    valavm_result_value, importances = value
                     # verify that actuals is always the same
                     if actuals is not None:
-                        assert np.array_equal(actuals, actuals_predictions.actuals)
-                    actuals = actuals_predictions.actuals
+                        assert np.array_equal(actuals, valavm_result_value.actuals)
+                    actuals = valavm_result_value.actuals
                     # verify that each model_key occurs at most once in the validation month
                     model_key = make_model_description(key)
                     if model_key in model:
                         print '++++++++++++++++++++++'
-                        print validation_month, model_key
+                        print path, model_key
                         print 'duplicate model key'
                         pdb.set_trace()
                         print '++++++++++++++++++++++'
-                    model[model_key] = make_model_result(actuals_predictions)
+                    model[model_key] = make_model_result(valavm_result_value)
                 except ValueError as e:
                     counter['ValueError'] += 1
                     if key is not None:
@@ -1156,20 +1088,32 @@ def make_data(control):
                     counter['UnpicklingError'] += 1
                     print 'cPickle.Unpicklingerror in record %d: %s' % (input_record_number, e)
 
-        return validation_month, model, actuals, counter
+        return model, actuals, counter
 
     reduction = collections.defaultdict(dict)
-    all_actuals = {}
+    all_actuals = collections.defaultdict(dict)
     paths = sorted(glob.glob(control.path_in_valavm))
     assert len(paths) > 0, paths
     counters = {}
     for path in paths:
-        validation_month, model, actuals, counter = process_records(path)
-        # sort models by increasing MAE
+        model, actuals, counter = process_records(path)
+        # type(model) is dict[ModelDescription] ModelResults
+        # sort models by increasing ModelResults.mae
         sorted_models = collections.OrderedDict(sorted(model.items(), key=lambda t: t[1].mae))
         check_key_order(sorted_models)
-        reduction[validation_month] = sorted_models
-        all_actuals[validation_month] = actuals
+        if control.arg.locality == 'global':
+            base_name, suffix = path.split('/')[-1].split('.')
+            validation_month = base_name
+            reduction[validation_month] = sorted_models
+            all_actuals[validation_month] = actuals
+        elif control.arg.locality == 'city':
+            base_name, suffix = path.split('/')[-1].split('.')
+            validation_month, city_name = base_name.split('-')
+            reduction[city_name] = {validation_month: sorted_models}
+            all_actuals[city_name] = {validation_month: actuals}
+        else:
+            print 'unexpected locality', control.arg.locality
+            pdb.set_trace()
         counters[path] = counter
 
     return reduction, all_actuals, counters
@@ -1195,7 +1139,7 @@ class SamplerOLD(object):
         return sorted_result
 
 
-def make_subset(reduction, fraction):
+def make_subset_global(reduction, fraction):
     'return a random sample of the reduction stratified by validation_month as an ordereddict'
     # use same keys (models) every validation month
     # generate candidate for common keys in the subset
@@ -1232,7 +1176,31 @@ def make_subset(reduction, fraction):
         od = collections.OrderedDict(sorted(d.items(), key=lambda x: x[1].mae))
         results[validation_month] = od
 
-    return results
+        return results
+
+
+def make_subset_city(reduction, interesting_cities):
+    'return reduction for just the interesting cities'
+    result = {}
+    pdb.set_trace()
+    for interesting_city in interesting_cities:
+        if interesting_city in reduction:
+            result[interesting_city] = reduction[interesting_city]
+        else:
+            print 'not in reduction', interesting_city
+            pdb.set_trace()
+    return result
+
+
+def make_subset(reduction, fraction, locality, interesting_cities):
+    'return dict of type type(reduction) but with a randomly chosen subset of size fraction * len(reduction)'
+    if locality == 'global':
+        return make_subset_global(reduction, fraction)
+    elif locality == 'city':
+        return make_subset_city(reduction, interesting_cities)
+    else:
+        print 'bad locality', locality
+        pdb.set_trace()
 
 
 def make_median_price(path):
@@ -1288,7 +1256,7 @@ def main(argv):
             pdb.set_trace()
         lap('make_data')
         ReportReduction(counters).write(control.path_out_data_report)
-        subset = make_subset(reduction, control.sampling_rate)
+        subset = make_subset(reduction, control.sampling_rate, control.arg.locality, control.path_in_interesting_cities)
         lap('make_samples')
         output_all = (reduction, all_actuals, median_price, control)
         output_samples = (subset, all_actuals, median_price, control)
