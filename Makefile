@@ -23,6 +23,7 @@ CHART06 += $(WORKING)/chart06/s-all-global/a.pdf
 CHART06 += $(WORKING)/chart06/sw-all-global/a.pdf
 CHART06 += $(WORKING)/chart06/swp-all-global/a.pdf
 CHART06 += $(WORKING)/chart06/swpn-all-global/a.pdf
+CHART06 += $(WORKING)/chart06/swpn-all-city/a.pdf
 
 CHART07 += $(WORKING)/chart07/s-all-global/b.txt
 CHART07 += $(WORKING)/chart07/sw-all-global/b.txt
