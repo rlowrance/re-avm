@@ -131,7 +131,7 @@ def make_control(argv):
             ),
         path_in_chart_01_reduction=dir_working + 'chart01/0data.pickle',
         path_in_data=dir_out + ('0data-subset.pickle' if arg.subset else '0data.pickle'),
-        path_in_interesting_cities=dir_working + 'interesting-cities.txt',
+        path_in_interesting_cities=dir_working + 'interesting_cities.txt',
         path_out_a=dir_out + 'a.pdf',
         path_out_b=dir_out + 'b-%d.txt',
         path_out_cd=dir_out + '%s.txt',
@@ -1049,6 +1049,9 @@ def make_data(control):
             while True:  # process each record in path
                 counter['attempted to read'] += 1
                 input_record_number += 1
+                if control.test and input_record_number > 10:
+                    print 'control.test', control.test, 'breaking out of read loop'
+                    break
                 try:
                     # model[model_key] = error_analysis, for next model result
                     record = pickle.load(f)
@@ -1179,16 +1182,19 @@ def make_subset_global(reduction, fraction):
         return results
 
 
-def make_subset_city(reduction, interesting_cities):
+def make_subset_city(reduction, path_interesting_cities):
     'return reduction for just the interesting cities'
     result = {}
     pdb.set_trace()
-    for interesting_city in interesting_cities:
-        if interesting_city in reduction:
-            result[interesting_city] = reduction[interesting_city]
-        else:
-            print 'not in reduction', interesting_city
-            pdb.set_trace()
+    with open(path_interesting_cities, 'r') as f:
+        lines = f.readlines()
+        no_newlines = [line.rstrip('\n') for line in lines]
+        for interesting_city in no_newlines:
+            if interesting_city in reduction:
+                result[interesting_city] = reduction[interesting_city]
+            else:
+                print 'not in reduction', interesting_city
+                pdb.set_trace()
     return result
 
 
@@ -1243,11 +1249,11 @@ def main(argv):
     lap = control.timer.lap
 
     if control.arg.data:
-        control.test = True
         if not control.test:
             median_price = make_median_price(control.path_in_chart_01_reduction)
+        else:
+            median_price = None
         lap('make_median_price')
-        pdb.set_trace()
         reduction, all_actuals, counters = make_data(control)
         if len(control.errors) > 0:
             print 'stopping because of errors'
@@ -1257,7 +1263,7 @@ def main(argv):
         lap('make_data')
         ReportReduction(counters).write(control.path_out_data_report)
         subset = make_subset(reduction, control.sampling_rate, control.arg.locality, control.path_in_interesting_cities)
-        lap('make_samples')
+        lap('make_subset')
         output_all = (reduction, all_actuals, median_price, control)
         output_samples = (subset, all_actuals, median_price, control)
         for validation_month in subset.keys():
