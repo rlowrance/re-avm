@@ -1084,7 +1084,8 @@ def make_data(control):
                     counter['EOFError'] += 1
                     print 'found EOFError path in record %d: %s' % (input_record_number, path)
                     print 'continuing'
-                    if input_record_number == 1:
+                    if input_record_number == 1 and False:
+                        # with locality == city, a file can be empty
                         control.errors.append('eof record 1; path = %s' % path)
                     break
                 except pickle.UnpicklingError as e:
@@ -1185,7 +1186,6 @@ def make_subset_global(reduction, fraction):
 def make_subset_city(reduction, path_interesting_cities):
     'return reduction for just the interesting cities'
     result = {}
-    pdb.set_trace()
     with open(path_interesting_cities, 'r') as f:
         lines = f.readlines()
         no_newlines = [line.rstrip('\n') for line in lines]
