@@ -185,7 +185,7 @@ def make_chart_a(reduction, median_prices, control):
                  ]
             plt.plot(y, label=model)  # the reduction is sorted by increasing mae
             plt.yticks(size='xx-small')
-            plt.title('yr mnth %s med price $%.0f' % (validation_month, median_prices[str(validation_month)]),
+            plt.title('yr mnth %s med price %6.0f' % (validation_month, median_prices[Month(validation_month)]),
                       loc='right',
                       fontdict={'fontsize': 'xx-small',
                                 'style': 'italic',
@@ -375,7 +375,7 @@ def make_chart_b(reduction, control, median_price):
 
         fig2 = fig.add_subplot(212)
         for i, model in enumerate(models):
-            fig2.bar(i, maes[i]/median_price[str(validation_month)], color=bar_color[model])
+            fig2.bar(i, maes[i]/median_price[Month(validation_month)], color=bar_color[model])
 
         plt.yticks(size='xx-small')
         plt.xticks([])
@@ -482,7 +482,7 @@ def make_chart_cd(reduction, median_prices, control, detail_line_indices, report
     my_price = []
     my_mae = []
     for validation_month in control.validation_months_long:
-        median_price = median_prices[str(validation_month)]
+        median_price = median_prices[Month(validation_month)]
 
         if validation_month not in reduction:
             control.exceptions.append('reduction is missing month %s' % validation_month)
@@ -783,7 +783,7 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
     for month in my_validation_months:
         my_ensemble_mae.append(mae[month].ensemble)
         my_best_mae.append(mae[month].best_next_month)
-        my_price.append(median_price[str(month)])
+        my_price.append(median_price[Month(month)])
 
     width = 0.35
 
@@ -885,17 +885,17 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
         next_month_value = reduction[next_month][next_month_key]
         regret = mae[validation_month].ensemble - mae[validation_month].best_next_month
         regrets.append(regret)
-        relative_error = regret / median_price[str(validation_month)]
+        relative_error = regret / median_price[Month(validation_month)]
         relative_errors.append(relative_error)
         f.detail_line(
             validation_month=validation_month,
             mae_index0=mae[validation_month].index0,
             mae_ensemble=mae[validation_month].ensemble,
             mae_best_next_month=mae[validation_month].best_next_month,
-            median_price=median_price[str(validation_month)],
-            fraction_median_price_next_month_index0=mae[validation_month].index0 / median_price[str(next_month)],
-            fraction_median_price_next_month_ensemble=mae[validation_month].ensemble / median_price[str(next_month)],
-            fraction_median_price_next_month_best=mae[validation_month].best_next_month / median_price[str(next_month)],
+            median_price=median_price[Month(validation_month)],
+            fraction_median_price_next_month_index0=mae[validation_month].index0 / median_price[Month(next_month)],
+            fraction_median_price_next_month_ensemble=mae[validation_month].ensemble / median_price[Month(next_month)],
+            fraction_median_price_next_month_best=mae[validation_month].best_next_month / median_price[Month(next_month)],
         )
     median_absolute_regret = np.median(np.abs(regrets))
     median_absolute_relative_regret = np.median(np.abs(relative_errors))
