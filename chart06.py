@@ -87,6 +87,7 @@ def make_control(argv):
     parser.add_argument('--data', action='store_true')
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--subset', action='store_true')
+    parser.add_argument('--norwalk', action='store_true')
     arg = parser.parse_args(argv[1:])  # arg.__dict__ contains the bindings
     arg.base_name = 'chart06'
 
@@ -95,6 +96,8 @@ def make_control(argv):
     # details to be determined
     arg.features, arg.hsheps, arg.locality = arg.fhl.split('-')
     assert arg.locality == 'global' or arg.locality == 'city', arg.fhl
+    if arg.norwalk:
+        assert arg.locality == 'city', argv
 
     random_seed = 123
     random.seed(random_seed)
@@ -132,7 +135,7 @@ def make_control(argv):
         path_in_chart_01_reduction=dir_working + 'chart01/0data.pickle',
         path_in_data=dir_out + ('0data-subset.pickle' if arg.subset else '0data.pickle'),
         path_in_interesting_cities=dir_working + 'interesting_cities.txt',
-        path_out_a=dir_out + 'a.pdf',
+        path_out_a=dir_out + 'a.pdf' if arg.locality == 'global' else dir_out + 'a-%s.pdf',
         path_out_b=dir_out + 'b-%d.txt',
         path_out_cd=dir_out + '%s.txt',
         path_out_c_pdf=dir_out+'c.pdf',
@@ -175,7 +178,7 @@ def make_chart_a(reduction, median_prices, control):
     'graph range of errors by month by method'
     print 'make_chart_a'
 
-    def make_subplot(validation_month):
+    def make_subplot(validation_month, reduction, city):
         'mutate the default axes'
         # draw one line for each model family
         for model in ('en', 'gb', 'rf'):
@@ -194,7 +197,7 @@ def make_chart_a(reduction, median_prices, control):
             plt.xticks([])  # no ticks on x axis
         return
 
-    def make_figure():
+    def make_figure(reduction, path_out, city):
         # make and save figure
 
         plt.figure()  # new figure
@@ -205,12 +208,24 @@ def make_chart_a(reduction, median_prices, control):
                              )
         row_seq = (1, 2, 3, 4)
         col_seq = (1, 2, 3)
+        cities = control.arg.locality == 'city'
+        skip_this_month = False
+        skipped_months = 0
         for row in row_seq:
             for col in col_seq:
                 validation_month = validation_months[axes_number]
+                print city, validation_month, validation_month in reduction
+                print reduction.keys()
+                pdb.set_trace()
+                if cities:
+                    skip_this_month = validation_month not in reduction
+                    skipped_months += 1
                 axes_number += 1  # count across rows
-                plt.subplot(len(row_seq), len(col_seq), axes_number)
-                make_subplot(validation_month)
+                if skip_this_month:
+                    print 'city: %s validation_month: %s : skipping since no transactions' % (city, validation_month)
+                else:
+                    plt.subplot(len(row_seq), len(col_seq), axes_number)
+                    make_subplot(validation_month, reduction, city)
                 # annotate the bottom row only
                 if row == 4:
                     if col == 1:
@@ -220,10 +235,26 @@ def make_chart_a(reduction, median_prices, control):
                         plt.legend(loc='best', fontsize=5)
 
         plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-        plt.savefig(control.path_out_a)
+        plt.savefig(path_out)
         plt.close()
+        if cities and skipped_months == 0:
+            print 'city with all months of data', city
 
-    make_figure()
+    if control.arg.locality == 'global':
+        make_figure(reduction, control.path_out_a, None)
+    elif control.arg.locality == 'city':
+
+        def make_city(city):
+            return make_figure(reduction[city], control.path_out_a % city, city)
+
+        if control.arg.norwalk:
+            make_city('NORWALK')
+            return
+        for city in reduction.keys():
+            make_city(reduction[city], control.path_out_a % city, city)
+    else:
+        print 'bad control.arg.locality', control.arg
+        pdb.set_trace()
     return
 
 
@@ -952,6 +983,9 @@ def make_charts(reduction, actuals, median_prices, control):
     print 'making charts'
 
     make_chart_a(reduction, median_prices, control)
+    if control.arg.locality == 'city':
+        print 'stopping charts after chart a, since locality is', control.arg.locality
+        return
     make_chart_b(reduction, control, median_prices)
 
     make_chart_cd(reduction, median_prices, control, (0,), 'c')
@@ -1005,6 +1039,13 @@ class ReductionValue(object):
 def make_data(control):
     '''return the reduction dict'''
 
+    def path_city(path):
+        'return city in path to file'
+        pdb.set_trace()
+        last = path.split('/')[-1]
+        date, city = last.split('.')[0].split('-')
+        return city
+
     def process_records(path):
         ''' return (dict, actuals, counter) for the path where
         dict has type dict[ModelDescription] ModelResult
@@ -1049,9 +1090,6 @@ def make_data(control):
             while True:  # process each record in path
                 counter['attempted to read'] += 1
                 input_record_number += 1
-                if control.test and input_record_number > 10:
-                    print 'control.test', control.test, 'breaking out of read loop'
-                    break
                 try:
                     # model[model_key] = error_analysis, for next model result
                     record = pickle.load(f)
@@ -1100,6 +1138,10 @@ def make_data(control):
     assert len(paths) > 0, paths
     counters = {}
     for path in paths:
+        if control.arg.norwalk:
+            if 'NORWALK' not in path.upper():
+                print 'skipping', path
+                continue
         model, actuals, counter = process_records(path)
         # type(model) is dict[ModelDescription] ModelResults
         # sort models by increasing ModelResults.mae
@@ -1113,12 +1155,18 @@ def make_data(control):
         elif control.arg.locality == 'city':
             base_name, suffix = path.split('/')[-1].split('.')
             validation_month, city_name = base_name.split('-')
-            reduction[city_name] = {validation_month: sorted_models}
-            all_actuals[city_name] = {validation_month: actuals}
+            #  some file systems create all upper case names
+            #  some create mixed-case names
+            #  we map each to upper case
+            city_name_used = city_name.upper()
+            reduction[city_name_used][validation_month] = sorted_models
+            all_actuals[city_name_used][validation_month] = actuals
         else:
             print 'unexpected locality', control.arg.locality
             pdb.set_trace()
         counters[path] = counter
+        if control.test:
+            break
 
     return reduction, all_actuals, counters
 
@@ -1186,6 +1234,8 @@ def make_subset_global(reduction, fraction):
 def make_subset_city(reduction, path_interesting_cities):
     'return reduction for just the interesting cities'
     result = {}
+    if len(reduction) <= 6:
+        return reduction
     with open(path_interesting_cities, 'r') as f:
         lines = f.readlines()
         no_newlines = [line.rstrip('\n') for line in lines]
@@ -1249,10 +1299,7 @@ def main(argv):
     lap = control.timer.lap
 
     if control.arg.data:
-        if not control.test:
-            median_price = make_median_price(control.path_in_chart_01_reduction)
-        else:
-            median_price = None
+        median_price = make_median_price(control.path_in_chart_01_reduction)
         lap('make_median_price')
         reduction, all_actuals, counters = make_data(control)
         if len(control.errors) > 0:
@@ -1264,9 +1311,24 @@ def main(argv):
         ReportReduction(counters).write(control.path_out_data_report)
         subset = make_subset(reduction, control.sampling_rate, control.arg.locality, control.path_in_interesting_cities)
         lap('make_subset')
+        # check key order
+        def check_validation_month_keys(reduction):
+            for validation_month in reduction.keys():
+                check_key_order(reduction[validation_month])
+
+        if control.arg.locality == 'global':
+            check_validation_month_keys(reduction)
+            check_validation_month_keys(subset)
+        else:
+            for city in reduction.keys():
+                check_validation_month_keys(reduction[city])
+            for city in subset.keys():
+                check_validation_month_keys(subset[city])
+            
         output_all = (reduction, all_actuals, median_price, control)
         output_samples = (subset, all_actuals, median_price, control)
         for validation_month in subset.keys():
+            pdb.set_trace()
             check_key_order(reduction[validation_month])
             check_key_order(subset[validation_month])
         lap('check key order')
@@ -1283,9 +1345,15 @@ def main(argv):
             lap('read input from %s' % control.path_in_data)
 
         # check that the reduction dictionaries are ordered by mae
-        for validation_month in reduction.iterkeys():
-            d = reduction[validation_month]
-            check_key_order(d)
+        def check_order_months(d):
+            for validation_month, ordered_dict in d.iteritems():
+                check_key_order(ordered_dict)
+
+        if control.arg.locality == 'global':
+            check_order_months(reduction)
+        elif control.arg.locality == 'city':
+            for city, month_dict in reduction.iteritems():
+                check_order_months(month_dict)
 
         make_charts(reduction, all_actuals, median_price, control)
 
