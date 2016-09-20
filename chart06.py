@@ -918,15 +918,16 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
         regrets.append(regret)
         relative_error = regret / median_price[Month(validation_month)]
         relative_errors.append(relative_error)
+        median_price_next = median_price[Month(next_month)]
         f.detail_line(
             validation_month=validation_month,
             mae_index0=mae[validation_month].index0,
             mae_ensemble=mae[validation_month].ensemble,
             mae_best_next_month=mae[validation_month].best_next_month,
             median_price=median_price[Month(validation_month)],
-            fraction_median_price_next_month_index0=mae[validation_month].index0 / median_price[Month(next_month)],
-            fraction_median_price_next_month_ensemble=mae[validation_month].ensemble / median_price[Month(next_month)],
-            fraction_median_price_next_month_best=mae[validation_month].best_next_month / median_price[Month(next_month)],
+            fraction_median_price_next_month_index0=mae[validation_month].index0 / median_price_next,
+            fraction_median_price_next_month_ensemble=mae[validation_month].ensemble / median_price_next,
+            fraction_median_price_next_month_best=mae[validation_month].best_next_month / median_price_next,
         )
     median_absolute_regret = np.median(np.abs(regrets))
     median_absolute_relative_regret = np.median(np.abs(relative_errors))
@@ -1312,6 +1313,7 @@ def main(argv):
         subset = make_subset(reduction, control.sampling_rate, control.arg.locality, control.path_in_interesting_cities)
         lap('make_subset')
         # check key order
+
         def check_validation_month_keys(reduction):
             for validation_month in reduction.keys():
                 check_key_order(reduction[validation_month])
@@ -1324,13 +1326,10 @@ def main(argv):
                 check_validation_month_keys(reduction[city])
             for city in subset.keys():
                 check_validation_month_keys(subset[city])
-            
+        lap('check key order')
+
         output_all = (reduction, all_actuals, median_price, control)
         output_samples = (subset, all_actuals, median_price, control)
-        for validation_month in subset.keys():
-            pdb.set_trace()
-            check_key_order(reduction[validation_month])
-            check_key_order(subset[validation_month])
         lap('check key order')
         with open(control.path_out_data, 'wb') as f:
             pickle.dump(output_all, f)
