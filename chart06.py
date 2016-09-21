@@ -178,7 +178,7 @@ def make_chart_a(reduction, median_prices, control):
     'graph range of errors by month by method'
     print 'make_chart_a'
 
-    def make_subplot(validation_month, reduction, city):
+    def make_subplot(validation_month, reduction):
         'mutate the default axes'
         # draw one line for each model family
         for model in ('en', 'gb', 'rf'):
@@ -208,24 +208,18 @@ def make_chart_a(reduction, median_prices, control):
                              )
         row_seq = (1, 2, 3, 4)
         col_seq = (1, 2, 3)
-        cities = control.arg.locality == 'city'
-        skip_this_month = False
-        skipped_months = 0
+        cities = city is not None
         for row in row_seq:
             for col in col_seq:
                 validation_month = validation_months[axes_number]
-                print city, validation_month, validation_month in reduction
-                print reduction.keys()
-                pdb.set_trace()
                 if cities:
-                    skip_this_month = validation_month not in reduction
-                    skipped_months += 1
+                    print 'city %s validation_month %s num transactions %d' % (
+                        city,
+                        validation_month,
+                        len(reduction[validation_month]))
                 axes_number += 1  # count across rows
-                if skip_this_month:
-                    print 'city: %s validation_month: %s : skipping since no transactions' % (city, validation_month)
-                else:
-                    plt.subplot(len(row_seq), len(col_seq), axes_number)
-                    make_subplot(validation_month, reduction, city)
+                plt.subplot(len(row_seq), len(col_seq), axes_number)  # could be empty, if no transactions in month
+                make_subplot(validation_month, reduction)
                 # annotate the bottom row only
                 if row == 4:
                     if col == 1:
@@ -237,9 +231,8 @@ def make_chart_a(reduction, median_prices, control):
         plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
         plt.savefig(path_out)
         plt.close()
-        if cities and skipped_months == 0:
-            print 'city with all months of data', city
 
+    pdb.set_trace()
     if control.arg.locality == 'global':
         make_figure(reduction, control.path_out_a, None)
     elif control.arg.locality == 'city':
@@ -251,7 +244,7 @@ def make_chart_a(reduction, median_prices, control):
             make_city('NORWALK')
             return
         for city in reduction.keys():
-            make_city(reduction[city], control.path_out_a % city, city)
+            make_city(city)
     else:
         print 'bad control.arg.locality', control.arg
         pdb.set_trace()
@@ -983,6 +976,7 @@ def make_charts_efg(reduction, actuals, median_prices, control):
 def make_charts(reduction, actuals, median_prices, control):
     print 'making charts'
 
+    pdb.set_trace()
     make_chart_a(reduction, median_prices, control)
     if control.arg.locality == 'city':
         print 'stopping charts after chart a, since locality is', control.arg.locality
@@ -1338,6 +1332,7 @@ def main(argv):
             pickle.dump(output_samples, f)
             lap('write samples')
     else:
+        pdb.set_trace()
         with open(control.path_in_data, 'rb') as f:
             print 'reading reduction data file'
             reduction, all_actuals, median_price, reduction_control = pickle.load(f)
