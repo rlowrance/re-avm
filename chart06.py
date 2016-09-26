@@ -178,7 +178,7 @@ def make_chart_a(reduction, median_prices, control):
     'graph range of errors by month by method'
     print 'make_chart_a'
 
-    def make_subplot(validation_month, reduction):
+    def make_subplot(validation_month, reduction, relevant_median_prices):
         'mutate the default axes'
         # draw one line for each model family
         for model in ('en', 'gb', 'rf'):
@@ -188,7 +188,14 @@ def make_chart_a(reduction, median_prices, control):
                  ]
             plt.plot(y, label=model)  # the reduction is sorted by increasing mae
             plt.yticks(size='xx-small')
-            plt.title('yr mnth %s med price %6.0f' % (validation_month, median_prices[Month(validation_month)]),
+            if Month(validation_month) not in relevant_median_prices:
+                print validation_month
+                print relevant_median_prices
+                print 'should not happen'
+                pdb.set_trace()
+            plt.title('yr mnth %s med price %6.0f' % (
+                validation_month,
+                relevant_median_prices[Month(validation_month)]),
                       loc='right',
                       fontdict={'fontsize': 'xx-small',
                                 'style': 'italic',
@@ -197,7 +204,7 @@ def make_chart_a(reduction, median_prices, control):
             plt.xticks([])  # no ticks on x axis
         return
 
-    def make_figure(reduction, path_out, city):
+    def make_figure(reduction, path_out, city, relevant_median_prices):
         # make and save figure
 
         plt.figure()  # new figure
@@ -219,7 +226,7 @@ def make_chart_a(reduction, median_prices, control):
                         len(reduction[validation_month]))
                 axes_number += 1  # count across rows
                 plt.subplot(len(row_seq), len(col_seq), axes_number)  # could be empty, if no transactions in month
-                make_subplot(validation_month, reduction)
+                make_subplot(validation_month, reduction, relevant_median_prices)
                 # annotate the bottom row only
                 if row == 4:
                     if col == 1:
@@ -232,13 +239,12 @@ def make_chart_a(reduction, median_prices, control):
         plt.savefig(path_out)
         plt.close()
 
-    pdb.set_trace()
     if control.arg.locality == 'global':
-        make_figure(reduction, control.path_out_a, None)
+        make_figure(reduction, control.path_out_a, None, median_prices)
     elif control.arg.locality == 'city':
 
         def make_city(city):
-            return make_figure(reduction[city], control.path_out_a % city, city)
+            return make_figure(reduction[city], control.path_out_a % city, city, median_prices[city])
 
         if control.arg.norwalk:
             make_city('NORWALK')
@@ -976,7 +982,6 @@ def make_charts_efg(reduction, actuals, median_prices, control):
 def make_charts(reduction, actuals, median_prices, control):
     print 'making charts'
 
-    pdb.set_trace()
     make_chart_a(reduction, median_prices, control)
     if control.arg.locality == 'city':
         print 'stopping charts after chart a, since locality is', control.arg.locality
@@ -1036,7 +1041,6 @@ def make_data(control):
 
     def path_city(path):
         'return city in path to file'
-        pdb.set_trace()
         last = path.split('/')[-1]
         date, city = last.split('.')[0].split('-')
         return city
@@ -1254,18 +1258,25 @@ def make_subset(reduction, fraction, locality, interesting_cities):
         pdb.set_trace()
 
 
-def make_median_price(path):
-    'return dict[month] -> median_price'
+def make_median_price(path, cities):
+    'return dict[Month] median_price or dict[city][Month] median_price'
     def median_price(df, month):
-        'return median price for the month'
-        print 'make_median_price', month
         in_month = df.month == month
-        return df[in_month].price.median()
+        result = df[in_month].price.median()
+        return result
 
     with open(path, 'rb') as f:
         df, reduction_control = pickle.load(f)
-        median_price = {month: median_price(df, month) for month in set(df.month)}
-    return median_price
+        all_months = set(df.month)
+        if cities:
+            all_cities = set(df.city)
+            result = collections.defaultdict(dict)
+            for city in all_cities:
+                in_city = df.city == city
+                result[city] = {month: median_price(df[in_city], month) for month in all_months}
+        else:
+            result = {month: median_price(df, month) for month in all_months}
+    return result
 
 
 class ReportReduction(object):
@@ -1294,7 +1305,7 @@ def main(argv):
     lap = control.timer.lap
 
     if control.arg.data:
-        median_price = make_median_price(control.path_in_chart_01_reduction)
+        median_price = make_median_price(control.path_in_chart_01_reduction, control.arg.locality == 'city')
         lap('make_median_price')
         reduction, all_actuals, counters = make_data(control)
         if len(control.errors) > 0:
@@ -1332,7 +1343,6 @@ def main(argv):
             pickle.dump(output_samples, f)
             lap('write samples')
     else:
-        pdb.set_trace()
         with open(control.path_in_data, 'rb') as f:
             print 'reading reduction data file'
             reduction, all_actuals, median_price, reduction_control = pickle.load(f)
