@@ -146,11 +146,12 @@ def make_control(argv):
         path_out_e_pdf=dir_out + 'e-%04d.pdf',
         path_out_f=dir_out + 'f-%04d.txt',
         path_out_g=dir_out + 'g.txt',
-        path_out_h_template=dir_out + 'h-%03d-%6s',
+        path_out_h_template=dir_out + 'h-%03d-%6s.txt',
+        path_out_i=dir_out + 'i.txt',
         path_out_data=dir_out + '0data.pickle',
         path_out_data_report=dir_out_reduction + '0data-report.txt',
         path_out_data_subset=dir_out_reduction + '0data-subset.pickle',
-        path_out_log=dir_out + 'log' + ('-data' if arg.data else '') + '.txt',
+        path_out_log=dir_out + '0log' + ('-data' if arg.data else '') + '.txt',
         random_seed=random_seed,
         sampling_rate=0.02,
         test=arg.test,
@@ -660,6 +661,46 @@ class ChartHReport(object):
         self._report.append('Ensemble weighting: %s' % ensemble_weighting)
 
 
+class ChartIReport(object):
+    def __init__(self, column_definitions, test):
+        self._column_definitions = column_definitions
+        self._report = Report()
+        self._header()
+        self._test = test
+        self._appended = []
+        cd = self._column_definitions.defs_for_columns(
+            'validation_month',
+            'k',
+            'oracle_less_best',
+            'oracle_less_ensemble',
+            )
+        self._ct = ColumnsTable(columns=cd, verbose=True)
+
+    def write(self, path):
+        self._ct.append_legend()
+        for line in self._ct.iterlines():
+            self._report.append(line)
+        for line in self._appended:
+            self._report.append(line)
+        if self._test:
+            self._report.append('** TESTING: DISCARD')
+        self._report.write(path)
+
+    def append(self, line):
+        self._ct.append_line(line)
+
+    def detail_line(self, **kwds):
+        with_spaces = {
+            k: (None if self._column_definitions.replace_by_spaces(k, v) else v)
+            for k, v in kwds.iteritems()
+        }
+        self._ct.append_detail(**with_spaces)
+
+    def _header(self):
+        self._report.append('Performance of Best and Ensemble Models Relative to the Oracle')
+        self._report.append(' ')
+
+
 class ChartFReport(object):
     def __init__(self, k, ensemble_weighting, column_definitions, test):
         self._column_definitions = column_definitions
@@ -758,7 +799,8 @@ def short_model_description(model_description):
 
 
 # write report files for all K values and validation months for the year 2007
-def make_chart_h(reduction, actuals, median_prices, control):
+def make_chart_hi(reduction, actuals, median_prices, control):
+    'return None'
     def median_price(month_str):
         return median_prices[Month(month_str)]
 
@@ -769,6 +811,7 @@ def make_chart_h(reduction, actuals, median_prices, control):
         return e[mae_index]
 
     def chart_h(k, validation_month):
+        'return (Report, oracle_less_best, oracle_less_ensemble)'
         print 'chart_h', k, validation_month
         if k == 2 and False:
             pdb.set_trace()
@@ -833,23 +876,48 @@ def make_chart_h(reduction, actuals, median_prices, control):
         best_key = reduction[validation_month].keys()[0]
         best_results = reduction[validation_month][best_key]
         mpquery = median_price(query_month)
+        oracle_less_best = oracle_results_query_month.mae - best_results.mae
+        oracle_less_ensemble = oracle_results_query_month.mae - ensemble_errors_query_mae
         h.detail_line(
             description='oracle - best model',
-            mae_query=oracle_results_query_month.mae - best_results.mae,
+            mae_query=oracle_less_best,
             mare_query=oracle_results_query_month.mae / mpquery - best_results.mae / mpquery,
             )
         h.detail_line(
             description='oracle - ensemble model',
-            mae_query=oracle_results_query_month.mae - ensemble_errors_query_mae,
+            mae_query=oracle_less_ensemble,
             mare_query=oracle_results_query_month.mae / mpquery - ensemble_errors_query_mae / mpquery,
             )
-        return h
+        return h, oracle_less_best, oracle_less_ensemble
 
     control.timer.lap('start chart h')
+    comparison = {}
     for k in all_k_values():
         for validation_month in control.validation_months:
-            report = chart_h(k, validation_month)
-            report.write(control.path_out_h_template % (k, validation_month))
+            h, oracle_less_best, oracle_less_ensemble = chart_h(k, validation_month)
+            h.write(control.path_out_h_template % (k, validation_month))
+            comparison[(k, validation_month)] = (oracle_less_best, oracle_less_ensemble)
+    # report I is in inverted order relative to chart h grouped_by
+    i = ChartIReport(control.column_definitions, control.test)
+    count = 0
+    sum_abs_oracle_less_best = 0
+    sum_abs_oracle_less_ensemble = 0
+    for validation_month in control.validation_months:
+        for k in all_k_values():
+            oracle_less_best, oracle_less_ensemble = comparison[(k, validation_month)]
+            i.detail_line(
+                validation_month=validation_month,
+                k=k,
+                oracle_less_best=oracle_less_best,
+                oracle_less_ensemble=oracle_less_ensemble,
+                )
+            count += 1
+            sum_abs_oracle_less_best += abs(oracle_less_best)
+            sum_abs_oracle_less_ensemble += abs(oracle_less_ensemble)
+    i.append(' ')
+    i.append('median absolute oracle less best    : %f' % (sum_abs_oracle_less_best / count))
+    i.append('median absolute oracle less ensemble: %f' % (sum_abs_oracle_less_ensemble / count))
+    i.write(control.path_out_i)
     return
 
 
@@ -866,7 +934,6 @@ def make_charts_efh(k, reduction, actuals, median_price, control):
         else:
             return False
 
-    tracing = trace_if_interesting()
     ensemble_weighting = 'exp(-MAE/100000)'
     mae = {}
     debug = False
@@ -1163,7 +1230,7 @@ def make_charts(reduction, actuals, median_prices, control):
     print 'making charts'
 
     make_chart_a(reduction, median_prices, control)
-    make_chart_h(reduction, actuals, median_prices, control)
+    make_chart_hi(reduction, actuals, median_prices, control)
     return  # charts b - g are obselete
     if control.arg.locality == 'city':
         print 'stopping charts after chart a and h, since locality is', control.arg.locality
