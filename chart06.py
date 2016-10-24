@@ -146,6 +146,7 @@ def make_control(argv):
         path_out_e_pdf=dir_out + 'e-%04d.pdf',
         path_out_f=dir_out + 'f-%04d.txt',
         path_out_g=dir_out + 'g.txt',
+        path_out_h_template=dir_out + 'h-%03d-%6s',
         path_out_data=dir_out + '0data.pickle',
         path_out_data_report=dir_out_reduction + '0data-report.txt',
         path_out_data_subset=dir_out_reduction + '0data-subset.pickle',
@@ -595,8 +596,7 @@ class ChartEReport(object):
             'validation_month', 'model', 'n_months_back',
             'n_estimators', 'max_features', 'max_depth',
             'learning_rate', 'rank', 'weight',
-            'mae_validation', 'mae_next', 'mae_ensemble',
-            'mae_best_next_month'
+            'mae_validation', 'mae_query', 'mae_ensemble',
         )
         self._ct = ColumnsTable(columns=cd, verbose=True)
 
@@ -619,6 +619,44 @@ class ChartEReport(object):
         self._report.append('Performance of Best Models Separately and as an Ensemble')
         self._report.append(' ')
         self._report.append('Considering Best K = %d models' % k)
+        self._report.append('Ensemble weighting: %s' % ensemble_weighting)
+
+
+class ChartHReport(object):
+    def __init__(self, k, validation_month, ensemble_weighting, column_definitions, test):
+        self._column_definitions = column_definitions
+        self._report = Report()
+        self._test = test
+        self._header(k, validation_month, ensemble_weighting)
+        cd = self._column_definitions.defs_for_columns(
+            'description',
+            'mae_validation',
+            'mae_query',
+            'mare_validation',
+            'mare_query',
+        )
+        self._ct = ColumnsTable(columns=cd, verbose=True)
+
+    def write(self, path):
+        self._ct.append_legend()
+        for line in self._ct.iterlines():
+            self._report.append(line)
+        if self._test:
+            self._report.append('** TESTING: DISCARD')
+        self._report.write(path)
+
+    def detail_line(self, **kwds):
+        with_spaces = {
+            k: (None if self._column_definitions.replace_by_spaces(k, v) else v)
+            for k, v in kwds.iteritems()
+        }
+        self._ct.append_detail(**with_spaces)
+
+    def _header(self, k, validation_month, ensemble_weighting):
+        self._report.append('Performance of Best Models Separately and as an Ensemble')
+        self._report.append(' ')
+        self._report.append('Considering Best K = %d models' % k)
+        self._report.append('For validation month %s' % validation_month)
         self._report.append('Ensemble weighting: %s' % ensemble_weighting)
 
 
@@ -698,17 +736,137 @@ def check_key_order(d):
                      )
 
 
-def make_charts_ef(k, reduction, actuals, median_price, control):
+# return string describing key features of the model
+def short_model_description(model_description):
+    # build model decsription
+    model = model_description.model
+    if model == 'gb' or model == 'rf':
+        description = '%s(%d, %d, %d)' % (
+            model,
+            model_description.n_months_back,
+            model_description.n_estimators,
+            model_description.max_depth,
+        )
+    else:
+        assert model == 'en', model_description
+        description = '%s(%f, %f)' % (
+            model,
+            model_description.alpha,
+            model_description.l1_ratio,
+        )
+    return description
+
+
+# write report files for all K values and validation months for the year 2007
+def make_chart_h(reduction, actuals, median_prices, control):
+    def median_price(month_str):
+        return median_prices[Month(month_str)]
+
+    def mae(actuals, predictions):
+        'return named tuple'
+        e = errors.errors(actuals, predictions)
+        mae_index = 1
+        return e[mae_index]
+
+    def chart_h(k, validation_month):
+        print 'chart_h', k, validation_month
+        if k == 2 and False:
+            pdb.set_trace()
+        h = ChartHReport(k, validation_month, 'exp(-MAE/$100000)', control.column_definitions, control.test)
+        query_month = Month(validation_month).increment(1).as_str()
+        # write results for each of the k best models in the validation month
+        cum_weight = None
+        eta = 1.0
+        weight_scale = 100000.0  # to get weight < 1
+        for index in xrange(k):
+            # write detail line for this expert
+            print 'index', index, 'k', k
+            expert_key = reduction[validation_month].keys()[index]
+            expert_results_validation_month = reduction[validation_month][expert_key]
+            expert_results_query_month = reduction[query_month][expert_key]
+            h.detail_line(
+                description='expert ranked %d: %s' % (index + 1, short_model_description(expert_key)),
+                mae_validation=expert_results_validation_month.mae,
+                mae_query=expert_results_query_month.mae,
+                mare_validation=expert_results_validation_month.mae / median_price(validation_month),
+                mare_query=expert_results_validation_month.mae / median_price(query_month),
+                )
+            # computing running ensemble model prediction
+            weight = math.exp(- eta * expert_results_validation_month.mae / weight_scale)
+            assert weight < 1, (eta, expert_results_validation_month.mae, weight_scale)
+            incremental_ensemble_predictions_query = weight * expert_results_query_month.predictions
+            incremental_ensemble_predictions_validation = weight * expert_results_validation_month.predictions
+            if cum_weight is None:
+                cum_ensemble_predictions_query = incremental_ensemble_predictions_query
+                cum_ensemble_predictions_validation = incremental_ensemble_predictions_validation
+                cum_weight = weight
+            else:
+                cum_ensemble_predictions_query += incremental_ensemble_predictions_query
+                cum_ensemble_predictions_validation += incremental_ensemble_predictions_validation
+                cum_weight += weight
+        # write detail line for the ensemble
+        # pdb.set_trace()
+        ensemble_predictions_query = cum_ensemble_predictions_query / cum_weight
+        ensemble_predictions_validation = cum_ensemble_predictions_validation / cum_weight
+        ensemble_errors_query_mae = mae(actuals[query_month], ensemble_predictions_query)
+        ensemble_errors_validation_mae = mae(actuals[validation_month], ensemble_predictions_validation)
+        h.detail_line(
+            description='ensemble of best %d experts' % k,
+            mae_validation=ensemble_errors_validation_mae,
+            mae_query=ensemble_errors_query_mae,
+            mare_validation=ensemble_errors_validation_mae / median_price(validation_month),
+            mare_query=ensemble_errors_query_mae / median_price(query_month),
+            )
+        # write detail line for the oracle's model TODO: WRITE ME
+        oracle_key = reduction[query_month].keys()[0]
+        oracle_results_validation_month = reduction[validation_month][oracle_key]
+        oracle_results_query_month = reduction[query_month][oracle_key]
+        h.detail_line(
+            description='oracle: %s' % short_model_description(oracle_key),
+            mae_validation=oracle_results_validation_month.mae,
+            mae_query=oracle_results_query_month.mae,
+            mare_validation=oracle_results_validation_month.mae / median_price(validation_month),
+            mare_query=oracle_results_query_month.mae / median_price(query_month),
+            )
+        # report differences from oracle
+        # TODO:write
+        best_key = reduction[validation_month].keys()[0]
+        best_results = reduction[validation_month][best_key]
+        mpquery = median_price(query_month)
+        h.detail_line(
+            description='oracle - best model',
+            mae_query=oracle_results_query_month.mae - best_results.mae,
+            mare_query=oracle_results_query_month.mae / mpquery - best_results.mae / mpquery,
+            )
+        h.detail_line(
+            description='oracle - ensemble model',
+            mae_query=oracle_results_query_month.mae - ensemble_errors_query_mae,
+            mare_query=oracle_results_query_month.mae / mpquery - ensemble_errors_query_mae / mpquery,
+            )
+        return h
+
+    control.timer.lap('start chart h')
+    for k in all_k_values():
+        for validation_month in control.validation_months:
+            report = chart_h(k, validation_month)
+            report.write(control.path_out_h_template % (k, validation_month))
+    return
+
+
+def make_charts_efh(k, reduction, actuals, median_price, control):
     '''Write charts e and f, return median-absolute-relative_regret object'''
     def interesting():
-        return False
         return k == 5
 
     def trace_if_interesting():
         if interesting():
+            print 'k', k
             pdb.set_trace()
+            return True
+        else:
+            return False
 
-    trace_if_interesting()
+    tracing = trace_if_interesting()
     ensemble_weighting = 'exp(-MAE/100000)'
     mae = {}
     debug = False
@@ -718,12 +876,13 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
     my_price = []
     for validation_month in control.validation_months:
         e = ChartEReport(k, ensemble_weighting, control.column_definitions, control.test)
+        h = ChartHReport(k, ensemble_weighting, control.column_definitions, control.test)
         if debug:
             print validation_month
             pdb.set_trace()
-        next_month = Month(validation_month).increment(1).as_str()
-        if next_month not in reduction:
-            control.exceptions.append('%s not in reduction (charts ef)' % next_month)
+        query_month = Month(validation_month).increment(1).as_str()
+        if query_month not in reduction:
+            control.exceptions.append('%s not in reduction (charts ef)' % query_month)
             print control.exception
             continue
         cum_weighted_predictions = None
@@ -733,14 +892,14 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
         # write lines for the k best individual models
         # accumulate info needed to build the ensemble model
         index0_mae = None
-        for index, next_month_key in enumerate(reduction[next_month].keys()):
+        for index, query_month_key in enumerate(reduction[query_month].keys()):
             # print only k rows
             if index >= k:
                 break
-            print index, next_month_key
-            validation_month_value = reduction[validation_month][next_month_key]
-            print next_month
-            next_month_value = reduction[next_month][next_month_key]
+            print index, query_month_key
+            validation_month_value = reduction[validation_month][query_month_key]
+            print query_month
+            query_month_value = reduction[query_month][query_month_key]
             if mae_validation is not None and False:  # turn off this test for now
                 trace_unless(mae_validation <= validation_month_value.mae,
                              'should be non-decreasing',
@@ -749,27 +908,34 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
                              )
             mae_validation = validation_month_value.mae
 
-            mae_next = next_month_value.mae
+            mae_query = query_month_value.mae
             if index == 0:
-                index0_mae = mae_next
-            weight = math.exp(-mae_validation / 100000.0)
+                index0_mae = mae_query
+            eta = 1.0
+            weight = math.exp(-eta * (mae_validation / 100000.0))
             e.detail_line(
                 validation_month=validation_month,
-                model=next_month_key.model,
-                n_months_back=next_month_key.n_months_back,
-                n_estimators=next_month_key.n_estimators,
-                max_features=next_month_key.max_features,
-                max_depth=next_month_key.max_depth,
-                learning_rate=next_month_key.learning_rate,
+                model=query_month_key.model,
+                n_months_back=query_month_key.n_months_back,
+                n_estimators=query_month_key.n_estimators,
+                max_features=query_month_key.max_features,
+                max_depth=query_month_key.max_depth,
+                learning_rate=query_month_key.learning_rate,
                 rank=index + 1,
                 mae_validation=mae_validation,
                 weight=weight,
-                mae_next=mae_next,
+                mae_query=mae_query,
             )
 
+            h.detail_line(
+                validation_month=validation_month,
+                model_description=short_model_description(query_month_key),
+                mae_validation=mae_validation,
+                mae_query=mae_query,
+            )
             # need the mae of the ensemble
             # need the actuals and predictions? or is this already computed
-            predictions_next = next_month_value.predictions
+            predictions_next = query_month_value.predictions
             if cum_weighted_predictions is None:
                 cum_weighted_predictions = weight * predictions_next
             else:
@@ -780,15 +946,14 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
         trace_if_interesting()
         ensemble_predictions = cum_weighted_predictions / cum_weights
         ensemble_rmse, ensemble_mae, ensemble_ci95_low, ensemble_ci95_high = errors.errors(
-            actuals[next_month],
+            actuals[query_month],
             ensemble_predictions,
         )
-        best_key = reduction[next_month].keys()[0]
-        best_value = reduction[next_month][best_key]
+        best_key = reduction[query_month].keys()[0]
+        best_value = reduction[query_month][best_key]
         e.detail_line(
             validation_month=validation_month,
             mae_ensemble=ensemble_mae,
-            mae_best_next_month=best_value.mae,
             model=best_key.model,
             n_months_back=best_key.n_months_back,
             n_estimators=best_key.n_estimators,
@@ -796,6 +961,11 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
             max_depth=best_key.max_depth,
             learning_rate=best_key.learning_rate,
         )
+        h.detail_line(
+            validation_month=validation_month,
+            model_description='ensemble',
+            mae_query=ensemble_mae,
+            )
         my_validation_months.append(validation_month)
         my_ensemble_mae.append(ensemble_mae)
         my_best_mae.append(best_value.mae)
@@ -912,12 +1082,16 @@ def make_charts_ef(k, reduction, actuals, median_price, control):
     regrets = []
     relative_errors = []
     for validation_month in control.validation_months:
-        next_month_value = reduction[next_month][next_month_key]
+        query_month = Month(validation_month).increment(1).as_str()
+        print query_month
+        print "need to define best_next_month  --> best_query_month"
+        pdb.set_trace()
+        query_month_value = reduction[query_month][query_month_key]
         regret = mae[validation_month].ensemble - mae[validation_month].best_next_month
         regrets.append(regret)
         relative_error = regret / median_price[Month(validation_month)]
         relative_errors.append(relative_error)
-        median_price_next = median_price[Month(next_month)]
+        median_price_next = median_price[Month(query_month)]
         f.detail_line(
             validation_month=validation_month,
             mae_index0=mae[validation_month].index0,
@@ -963,7 +1137,13 @@ class ChartGReport():
         self.report.append(line)
 
 
-def make_charts_efg(reduction, actuals, median_prices, control):
+def all_k_values():
+    ks = range(1, 31, 1)
+    ks.extend([40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200])
+    return ks
+
+
+def make_charts_efgh(reduction, actuals, median_prices, control):
     # chart g uses the regret values that are computed in building chart e
     debug = True
     g = ChartGReport()
@@ -972,7 +1152,7 @@ def make_charts_efg(reduction, actuals, median_prices, control):
     if control.test:
         ks = (1, 5)
     for k in ks:
-        median_absolute_relative_regret = make_charts_ef(k, reduction, actuals, median_prices, control)
+        median_absolute_relative_regret = make_charts_efh(k, reduction, actuals, median_prices, control)
         if not debug:
             g.detail(k, median_absolute_relative_regret)
     if not debug:
@@ -983,8 +1163,10 @@ def make_charts(reduction, actuals, median_prices, control):
     print 'making charts'
 
     make_chart_a(reduction, median_prices, control)
+    make_chart_h(reduction, actuals, median_prices, control)
+    return  # charts b - g are obselete
     if control.arg.locality == 'city':
-        print 'stopping charts after chart a, since locality is', control.arg.locality
+        print 'stopping charts after chart a and h, since locality is', control.arg.locality
         return
     make_chart_b(reduction, control, median_prices)
 
@@ -996,7 +1178,7 @@ def make_charts(reduction, actuals, median_prices, control):
             break
         detail_lines_d = range(n_best)[:n_reductions_per_month]
         make_chart_cd(reduction, median_prices, control, detail_lines_d, report_id)
-    make_charts_efg(reduction, actuals, median_prices, control)
+    make_charts_efgh(reduction, actuals, median_prices, control)
 
 
 def extract_yyyymm(path):
