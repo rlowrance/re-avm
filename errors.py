@@ -2,7 +2,7 @@ import numpy as np
 
 
 def errors(actuals, predictions):
-    'return root_mean_squared_error, median_absolute_error'
+    'return root_mean_squared_error, median_absolute_error, ci95_low, ci95_high'
     def make_ci95(v):
         'return tuple with 95 percent confidence interval for the value in np.array v'
         n_samples = 10000
