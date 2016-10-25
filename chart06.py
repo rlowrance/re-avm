@@ -146,7 +146,8 @@ def make_control(argv):
         path_out_e_pdf=dir_out + 'e-%04d.pdf',
         path_out_f=dir_out + 'f-%04d.txt',
         path_out_g=dir_out + 'g.txt',
-        path_out_h_template=dir_out + 'h-%03d-%6s.txt',
+        path_out_h_template=dir_out + 'h-%03d-%6s.txt' if arg.locality == 'global' else
+          dir_out + 'h-%s-%03d-%6s.txt',
         path_out_i=dir_out + 'i.txt',
         path_out_data=dir_out + '0data.pickle',
         path_out_data_report=dir_out_reduction + '0data-report.txt',
@@ -810,7 +811,7 @@ def make_chart_hi(reduction, actuals, median_prices, control):
         mae_index = 1
         return e[mae_index]
 
-    def chart_h(k, validation_month):
+    def chart_h(reduction, k, validation_month):
         'return (Report, oracle_less_best, oracle_less_ensemble)'
         print 'chart_h', k, validation_month
         if k == 2 and False:
@@ -872,12 +873,14 @@ def make_chart_hi(reduction, actuals, median_prices, control):
             mare_query=oracle_results_query_month.mae / median_price(query_month),
             )
         # report differences from oracle
-        # TODO:write
         best_key = reduction[validation_month].keys()[0]
         best_results = reduction[validation_month][best_key]
         mpquery = median_price(query_month)
         oracle_less_best = oracle_results_query_month.mae - best_results.mae
         oracle_less_ensemble = oracle_results_query_month.mae - ensemble_errors_query_mae
+        h.detail_line(
+            description=' ',
+            )
         h.detail_line(
             description='oracle - best model',
             mae_query=oracle_less_best,
@@ -890,35 +893,84 @@ def make_chart_hi(reduction, actuals, median_prices, control):
             )
         return h, oracle_less_best, oracle_less_ensemble
 
-    control.timer.lap('start chart h')
-    comparison = {}
-    for k in all_k_values():
-        for validation_month in control.validation_months:
-            h, oracle_less_best, oracle_less_ensemble = chart_h(k, validation_month)
-            h.write(control.path_out_h_template % (k, validation_month))
-            comparison[(k, validation_month)] = (oracle_less_best, oracle_less_ensemble)
-    # report I is in inverted order relative to chart h grouped_by
-    i = ChartIReport(control.column_definitions, control.test)
-    count = 0
-    sum_abs_oracle_less_best = 0
-    sum_abs_oracle_less_ensemble = 0
-    for validation_month in control.validation_months:
+    def median_value(value_list):
+        sum = 0.0
+        for value in value_list:
+            sum += value
+        return sum / len(value_list)
+
+    def make_hi(reduction):
+        'return (dict[(k, validation_month)]Report, Report)'
+        # make chart h
+        hs = {}
+        comparison = {}
         for k in all_k_values():
-            oracle_less_best, oracle_less_ensemble = comparison[(k, validation_month)]
-            i.detail_line(
-                validation_month=validation_month,
-                k=k,
-                oracle_less_best=oracle_less_best,
-                oracle_less_ensemble=oracle_less_ensemble,
+            for validation_month in control.validation_months:
+                h, oracle_less_best, oracle_less_ensemble = chart_h(reduction, k, validation_month)
+                hs[(k, validation_month)] = h
+                comparison[(k, validation_month)] = (oracle_less_best, oracle_less_ensemble)
+        # report I is in inverted order relative to chart h grouped_by
+        # make chart i part 1
+        i = ChartIReport(control.column_definitions, control.test)
+        count = 0
+        sum_abs_oracle_less_best = 0
+        sum_abs_oracle_less_ensemble = 0
+        oracle_less_ensemble_by_k = collections.defaultdict(list)
+        for validation_month in control.validation_months:
+            for k in all_k_values():
+                oracle_less_best, oracle_less_ensemble = comparison[(k, validation_month)]
+                i.detail_line(
+                    validation_month=validation_month,
+                    k=k,
+                    oracle_less_best=oracle_less_best,
+                    oracle_less_ensemble=oracle_less_ensemble,
                 )
-            count += 1
-            sum_abs_oracle_less_best += abs(oracle_less_best)
-            sum_abs_oracle_less_ensemble += abs(oracle_less_ensemble)
-    i.append(' ')
-    i.append('median absolute oracle less best    : %f' % (sum_abs_oracle_less_best / count))
-    i.append('median absolute oracle less ensemble: %f' % (sum_abs_oracle_less_ensemble / count))
-    i.write(control.path_out_i)
-    return
+                oracle_less_ensemble_by_k[k].append(oracle_less_ensemble)
+                count += 1
+                sum_abs_oracle_less_best += abs(oracle_less_best)
+                sum_abs_oracle_less_ensemble += abs(oracle_less_ensemble)
+
+        # make chart i part 2 (TODO: create separate chart)
+        i.append(' ')
+        i.append('Median (oracle - ensemble)')
+        for k in sorted(oracle_less_ensemble_by_k.keys()):
+            value_list = oracle_less_ensemble_by_k[k]
+            i.detail_line(
+                k=k,
+                oracle_less_ensemble=median_value(value_list),
+                )
+        i.append(' ')
+        i.append('median absolute oracle less best    : %f' % (sum_abs_oracle_less_best / count))
+        i.append('median absolute oracle less ensemble: %f' % (sum_abs_oracle_less_ensemble / count))
+        return hs, i
+
+    def city_hi():
+        pdb.set_trace()
+        for city in reduction.keys():
+            city_reduction = reduction[city]
+            hs, i = make_hi(city_reduction)
+            # write the reports (the order of writing does not matter)
+            for key, report in hs.iteritems():
+                k, validation_month = key
+                report.write(control.path_h_template % (city, k, validation_month))
+            i.write(control.path_out_i)
+        return
+
+    control.timer.lap('start chart h')
+    if control.arg.locality == 'global':
+        hs, i = make_hi(reduction)
+        # write the reports (the order of writing does not matter)
+        for key, report in hs.iteritems():
+            k, validation_month = key
+            report.write(control.path_out_h_template % (k, validation_month))
+        i.write(control.path_out_i)
+        return
+    elif control.arg.locality == 'city':
+        return city_hi()
+    else:
+        print control.arg.locality
+        print 'bad locality'
+        pdb.set_trace()
 
 
 def make_charts_efh(k, reduction, actuals, median_price, control):
