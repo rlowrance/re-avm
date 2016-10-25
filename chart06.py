@@ -782,11 +782,21 @@ def check_key_order(d):
 def short_model_description(model_description):
     # build model decsription
     model = model_description.model
-    if model == 'gb' or model == 'rf':
-        description = '%s(%d, %d, %d)' % (
+    if model == 'gb':
+        description = '%s(%d, %d, %s, %d, %3.2f)' % (
             model,
             model_description.n_months_back,
             model_description.n_estimators,
+            model_description.max_features,
+            model_description.max_depth,
+            model_description.learning_rate,
+        )
+    elif model == 'rf':
+        description = '%s(%d, %d, %s, %d)' % (
+            model,
+            model_description.n_months_back,
+            model_description.n_estimators,
+            model_description.max_features,
             model_description.max_depth,
         )
     else:
@@ -824,7 +834,6 @@ def make_chart_hi(reduction, actuals, median_prices, control):
         weight_scale = 100000.0  # to get weight < 1
         for index in xrange(k):
             # write detail line for this expert
-            print 'index', index, 'k', k
             expert_key = reduction[validation_month].keys()[index]
             expert_results_validation_month = reduction[validation_month][expert_key]
             expert_results_query_month = reduction[query_month][expert_key]
@@ -833,7 +842,7 @@ def make_chart_hi(reduction, actuals, median_prices, control):
                 mae_validation=expert_results_validation_month.mae,
                 mae_query=expert_results_query_month.mae,
                 mare_validation=expert_results_validation_month.mae / median_price(validation_month),
-                mare_query=expert_results_validation_month.mae / median_price(query_month),
+                mare_query=expert_results_query_month.mae / median_price(query_month),
                 )
             # computing running ensemble model prediction
             weight = math.exp(- eta * expert_results_validation_month.mae / weight_scale)
@@ -850,6 +859,12 @@ def make_chart_hi(reduction, actuals, median_prices, control):
                 cum_weight += weight
         # write detail line for the ensemble
         # pdb.set_trace()
+        h.detail_line(
+            description=' ',
+            )
+        if k == 10 and validation_month == '200705':
+            print k, validation_month
+            pdb.set_trace()
         ensemble_predictions_query = cum_ensemble_predictions_query / cum_weight
         ensemble_predictions_validation = cum_ensemble_predictions_validation / cum_weight
         ensemble_errors_query_mae = mae(actuals[query_month], ensemble_predictions_query)
@@ -861,7 +876,7 @@ def make_chart_hi(reduction, actuals, median_prices, control):
             mare_validation=ensemble_errors_validation_mae / median_price(validation_month),
             mare_query=ensemble_errors_query_mae / median_price(query_month),
             )
-        # write detail line for the oracle's model TODO: WRITE ME
+        # write detail line for the oracle's model 
         oracle_key = reduction[query_month].keys()[0]
         oracle_results_validation_month = reduction[validation_month][oracle_key]
         oracle_results_query_month = reduction[query_month][oracle_key]
@@ -874,24 +889,24 @@ def make_chart_hi(reduction, actuals, median_prices, control):
             )
         # report differences from oracle
         best_key = reduction[validation_month].keys()[0]
-        best_results = reduction[validation_month][best_key]
+        best_results_query_month = reduction[query_month][best_key]
         mpquery = median_price(query_month)
-        oracle_less_best = oracle_results_query_month.mae - best_results.mae
-        oracle_less_ensemble = oracle_results_query_month.mae - ensemble_errors_query_mae
+        oracle_less_best_query_month = oracle_results_query_month.mae - best_results_query_month.mae
+        oracle_less_ensemble_query_month = oracle_results_query_month.mae - ensemble_errors_query_mae
         h.detail_line(
             description=' ',
             )
         h.detail_line(
-            description='oracle - best model',
-            mae_query=oracle_less_best,
-            mare_query=oracle_results_query_month.mae / mpquery - best_results.mae / mpquery,
+            description='oracle - expert ranked 1',
+            mae_query=oracle_less_best_query_month,
+            mare_query=oracle_results_query_month.mae / mpquery - best_results_query_month.mae / mpquery,
             )
         h.detail_line(
             description='oracle - ensemble model',
-            mae_query=oracle_less_ensemble,
+            mae_query=oracle_less_ensemble_query_month,
             mare_query=oracle_results_query_month.mae / mpquery - ensemble_errors_query_mae / mpquery,
             )
-        return h, oracle_less_best, oracle_less_ensemble
+        return h, oracle_less_best_query_month, oracle_less_ensemble_query_month
 
     def median_value(value_list):
         sum = 0.0
@@ -966,7 +981,8 @@ def make_chart_hi(reduction, actuals, median_prices, control):
         i.write(control.path_out_i)
         return
     elif control.arg.locality == 'city':
-        return city_hi()
+        city_hi()
+        return
     else:
         print control.arg.locality
         print 'bad locality'
