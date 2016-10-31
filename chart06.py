@@ -1549,26 +1549,6 @@ def make_data(control):
     return reduction, all_actuals, counters
 
 
-class SamplerOLD(object):
-    def __init__(self, d, fraction):
-        self._d = d
-        self._fraction = fraction
-
-    def sample(self):
-        'return ordered dictionary using the same keys for each input dictionary d'
-        n_to_sample = int(len(self._d) * self._fraction)
-        sampled_keys = random.sample(list(self._d), n_to_sample)
-        result = {}
-        for sampled_key in sampled_keys:
-            if sampled_key not in self._d:
-                print sampled_key
-                print 'missing'
-                pdb.set_trace()
-            result[sampled_key] = self._d[sampled_key]
-        sorted_result = collections.OrderedDict(sorted(result.items(), key=lambda t: t[1].mae))
-        return sorted_result
-
-
 def make_subset_global(reduction, fraction):
     'return a random sample of the reduction stratified by validation_month as an ordereddict'
     # use same keys (models) every validation month
@@ -1737,7 +1717,6 @@ def main(argv):
                 pickle.dump(output_norwalk, f)
                 lap('write norwalk')
     else:
-        pdb.set_trace()
         with open(control.path_in_data, 'rb') as f:
             print 'reading reduction data file'
             reduction, all_actuals, median_price, reduction_control = pickle.load(f)
