@@ -153,10 +153,8 @@ def make_control(argv):
         path_out_e_pdf=dir_out + 'e-%04d.pdf',
         path_out_f=dir_out + 'f-%04d.txt',
         path_out_g=dir_out + 'g.txt',
-        path_out_h_template=(
-            dir_out + 'h-%03d-%6s.txt' if arg.locality == 'global' else dir_out + 'h-%s-%03d-%6s.txt'
-            ),
-        path_out_i=dir_out + 'i.txt',
+        path_out_h_template=dir_out + ('h-%03d-%6s' if arg.locality == 'global' else 'h-%s-%03d-%6s') + '.txt',
+        path_out_i_template=dir_out + ('i' if arg.locality == 'global' else 'i-%s') + '.txt', 
         path_out_data=dir_out + '0data.pickle',
         path_out_data_report=dir_out + '0data-report.txt',
         path_out_data_subset=dir_out + '0data-subset.pickle',
@@ -829,6 +827,7 @@ def short_model_description(model_description):
 # write report files for all K values and validation months for the year 2007
 def make_chart_hi(reduction, actuals, median_prices, control):
     'return None'
+
     def make_dispersion_lines(report=None, tag=None, actuals=None, estimates=None):
         # append lines to report
 
@@ -850,18 +849,15 @@ def make_chart_hi(reduction, actuals, median_prices, control):
                 actuals_quartiles[q] + (0 if q == 0 else 1),
                 actuals_quartiles[q + 1] - (1 if q == 3 else 0),
             )
-            report.preformatted_line('quartile %d  prices %8.0f to %8.0f  N=%d): median price: %8.0f median error: %8.0f error / price: %6.4f' % (
+            report.preformatted_line('quartile %d  (prices %8.0f to %8.0f  N=%5d): median price: %8.0f median error: %8.0f error / price: %6.4f' % (
                 q + 1,
-                actuals_quartiles[q],
-                actuals_quartiles[q + 1],
+                actuals_quartiles[q] + (0 if q == 0 else 1),
+                actuals_quartiles[q + 1] - (1 if q == 3 else 0),
                 count,
                 q_median_value,
                 q_median_error,
                 q_median_error / q_median_value,
                 ))
-
-    def median_price(month_str):
-        return median_prices[Month(month_str)]
 
     def mae(actuals, predictions):
         'return named tuple'
@@ -869,8 +865,12 @@ def make_chart_hi(reduction, actuals, median_prices, control):
         mae_index = 1
         return e[mae_index]
 
-    def chart_h(reduction, k, validation_month):
+    def chart_h(reduction, median_prices, actuals, k, validation_month):
         'return (Report, oracle_less_best, oracle_less_ensemble)'
+
+        def median_price(month_str):
+            return median_prices[Month(month_str)]
+
         print 'chart_h', k, validation_month
         if k == 2 and False:
             pdb.set_trace()
@@ -980,14 +980,14 @@ def make_chart_hi(reduction, actuals, median_prices, control):
             sum += value
         return sum / len(value_list)
 
-    def make_hi(reduction):
+    def make_hi(reduction, median_prices, actuals):
         'return (dict[(k, validation_month)]Report, Report)'
         # make chart h
         hs = {}
         comparison = {}
         for k in all_k_values():
             for validation_month in control.validation_months:
-                h, oracle_less_best, oracle_less_ensemble = chart_h(reduction, k, validation_month)
+                h, oracle_less_best, oracle_less_ensemble = chart_h(reduction, median_prices, actuals, k, validation_month)
                 hs[(k, validation_month)] = h
                 comparison[(k, validation_month)] = (oracle_less_best, oracle_less_ensemble)
         # report I is in inverted order relative to chart h grouped_by
@@ -1025,29 +1025,26 @@ def make_chart_hi(reduction, actuals, median_prices, control):
         i.append('median absolute oracle less ensemble: %f' % (sum_abs_oracle_less_ensemble / count))
         return hs, i
 
-    def city_hi():
-        pdb.set_trace()
-        for city in reduction.keys():
-            city_reduction = reduction[city]
-            hs, i = make_hi(city_reduction)
-            # write the reports (the order of writing does not matter)
-            for key, report in hs.iteritems():
-                k, validation_month = key
-                report.write(control.path_h_template % (city, k, validation_month))
-            i.write(control.path_out_i)
-        return
-
-    control.timer.lap('start chart h')
+    control.timer.lap('start charts h and i')
     if control.arg.locality == 'global':
-        hs, i = make_hi(reduction)
+        hs, i = make_hi(reduction, median_prices)
         # write the reports (the order of writing does not matter)
         for key, report in hs.iteritems():
             k, validation_month = key
             report.write(control.path_out_h_template % (k, validation_month))
-        i.write(control.path_out_i)
+        i.write(control.path_out_i_template)
         return
     elif control.arg.locality == 'city':
-        city_hi()
+        for city in reduction.keys():
+            city_reduction = reduction[city]
+            city_median_prices = median_prices[city]
+            city_actuals = actuals[city]
+            hs, i = make_hi(city_reduction, city_median_prices, city_actuals)
+            # write the reports (the order of writing does not matter)
+            for key, report in hs.iteritems():
+                k, validation_month = key
+                report.write(control.path_out_h_template % (city, k, validation_month))
+            i.write(control.path_out_i_template % city)
         return
     else:
         print control.arg.locality
