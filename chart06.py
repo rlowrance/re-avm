@@ -1,19 +1,22 @@
 '''create charts showing results of valgbr.py
 INVOCATION
   python chart06.py --data
-  python chart06.py FEATURESGROUP-HPS-LOCALITY [--test] [--subset]
+  python chart06.py FEATURESGROUP-HPS-LOCALITY [--test] [--subset] [--norwalk]
 where
   FEAUTURES is one of {s, sw, swp, swpn}
   HPS is one of {all, best1}
   LOCALILTY is one of {census, city, global, zip}
   FHL is FEATURESGROUP-HPS
+  --test means to set control.arg.test to True
+  --subset means to process 0data-subset, not 0data, the full reduction
+  --norwalk means to process 0data-norwalk, not 0data, the full reduction
 INPUT FILES
  WORKING/chart01/data.pickle
  WORKING/valavm/FHL/YYYYMM.pickle
- WORKING/chart06/FHL/0data.pickle or WORKING/chart06/0data-subset.pickle
 INPUT AND OUTPUT FILES (build with --data)
- WORKING/chart06/0data.pickle         | reduction DataFrame (see below for def)
- WORKING/chart06/0data-subset.pickle  | subset for testing
+ WORKING/chart06/FHL/0data.pickle         | reduction for everything
+ WORKING/chart06/FHL/0data-norwalk.pickle | reduction for just Norwalk (for testing); only if locality == city
+ WORKING/chart06/FHL/0data-subset.pickle | random subset of everything (for testing)
 OUTPUT FILES
  WORKING/chart06/FHL/0data-report.txt | records retained TODO: Decide whether to keep
  WORKING/chart06/FHL/a.pdf           | range of losses by model (graph)
@@ -146,12 +149,14 @@ def make_control(argv):
         path_out_e_pdf=dir_out + 'e-%04d.pdf',
         path_out_f=dir_out + 'f-%04d.txt',
         path_out_g=dir_out + 'g.txt',
-        path_out_h_template=dir_out + 'h-%03d-%6s.txt' if arg.locality == 'global' else
-          dir_out + 'h-%s-%03d-%6s.txt',
+        path_out_h_template=(
+            dir_out + 'h-%03d-%6s.txt' if arg.locality == 'global' else dir_out + 'h-%s-%03d-%6s.txt'
+            ),
         path_out_i=dir_out + 'i.txt',
         path_out_data=dir_out + '0data.pickle',
-        path_out_data_report=dir_out_reduction + '0data-report.txt',
-        path_out_data_subset=dir_out_reduction + '0data-subset.pickle',
+        path_out_data_report=dir_out + '0data-report.txt',
+        path_out_data_subset=dir_out + '0data-subset.pickle',
+        path_out_data_norwalk=dir_out + '0data-norwalk.pickle',
         path_out_log=dir_out + '0log' + ('-data' if arg.data else '') + '.txt',
         random_seed=random_seed,
         sampling_rate=0.02,
@@ -210,6 +215,11 @@ def make_chart_a(reduction, median_prices, control):
     def make_figure(reduction, path_out, city, relevant_median_prices):
         # make and save figure
 
+        # debug: sometimes relevant_median_prices is empty
+        if len(relevant_median_prices) == 0:
+            print 'no median prices', city
+            pdb.set_trace()
+
         plt.figure()  # new figure
         # plt.suptitle('Loss by Test Period, Tree Max Depth, N Trees')  # overlays the subplots
         axes_number = 0
@@ -247,6 +257,8 @@ def make_chart_a(reduction, median_prices, control):
     elif control.arg.locality == 'city':
 
         def make_city(city):
+            print 'make_city', city
+            assert len(reduction[city]) > 0, city  # detect bug found in earlier version
             return make_figure(reduction[city], control.path_out_a % city, city, median_prices[city])
 
         if control.arg.norwalk:
@@ -654,6 +666,10 @@ class ChartHReport(object):
         }
         self._ct.append_detail(**with_spaces)
 
+    def preformatted_line(self, line):
+        print line
+        self._ct.append_line(line)
+
     def _header(self, k, validation_month, ensemble_weighting):
         self._report.append('Performance of Best Models Separately and as an Ensemble')
         self._report.append(' ')
@@ -812,6 +828,37 @@ def short_model_description(model_description):
 # write report files for all K values and validation months for the year 2007
 def make_chart_hi(reduction, actuals, median_prices, control):
     'return None'
+    def make_dispersion_lines(report=None, tag=None, actuals=None, estimates=None):
+        # append lines to report
+
+        def quartile_median(low, hi):
+            'return median error of actuals s.t. low <= actuals <= hi, return count of number of values in range'
+            mask = np.array(np.logical_and(actuals >= low, actuals <= hi), dtype=bool)
+            q_actuals = actuals[mask]
+            q_estimates = estimates[mask]
+            q_abs_errors = np.abs(q_actuals - q_estimates)
+            q_median_error = np.median(q_abs_errors)
+            q_median_value = np.percentile(q_actuals, 50)
+            return q_median_error, q_median_value, sum(mask)
+
+        actuals_quartiles = np.percentile(actuals, (0, 25, 50, 75, 100))
+
+        report.preformatted_line('\nMedian Error by Price Quartile for %s\n' % tag)
+        for q in (0, 1, 2, 3):
+            q_median_error, q_median_value, count = quartile_median(
+                actuals_quartiles[q] + (0 if q == 0 else 1),
+                actuals_quartiles[q + 1] - (1 if q == 3 else 0),
+            )
+            report.preformatted_line('quartile %d  prices %8.0f to %8.0f  N=%d): median price: %8.0f median error: %8.0f error / price: %6.4f' % (
+                q + 1,
+                actuals_quartiles[q],
+                actuals_quartiles[q + 1],
+                count,
+                q_median_value,
+                q_median_error,
+                q_median_error / q_median_value,
+                ))
+
     def median_price(month_str):
         return median_prices[Month(month_str)]
 
@@ -862,7 +909,7 @@ def make_chart_hi(reduction, actuals, median_prices, control):
         h.detail_line(
             description=' ',
             )
-        if k == 10 and validation_month == '200705':
+        if k == 10 and validation_month == '200705' and False:
             print k, validation_month
             pdb.set_trace()
         ensemble_predictions_query = cum_ensemble_predictions_query / cum_weight
@@ -876,7 +923,7 @@ def make_chart_hi(reduction, actuals, median_prices, control):
             mare_validation=ensemble_errors_validation_mae / median_price(validation_month),
             mare_query=ensemble_errors_query_mae / median_price(query_month),
             )
-        # write detail line for the oracle's model 
+        # write detail line for the oracle's model
         oracle_key = reduction[query_month].keys()[0]
         oracle_results_validation_month = reduction[validation_month][oracle_key]
         oracle_results_query_month = reduction[query_month][oracle_key]
@@ -905,6 +952,24 @@ def make_chart_hi(reduction, actuals, median_prices, control):
             description='oracle - ensemble model',
             mae_query=oracle_less_ensemble_query_month,
             mare_query=oracle_results_query_month.mae / mpquery - ensemble_errors_query_mae / mpquery,
+            )
+        h.detail_line(
+            description=' ',
+            )
+        h.detail_line(
+            description='100*(oracle - expert ranked 1)/oracle',
+            mae_query=100 * (oracle_less_best_query_month / oracle_results_query_month.mae),
+            )
+        h.detail_line(
+            description='100*(oracle - ensemble model)/oracle',
+            mae_query=100 * (oracle_less_ensemble_query_month / oracle_results_query_month.mae),
+            )
+        # dispersion of errors relative to prices
+        make_dispersion_lines(
+            report=h,
+            tag='ensemble',
+            actuals=actuals[query_month],
+            estimates=ensemble_predictions_query,
             )
         return h, oracle_less_best_query_month, oracle_less_ensemble_query_month
 
@@ -1575,6 +1640,14 @@ def make_subset(reduction, fraction, locality, interesting_cities):
         pdb.set_trace()
 
 
+def make_norwalk(reduction):
+    'return dict of type(reduction) with with just the norwalk data items'
+    pdb.set_trace()
+    city = 'NORWALK'
+    result = {city: reduction[city]}
+    return result
+
+
 def make_median_price(path, cities):
     'return dict[Month] median_price or dict[city][Month] median_price'
     def median_price(df, month):
@@ -1634,6 +1707,8 @@ def main(argv):
         ReportReduction(counters).write(control.path_out_data_report)
         subset = make_subset(reduction, control.sampling_rate, control.arg.locality, control.path_in_interesting_cities)
         lap('make_subset')
+        pdb.set_trace()
+        norwalk = make_norwalk(reduction) if control.arg.locality == 'city' else None
         # check key order
 
         def check_validation_month_keys(reduction):
@@ -1652,6 +1727,7 @@ def main(argv):
 
         output_all = (reduction, all_actuals, median_price, control)
         output_samples = (subset, all_actuals, median_price, control)
+        output_norwalk = (norwalk, all_actuals, median_price, control)
         lap('check key order')
         with open(control.path_out_data, 'wb') as f:
             pickle.dump(output_all, f)
@@ -1659,6 +1735,10 @@ def main(argv):
         with open(control.path_out_data_subset, 'wb') as f:
             pickle.dump(output_samples, f)
             lap('write samples')
+        if control.arg.locality == 'city':
+            with open(control.path_out_data_norwalk, 'wb') as f:
+                pickle.dump(output_norwalk, f)
+                lap('write norwalk')
     else:
         with open(control.path_in_data, 'rb') as f:
             print 'reading reduction data file'
