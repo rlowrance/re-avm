@@ -136,7 +136,11 @@ def make_control(argv):
             arg.fhl,
             ),
         path_in_chart_01_reduction=dir_working + 'chart01/0data.pickle',
-        path_in_data=dir_out + ('0data-subset.pickle' if arg.subset else '0data.pickle'),
+        path_in_data=dir_out + (
+            '0data-subset.pickle' if arg.subset else
+            '0data-norwalk.pickle' if arg.norwalk else
+            '0data.pickle'
+        ),
         path_in_interesting_cities=dir_working + 'interesting_cities.txt',
         path_out_a=dir_out + 'a.pdf' if arg.locality == 'global' else dir_out + 'a-%s.pdf',
         path_out_b=dir_out + 'b-%d.txt',
@@ -261,9 +265,6 @@ def make_chart_a(reduction, median_prices, control):
             assert len(reduction[city]) > 0, city  # detect bug found in earlier version
             return make_figure(reduction[city], control.path_out_a % city, city, median_prices[city])
 
-        if control.arg.norwalk:
-            make_city('NORWALK')
-            return
         for city in reduction.keys():
             make_city(city)
     else:
@@ -1519,10 +1520,6 @@ def make_data(control):
     assert len(paths) > 0, paths
     counters = {}
     for path in paths:
-        if control.arg.norwalk:
-            if 'NORWALK' not in path.upper():
-                print 'skipping', path
-                continue
         model, actuals, counter = process_records(path)
         # type(model) is dict[ModelDescription] ModelResults
         # sort models by increasing ModelResults.mae
@@ -1740,6 +1737,7 @@ def main(argv):
                 pickle.dump(output_norwalk, f)
                 lap('write norwalk')
     else:
+        pdb.set_trace()
         with open(control.path_in_data, 'rb') as f:
             print 'reading reduction data file'
             reduction, all_actuals, median_price, reduction_control = pickle.load(f)
