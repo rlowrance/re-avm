@@ -95,6 +95,7 @@ def make_control(argv):
         path_out_price_statistics_median_price=dir_path + 'price-statistics-median-price.txt',
         path_out_price_volume=dir_path + 'price-volume.pdf',
         path_out_stats_all=dir_path + 'price-stats-all.txt',
+        path_out_stats_count_by_city_in_2007=dir_path + 'count-by-city-in-2007.txt',
         path_out_stats_2006_2008=dir_path + 'price-stats-2006-2008.txt',
         path_reduction=dir_path + reduced_file_name,
         random_seed=random_seed,
@@ -542,8 +543,65 @@ def make_figures_prices_volume(data, control):
     plt.close(fig)
 
 
+def make_table_count_by_city_2007(data, control):
+    'write file'
+    def select_year_2007(data):
+        years_list = [
+            date.year
+            for index, date in data.date.iteritems()
+        ]
+        years = np.array(years_list)
+        mask = years == 2007
+        data_2007 = data[mask]
+        return data_2007
+
+    def determine_counts_by_city(df):
+        'return df with columns city, count sorted by increasing count'
+        result = None
+        for city in set(df.city):
+            mask = df.city == city
+            subset = df[mask]
+            new_df = pd.DataFrame(
+                data={'city': city, 'count': len(subset)},
+                index=[city],
+            )
+            result = new_df if result is None else result.append(new_df, verify_integrity=True)
+        sorted_result = result.sort_values('count')
+        return sorted_result
+
+    def make_column_table(df):
+        ct = ColumnsTable(
+            columns=(
+                ('city', 30, '%30s', 'city', 'city in Los Angeles Country'),
+                ('count', 6, '%6d', 'count', 'number of transactions in 2007'),
+            ),
+        )
+        for index, series in df.iterrows():
+            ct.append_detail(
+                city=series['city'],
+                count=series['count'],
+                )
+        ct.append_legend()
+        return ct
+
+    def make_report(ct):
+        report = Report()
+        report.append('Count of Transactions in 2007 by City')
+        for line in ct.iterlines():
+            report.append(line)
+        return report
+
+    data_2007 = select_year_2007(data)
+    city_count = determine_counts_by_city(data_2007)
+    ct = make_column_table(city_count)
+    report = make_report(ct)
+    report.write(control.path_out_stats_count_by_city_in_2007)
+    print len(data_2007)
+
+
 def main(argv):
     def all_figures(data, control):
+        make_table_count_by_city_2007(data, control)
         make_figures_prices_volume(data, control)
         if control.test:
             return
