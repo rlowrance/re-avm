@@ -545,29 +545,30 @@ def make_figures_prices_volume(data, control):
 
 def make_table_count_by_city_2007(data, control):
     'write file'
-    def select_year_2007(data):
+    def reduce_by_city(df):
+        'return df with columns city, count, median_price sorted by increasing count'
+
+        # create year np.ndarray (but don't amend data)
         years_list = [
             date.year
             for index, date in data.date.iteritems()
         ]
         years = np.array(years_list)
-        mask = years == 2007
-        data_2007 = data[mask]
-        return data_2007
 
-    def determine_counts_by_city(df):
-        'return df with columns city, count sorted by increasing count'
-        print df.columns
-        pdb.set_trace()
+        # reduce by retaining only year 2007 and reducing for each city
+        year = 2007
         result = None
         for city in set(df.city):
-            mask = df.city == city
+            mask = np.logical_and(df.city == city, years == year)
             subset = df[mask]
-            new_df = pd.DataFrame(
-                data={'city': city, 'count': len(subset), 'median_price': np.median(subset.price)},
-                index=[city],
-            )
-            result = new_df if result is None else result.append(new_df, verify_integrity=True)
+            if len(subset) > 0:
+                new_df = pd.DataFrame(
+                    data={'city': city, 'count': len(subset), 'median_price': np.median(subset.price)},
+                    index=[city],
+                )
+                result = new_df if result is None else result.append(new_df, verify_integrity=True)
+            else:
+                print 'skipping city %s since no transactions in year %d' % (city, year)
         sorted_result = result.sort_values('count')
         return sorted_result
 
@@ -590,17 +591,15 @@ def make_table_count_by_city_2007(data, control):
 
     def make_report(ct):
         report = Report()
-        report.append('Count of Transactions in 2007 by City')
+        report.append('Count and Median Price of Transactions in 2007 by City')
         for line in ct.iterlines():
             report.append(line)
         return report
 
-    data_2007 = select_year_2007(data)
-    city_count = determine_counts_by_city(data_2007)
-    ct = make_column_table(city_count)
+    reduction = reduce_by_city(data)
+    ct = make_column_table(reduction)
     report = make_report(ct)
     report.write(control.path_out_stats_count_by_city_in_2007)
-    print len(data_2007)
 
 
 def main(argv):
