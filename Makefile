@@ -19,9 +19,9 @@ ALL += $(WORKING)/interesting_cities.txt
 # Note: many charts supported preliminary analysis not in the final paper
 CHART01 += $(WORKING)/chart01/price-volume.pdf
 
-CHART06 += $(WORKING)/chart06/s-all-global/a.pdf
-CHART06 += $(WORKING)/chart06/sw-all-global/a.pdf
-CHART06 += $(WORKING)/chart06/swp-all-global/a.pdf
+#CHART06 += $(WORKING)/chart06/s-all-global/a.pdf
+#CHART06 += $(WORKING)/chart06/sw-all-global/a.pdf
+#CHART06 += $(WORKING)/chart06/swp-all-global/a.pdf
 CHART06 += $(WORKING)/chart06/swpn-all-global/a.pdf
 CHART06 += $(WORKING)/chart06/swpn-all-city/a.pdf
 
