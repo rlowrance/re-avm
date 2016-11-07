@@ -10,34 +10,8 @@ from columns_contain import columns_contain
 import errors
 from Month import Month
 from Report import Report
+from trace_unless import trace_unless
 cc = columns_contain
-
-
-def trace_unless(condition, message, **kwds):
-    'like assert condition, message; but enters debugger if condition fails'
-    if condition:
-        return
-    print '+++++++++++++++'
-    for k, v in kwds.iteritems():
-        print k, v
-    print message
-    print '+++++++++++++++'
-    pdb.set_trace()
-
-
-def select_and_sort(df, year, month, model):
-    'return new df contain sorted observations for specified year, month, model'
-    yyyymm = str(year * 100 + month)
-    mask = (
-        (df.model == model) &
-        (df.validation_month == yyyymm)
-    )
-    subset = df.loc[mask]
-    if len(subset) == 0:
-        print 'empty subset'
-        print year, month, model, sum(df.model == model), sum(df.validation_month == yyyymm)
-        pdb.set_trace()
-    return subset.sort_values('mae')
 
 
 class ChartHReport(object):

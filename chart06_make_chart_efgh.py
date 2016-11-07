@@ -12,6 +12,7 @@ from columns_contain import columns_contain
 import errors
 from Month import Month
 from Report import Report
+from trace_unless import trace_unless
 cc = columns_contain
 
 
@@ -89,18 +90,6 @@ class ChartFReport(object):
         self._report.append(' ')
         self._report.append('Considering Best K = %d models' % k)
         self._report.append('Ensemble weighting: %s' % ensemble_weighting)
-
-
-def trace_unless(condition, message, **kwds):
-    'like assert condition, message; but enters debugger if condition fails'
-    if condition:
-        return
-    print '+++++++++++++++'
-    for k, v in kwds.iteritems():
-        print k, v
-    print message
-    print '+++++++++++++++'
-    pdb.set_trace()
 
 
 def check_key_order(d):

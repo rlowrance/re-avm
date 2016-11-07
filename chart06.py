@@ -67,20 +67,9 @@ from Logger import Logger
 from Path import Path
 from Report import Report
 from Timer import Timer
+from trace_unless import trace_unless
 from valavmtypes import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 cc = columns_contain
-
-
-def trace_unless(condition, message, **kwds):
-    'like assert condition, message; but enters debugger if condition fails'
-    if condition:
-        return
-    print '+++++++++++++++'
-    for k, v in kwds.iteritems():
-        print k, v
-    print message
-    print '+++++++++++++++'
-    pdb.set_trace()
 
 
 def make_control(argv):
