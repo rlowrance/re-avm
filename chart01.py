@@ -557,12 +557,14 @@ def make_table_count_by_city_2007(data, control):
 
     def determine_counts_by_city(df):
         'return df with columns city, count sorted by increasing count'
+        print df.columns
+        pdb.set_trace()
         result = None
         for city in set(df.city):
             mask = df.city == city
             subset = df[mask]
             new_df = pd.DataFrame(
-                data={'city': city, 'count': len(subset)},
+                data={'city': city, 'count': len(subset), 'median_price': np.median(subset.price)},
                 index=[city],
             )
             result = new_df if result is None else result.append(new_df, verify_integrity=True)
@@ -572,14 +574,16 @@ def make_table_count_by_city_2007(data, control):
     def make_column_table(df):
         ct = ColumnsTable(
             columns=(
-                ('city', 30, '%30s', 'city', 'city in Los Angeles Country'),
-                ('count', 6, '%6d', 'count', 'number of transactions in 2007'),
+                ('city', 30, '%30s', ('', 'city'), 'city in Los Angeles Country'),
+                ('count', 6, '%6d', (' ', 'count'), 'number of transactions in 2007'),
+                ('median_price', 7, '%7.0f', ('median', 'price'), 'median price'),
             ),
         )
         for index, series in df.iterrows():
             ct.append_detail(
                 city=series['city'],
                 count=series['count'],
+                median_price=series['median_price'],
                 )
         ct.append_legend()
         return ct
