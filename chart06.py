@@ -1,15 +1,17 @@
 '''create charts showing results of valgbr.py
 INVOCATION
-  python chart06.py --data
-  python chart06.py FEATURESGROUP-HPS-LOCALITY [--test] [--subset] [--norwalk]
+  python chart06.py FEATURESGROUP-HPS-LOCALITY --data
+  python chart06.py FEATURESGROUP-HPS-global [--test] [--subset] [--norwalk] [--all]
+  python chart06.py FEATURESGROUP-HPS-city [--test] [--subset] [--norwalk] [--all]
 where
   FEAUTURES is one of {s, sw, swp, swpn}
   HPS is one of {all, best1}
-  LOCALILTY is one of {census, city, global, zip}
-  FHL is FEATURESGROUP-HPS
+  LOCALILTY is one of {city, global}
+  FHL is FEATURESGROUP-HPS-LOCALITY
   --test means to set control.arg.test to True
   --subset means to process 0data-subset, not 0data, the full reduction
   --norwalk means to process 0data-norwalk, not 0data, the full reduction
+  --all means to process all the cities, not just selected cities
 INPUT FILES
  WORKING/chart01/data.pickle
  WORKING/valavm/FHL/YYYYMM.pickle
@@ -91,6 +93,7 @@ def make_control(argv):
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--subset', action='store_true')
     parser.add_argument('--norwalk', action='store_true')
+    parser.add_argument('-all', action = 'store_true')
     arg = parser.parse_args(argv[1:])  # arg.__dict__ contains the bindings
     arg.base_name = 'chart06'
 
