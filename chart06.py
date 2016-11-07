@@ -835,10 +835,22 @@ def make_chart_hi(reduction, actuals, median_prices, control):
             'return median error of actuals s.t. low <= actuals <= hi, return count of number of values in range'
             mask = np.array(np.logical_and(actuals >= low, actuals <= hi), dtype=bool)
             q_actuals = actuals[mask]
+            if len(q_actuals) == 0:
+                print 'no elements selected by mask', low, hi, sum(mask)
+                return 0.0, 1.0, sum(mask)  # can't return 0.0's because if future divide by zero
             q_estimates = estimates[mask]
             q_abs_errors = np.abs(q_actuals - q_estimates)
             q_median_error = np.median(q_abs_errors)
-            q_median_value = np.percentile(q_actuals, 50)
+            try:
+                print 'q_actuals:', q_actuals
+                q_median_value = np.percentile(q_actuals, 50)
+            except Exception as e:
+                pdb.set_trace()
+                print type(e)
+                print e.args
+                print e
+                pdb.set_trace()
+                q_median_value = 0
             return q_median_error, q_median_value, sum(mask)
 
         actuals_quartiles = np.percentile(actuals, (0, 25, 50, 75, 100))
@@ -879,11 +891,24 @@ def make_chart_hi(reduction, actuals, median_prices, control):
         # write results for each of the k best models in the validation month
         cum_weight = None
         eta = 1.0
-        weight_scale = 100000.0  # to get weight < 1
+        weight_scale = 200000.0  # to get weight < 1
         for index in xrange(k):
             # write detail line for this expert
-            expert_key = reduction[validation_month].keys()[index]
+            try:
+                expert_key = reduction[validation_month].keys()[index]
+            except IndexError as e:
+                h.preformatted_line('IndexError: %s' % str(e))
+                h.preformatted_line('index: %d' % index)
+                h.preformatted_line('giving up on completing the chart')
+                return h, 1, 1
             expert_results_validation_month = reduction[validation_month][expert_key]
+            if expert_key not in reduction[query_month]:
+                h.preformatted_line('expert_key not in query month')
+                h.preformatted_line('expert key: %s' % str(expert_key))
+                h.preformatted_line('query_month: %s' % query_month)
+                h.preformatted_line('index: %d' % index)
+                h.preformatted_line('giving up on completing the chart')
+                return h, 1, 1
             expert_results_query_month = reduction[query_month][expert_key]
             h.detail_line(
                 description='expert ranked %d: %s' % (index + 1, short_model_description(expert_key)),
@@ -894,6 +919,9 @@ def make_chart_hi(reduction, actuals, median_prices, control):
                 )
             # computing running ensemble model prediction
             weight = math.exp(- eta * expert_results_validation_month.mae / weight_scale)
+            if weight < 1:
+                print weight, eta, expert_results_validation_month.mae, weight_scale
+                pdb.set_trace()
             assert weight < 1, (eta, expert_results_validation_month.mae, weight_scale)
             incremental_ensemble_predictions_query = weight * expert_results_query_month.predictions
             incremental_ensemble_predictions_validation = weight * expert_results_validation_month.predictions
@@ -926,6 +954,10 @@ def make_chart_hi(reduction, actuals, median_prices, control):
             )
         # write detail line for the oracle's model
         oracle_key = reduction[query_month].keys()[0]
+        if oracle_key not in reduction[validation_month]:
+            h.preformatted_line('validation month %s missing %s' % (validation_month, str(oracle_key)))
+            h.preformatted_line('skipping remainder of report')
+            return (h, 1.0, 1.0)
         oracle_results_validation_month = reduction[validation_month][oracle_key]
         oracle_results_query_month = reduction[query_month][oracle_key]
         h.detail_line(
@@ -941,6 +973,15 @@ def make_chart_hi(reduction, actuals, median_prices, control):
         mpquery = median_price(query_month)
         oracle_less_best_query_month = oracle_results_query_month.mae - best_results_query_month.mae
         oracle_less_ensemble_query_month = oracle_results_query_month.mae - ensemble_errors_query_mae
+
+        def iszero(name, value):
+            print name, type(value), value
+            if value == 0:
+                print 'zero divisor:', name, type(value), value
+                return True
+            else:
+                return False
+
         h.detail_line(
             description=' ',
             )
@@ -957,13 +998,22 @@ def make_chart_hi(reduction, actuals, median_prices, control):
         h.detail_line(
             description=' ',
             )
-        h.detail_line(
-            description='100*(oracle - expert ranked 1)/oracle',
-            mae_query=100 * (oracle_less_best_query_month / oracle_results_query_month.mae),
+        if oracle_results_query_month.mae == 0.0:
+            h.detail_line(description='relative regrets are infinite because oracle MAE is 0')
+            h.detail_line(
+                description='100*(oracle - expert ranked 1)/oracle',
             )
-        h.detail_line(
-            description='100*(oracle - ensemble model)/oracle',
-            mae_query=100 * (oracle_less_ensemble_query_month / oracle_results_query_month.mae),
+            h.detail_line(
+                description='100*(oracle - ensemble model)/oracle',
+            )
+        else:
+            h.detail_line(
+                description='100*(oracle - expert ranked 1)/oracle',
+                mae_query=100 * (oracle_less_best_query_month / oracle_results_query_month.mae),
+            )
+            h.detail_line(
+                description='100*(oracle - ensemble model)/oracle',
+                mae_query=100 * (oracle_less_ensemble_query_month / oracle_results_query_month.mae),
             )
         # dispersion of errors relative to prices
         make_dispersion_lines(
@@ -1027,10 +1077,11 @@ def make_chart_hi(reduction, actuals, median_prices, control):
 
     control.timer.lap('start charts h and i')
     if control.arg.locality == 'global':
-        hs, i = make_hi(reduction, median_prices)
+        hs, i = make_hi(reduction, median_prices, actuals)
         # write the reports (the order of writing does not matter)
         for key, report in hs.iteritems():
             k, validation_month = key
+            
             report.write(control.path_out_h_template % (k, validation_month))
         i.write(control.path_out_i_template)
         return
@@ -1039,8 +1090,12 @@ def make_chart_hi(reduction, actuals, median_prices, control):
             city_reduction = reduction[city]
             city_median_prices = median_prices[city]
             city_actuals = actuals[city]
+            print 'city:', city
             hs, i = make_hi(city_reduction, city_median_prices, city_actuals)
             # write the reports (the order of writing does not matter)
+            if hs is None:
+                print 'no h report for city', city
+                continue
             for key, report in hs.iteritems():
                 k, validation_month = key
                 report.write(control.path_out_h_template % (city, k, validation_month))
@@ -1616,7 +1671,6 @@ def make_subset(reduction, fraction, locality, interesting_cities):
 
 def make_norwalk(reduction):
     'return dict of type(reduction) with with just the norwalk data items'
-    pdb.set_trace()
     city = 'NORWALK'
     result = {city: reduction[city]}
     return result
@@ -1681,7 +1735,6 @@ def main(argv):
         ReportReduction(counters).write(control.path_out_data_report)
         subset = make_subset(reduction, control.sampling_rate, control.arg.locality, control.path_in_interesting_cities)
         lap('make_subset')
-        pdb.set_trace()
         norwalk = make_norwalk(reduction) if control.arg.locality == 'city' else None
         # check key order
 

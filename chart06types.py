@@ -22,8 +22,8 @@ class ColumnDefinitions(object):
     def __init__(self):
         self._defs = {
             'alpha': [5, '%5.2f', (' ', 'alpha'), 'constant multiplying penalty term for elastic net'],
-            'description': [40, '%40s', ('model', 'description'),
-                            'for exerts, model_name(n_month_back, n_estimators, max_depth)'],
+            'description': [50, '%50s', ('model', 'description'),
+                            'for experts, model_name(n_month_back, n_estimators, max_depth[, learning_rate])'],
             'fraction_median_price_next_month_best': [
                 6, '%6.3f', ('best', 'relerr'),
                 'best model MAE as a fraction of the median price in the next month'],
