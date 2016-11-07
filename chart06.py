@@ -2,7 +2,7 @@
 INVOCATION
   python chart06.py FEATURESGROUP-HPS-LOCALITY --data
   python chart06.py FEATURESGROUP-HPS-global [--test] [--subset] [--norwalk] [--all]
-  python chart06.py FEATURESGROUP-HPS-city [--test] [--subset] [--norwalk] [--all]
+  python chart06.py FEATURESGROUP-HPS-city [--test] [--subset] [--norwalk] [--all]  [--trace]
 where
   FEAUTURES is one of {s, sw, swp, swpn}
   HPS is one of {all, best1}
@@ -12,6 +12,7 @@ where
   --subset means to process 0data-subset, not 0data, the full reduction
   --norwalk means to process 0data-norwalk, not 0data, the full reduction
   --all means to process all the cities, not just selected cities
+  --trace start with pdb.set_trace() call, so that we run under the debugger
 INPUT FILES
  WORKING/chart01/data.pickle
  WORKING/valavm/FHL/YYYYMM.pickle
@@ -54,12 +55,12 @@ import sys
 import arg_type
 from AVM import AVM
 from Bunch import Bunch
-from chart06types import ModelDescription, ModelResults, ColumnDefinitions
 from chart06_make_chart_a import make_chart_a
 from chart06_make_chart_b import make_chart_b
 from chart06_make_chart_cd import make_chart_cd
 from chart06_make_chart_efgh import make_chart_efgh
 from chart06_make_chart_hi import make_chart_hi
+from chart06_types import ModelDescription, ModelResults, ColumnDefinitions
 from columns_contain import columns_contain
 import dirutility
 import errors
@@ -82,6 +83,7 @@ def make_control(argv):
     parser.add_argument('--subset', action='store_true')
     parser.add_argument('--norwalk', action='store_true')
     parser.add_argument('-all', action='store_true')
+    parser.add_argument('--trace', action='store_true')
     arg = parser.parse_args(argv[1:])  # arg.__dict__ contains the bindings
     arg.base_name = 'chart06'
 
@@ -92,6 +94,8 @@ def make_control(argv):
     assert arg.locality == 'global' or arg.locality == 'city', arg.fhl
     if arg.norwalk:
         assert arg.locality == 'city', argv
+    if arg.trace:
+        pdb.set_trace()
 
     random_seed = 123
     random.seed(random_seed)
@@ -160,6 +164,11 @@ def make_control(argv):
         path_out_log=dir_out + '0log' + ('-data' if arg.data else '') + '.txt',
         random_seed=random_seed,
         sampling_rate=0.02,
+        selected_cities=(
+            'BEVERLY HILLS', 'CANYON COUNTRY',   # low number of transactions; high/low price
+            'SHERMAN OAKS', 'POMONA',            # high number of transactions; high/low price
+            'LOS ANGELES',
+            ),
         test=arg.test,
         timer=Timer(),
         validation_months=validation_months,
