@@ -2,7 +2,9 @@ from __future__ import division
 
 import collections
 import math
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import pdb
 
 from ColumnsTable import ColumnsTable
@@ -10,7 +12,6 @@ from columns_contain import columns_contain
 import errors
 from Month import Month
 from Report import Report
-from trace_unless import trace_unless
 cc = columns_contain
 
 
@@ -96,42 +97,6 @@ class ChartIReport(object):
         self._report.append(' ')
 
 
-def check_actuals(actuals):
-    'each should be the same'
-    k = len(actuals)
-    assert k > 0, k
-    first = actuals[0]
-    for other in actuals:
-        if collections.Counter(first) != collections.Counter(other):
-            print collections.Counter(first), collections.Counter(other)
-            pdb.set_trace()
-
-
-def make_ensemble_predictions(predictions, weights):
-    'return vector of predictions: sum w_i pred_i / sum w_i'
-    sum_weighted_predictions = np.array(predictions[0])
-    sum_weighted_predictions.fill(0.0)
-    for index in xrange(len(weights)):
-        sum_weighted_predictions = np.add(
-            sum_weighted_predictions,
-            np.dot(predictions[index], weights[index]))
-    sum_weights = np.sum(np.array(weights))
-    result = sum_weighted_predictions / sum_weights
-    return result
-
-
-def check_key_order(d):
-    keys = d.keys()
-    for index, key1_key2 in enumerate(zip(keys, keys[1:])):
-        key1, key2 = key1_key2
-        # print index, key1, key2
-        mae1 = d[key1].mae
-        mae2 = d[key2].mae
-        trace_unless(mae1 <= mae2, 'should be non increasing',
-                     index=index, mae1=mae1, mae2=mae2,
-                     )
-
-
 # return string describing key features of the model
 def short_model_description(model_description):
     # build model decsription
@@ -161,6 +126,211 @@ def short_model_description(model_description):
             model_description.l1_ratio,
         )
     return description
+
+
+def make_confidence_intervals(df, regret_column_name):
+    'return ndarrays (lower, upper) of 90% confidence intervals for each value of df.k'
+    trace = True
+    if trace:
+        pdb.set_trace()
+    n_resamples = 100  # TODO: adjust to 10,000
+    lower_percentile = 10
+    upper_percentile = 90
+    ks = sorted(set(df.k))
+    lower = np.zeros((len(ks),))
+    upper = np.zeros((len(ks),))
+    for i, k in enumerate(ks):
+        for_k = df[df.k == k]
+        values = for_k[regret_column_name]
+        sample = np.random.choice(
+            np.abs(values),
+            size=n_resamples,
+            replace=True,
+            )
+        lower[i] = np.percentile(sample, lower_percentile)
+        upper[i] = np.percentile(sample, upper_percentile)
+    if trace:
+        print 'lower', lower
+        print 'upper', upper
+        pdb.set_trace()
+    return (lower, upper)
+
+
+def add_regret(df, show_confidence_interval=True):
+    'mutate plt object by adding 2 regret lines'
+    # TODO: remove abs
+    def maybe_adjust_y_value(series):
+        if sum(series == 0.0) == len(series):
+            # all the values are zero and hence will plot on top of the x axis and will be invisible
+            # subsitute small positive value
+            max_y = np.max(np.abs(df.oracle_less_ensemble))
+            fraction = (  # put the line just above the x axis
+                .02 if max_y < 3000 else
+                .01 if max_y < 6000 else
+                .01
+            )
+            substitute_value = fraction * max_y
+            return pd.Series([substitute_value] * len(series))
+        else:
+            return series
+
+    plt.autoscale(
+        enable=True,
+        axis='both',
+        tight=False,  # let locator and margins expand the view limits
+        )
+    plt.plot(
+        df.k,
+        np.abs(df.oracle_less_ensemble),
+        'b.',  # blue point markers
+        label='abs(oracle_less_ensemble)',
+        )
+    mean_value = np.mean(np.abs(df.oracle_less_ensemble))
+    plt.plot(
+        df.k,
+        pd.Series([mean_value] * len(df)),
+        'b-',  # blue line marker
+        label='mean(abs(oracle_less_ensemble))',
+    )
+    if show_confidence_interval:
+        # confidence interval for the blue dots (oracle_less_ensemble)
+        lower, upper = make_confidence_intervals(df, 'oracle_less_ensemble')
+        print 'lower', lower
+        print 'upper', upper
+        pdb.set_trace()
+        plt.plot(
+            df.k,
+            lower,
+            'mv',  # magenta triangle-down marker
+            label='90% ci lower bound',
+            )
+        plt.plot(
+            df.k,
+            upper,
+            'm^',  # magenta triangle-up market
+            label='90% ci upper bound',
+            )
+
+    plt.plot(
+        df.k,
+        np.abs(maybe_adjust_y_value(df.oracle_less_best)),
+        'r-',  # red line marker
+        label='mean(abs(oracle_less_best))',
+        )
+
+
+def add_title(s):
+    'mutate plt'
+    plt.title(
+        s,
+        loc='right',
+        fontdict={
+            'fontsize': 'xx-small',
+            'style': 'italic',
+            },
+        )
+
+
+def add_labels():
+    'mutate plt'
+    plt.xlabel('K')
+    plt.ylabel('abs(reget)')
+
+
+def add_legend():
+    'mutate plt'
+    plt.legend(
+        loc='best',
+        fontsize=5,
+        )
+
+
+def set_layout():
+    'mutate plt'
+    plt.tight_layout(
+        pad=0.4,
+        w_pad=0.5,
+        h_pad=1.0,
+        )
+
+
+def make_i_plt_1(df):
+    'return plt, a 1-up figure with one subplot for all the validation months'
+    plt.subplot(1, 1, 1)  # 1 x 1 grid, draw first subplot
+    first_month = '200612'
+    last_month = '200711'
+    add_regret(
+        df[np.logical_and(
+            df.validation_month >= first_month,
+            df.validation_month <= last_month)])
+    add_title('yr mnth %s through yr mnth %s' % (first_month, last_month))
+    add_labels()
+    add_legend()
+    set_layout()
+    return plt
+
+
+def make_i_plt_12(i_df):
+    'return plt, a 12-up figure with one subplot for each validation month'
+    # make the figure; imitate make_chart_a
+    def make_subplot(validation_month):  # TODO: remove this dead code
+        'mutate plt by adding an axes with the two regret lines for the validation_month'
+        in_month = i_df[i_df.validation_month == validation_month]
+        oracle_less_ensemble_x = in_month.k
+        oracle_less_ensemble_y = np.abs(in_month.oracle_less_ensemble)
+        plt.autoscale(enable=True, axis='both', tight=True)
+        plt.plot(
+            oracle_less_ensemble_x,
+            oracle_less_ensemble_y,
+            'b.',  # blue point markers
+            label='oracle less ensemble',
+        )
+
+        oracle_less_best_x = in_month.k
+        oracle_less_best_y = np.abs(in_month.oracle_less_best)  # always the same value
+        if sum(oracle_less_best_y == 0.0) == len(oracle_less_best_y):
+            # all the values are zero
+            reset_value = 10.0  # replace 0 values with this value, so that the y value is not plotted on the x axis
+            xx = pd.Series([reset_value] * len(oracle_less_best_y))
+            oracle_less_best_y = xx
+        plt.plot(
+            oracle_less_best_x,
+            oracle_less_best_y,
+            'r-',  # red with solid line
+            label='oracle less best',
+        )
+        plt.title(
+            'yr mnth %s' % validation_month,
+            loc='right',
+            fontdict={
+                'fontsize': 'xx-small',
+                'style': 'italic',
+                },
+            )
+
+    axes_number = 0
+    validation_months = (
+        '200612', '200701', '200702', '200703', '200704', '200705',
+        '200706', '200707', '200708', '200709', '200710', '200711',
+    )
+    row_seq = (1, 2, 3, 4)
+    col_seq = (1, 2, 3)
+    for row in row_seq:
+        for col in col_seq:
+            validation_month = validation_months[axes_number]
+            axes_number += 1  # count across rows
+            plt.subplot(len(row_seq), len(col_seq), axes_number)
+            add_regret(i_df[i_df.validation_month == validation_month])
+            add_title('yr mnth %s' % validation_month)
+            # make_subplot(validation_month)
+        # annotate the bottom row only
+        if row == 4 and col == 1:
+            add_labels()
+        if row == 4 and col == 3:
+            add_legend()
+
+    set_layout()
+    return plt
 
 
 # write report files for all K values and validation months for the year 2007
@@ -258,7 +428,7 @@ def make_chart_hi(reduction, actuals, median_prices, control):
                 )
             # computing running ensemble model prediction
             weight = math.exp(- eta * expert_results_validation_month.mae / weight_scale)
-            if weight < 1:
+            if not (weight < 1):
                 print weight, eta, expert_results_validation_month.mae, weight_scale
                 pdb.set_trace()
             assert weight < 1, (eta, expert_results_validation_month.mae, weight_scale)
@@ -374,13 +544,44 @@ def make_chart_hi(reduction, actuals, median_prices, control):
         # make chart h
         hs = {}
         comparison = {}
+        i_df = None
         for k in control.all_k_values:
             for validation_month in control.validation_months:
                 h, oracle_less_best, oracle_less_ensemble = chart_h(reduction, median_prices, actuals, k, validation_month)
                 hs[(k, validation_month)] = h
                 comparison[(k, validation_month)] = (oracle_less_best, oracle_less_ensemble)
+                new_i_df = pd.DataFrame(
+                    data={
+                        'k': k,
+                        'validation_month': validation_month,
+                        'oracle_less_best': oracle_less_best,
+                        'oracle_less_ensemble': oracle_less_ensemble,
+                    },
+                    index=['%03d-%s' % (k, validation_month)],
+                )
+                i_df = new_i_df if i_df is None else i_df.append(new_i_df, verify_integrity=True)
         # report I is in inverted order relative to chart h grouped_by
-        # make chart i part 1
+        # make graphical report to help select the best value of k
+        if control.arg.locality == 'global':
+            def write_i_plot_12(df, path):
+                i_plt = make_i_plt_12(df)
+                i_plt.savefig(path)
+                i_plt.close()
+
+            def write_i_plot_1(df, path):
+                # replace df.oralce_less_best with it's mean value
+                copied = df.copy()
+                new_value = np.mean(df.oracle_less_best)
+                copied.oracle_less_best = pd.Series([new_value] * len(df), index=df.index)
+                i_plt = make_i_plt_1(copied)
+                i_plt.savefig(path)
+                i_plt.close()
+
+            write_i_plot_1(i_df, control.path_out_i_all_1_pdf)
+            write_i_plot_12(i_df, control.path_out_i_all_12_pdf)
+            write_i_plot_12(i_df[i_df.k <= 50], control.path_out_i_le_50_12_pdf)
+
+        # create text report (this can be deleted later)
         i = ChartIReport(control.column_definitions, control.test)
         count = 0
         sum_abs_oracle_less_best = 0
@@ -420,15 +621,16 @@ def make_chart_hi(reduction, actuals, median_prices, control):
         # write the reports (the order of writing does not matter)
         for key, report in hs.iteritems():
             k, validation_month = key
-
             report.write(control.path_out_h_template % (k, validation_month))
         i.write(control.path_out_i_template)
         return
     elif control.arg.locality == 'city':
-        for city in reduction.keys():
+        cities = reduction.keys() if control.arg.all else control.selected_cities
+        for city in cities:
             city_reduction = reduction[city]
             city_median_prices = median_prices[city]
             city_actuals = actuals[city]
+            print city, len(city_reduction), city_median_prices
             print 'city:', city
             hs, i = make_hi(city_reduction, city_median_prices, city_actuals)
             # write the reports (the order of writing does not matter)
