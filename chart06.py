@@ -29,6 +29,9 @@ OUTPUT FILES
  WORKING/chart06/FHL/d.pdf           | best & 50th best each month
  WORKING/chart06/FHL/e.pdf           | best 50 models each month (was chart07)
  WORKING/chart06/FHL/best.pickle     | dataframe with best choices each month # CHECK
+ WORKING/chart06/FHL/h.txt
+ WORKING chart06/FHL/i.txt
+ WORKING chart06/FHL/i.pdf           | best value for k when L is global
 
 The reduction is a dictionary.
 - if LOCALITY is 'global', the type of the reduction is
@@ -157,6 +160,9 @@ def make_control(argv):
         path_out_g=dir_out + 'g.txt',
         path_out_h_template=dir_out + ('h-%03d-%6s' if arg.locality == 'global' else 'h-%s-%03d-%6s') + '.txt',
         path_out_i_template=dir_out + ('i' if arg.locality == 'global' else 'i-%s') + '.txt',
+        path_out_i_all_1_pdf=dir_out + 'i1.pdf',
+        path_out_i_all_12_pdf=dir_out + 'i12-all.pdf',
+        path_out_i_le_50_12_pdf=dir_out + 'i12-le50.pdf',
         path_out_data=dir_out + '0data.pickle',
         path_out_data_report=dir_out + '0data-report.txt',
         path_out_data_subset=dir_out + '0data-subset.pickle',
