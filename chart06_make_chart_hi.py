@@ -128,42 +128,52 @@ def short_model_description(model_description):
     return description
 
 
-def make_confidence_intervals(df, regret_column_name):
-    'return ndarrays (lower, upper) of 90% confidence intervals for each value of df.k'
-    trace = True
+def make_confidence_intervals(df, regret_column_name, ci):
+    'return ndarrays (ks, lower, upper) of confidence intervals for each value of df.k'
+    trace = False
     if trace:
         pdb.set_trace()
-    n_resamples = 100  # TODO: adjust to 10,000
-    lower_percentile = 10
-    upper_percentile = 90
-    ks = sorted(set(df.k))
-    lower = np.zeros((len(ks),))
-    upper = np.zeros((len(ks),))
-    for i, k in enumerate(ks):
+    n_resamples = 10000
+    lower_percentile = 100 - ci
+    upper_percentile = ci
+    k_uniques = sorted(set(df.k))
+    ks = np.zeros((len(k_uniques),))
+    lower = np.zeros((len(k_uniques),))
+    upper = np.zeros((len(k_uniques),))
+    for i, k in enumerate(k_uniques):
         for_k = df[df.k == k]
-        values = for_k[regret_column_name]
+        values = np.abs(for_k[regret_column_name])
         sample = np.random.choice(
-            np.abs(values),
+            values,
             size=n_resamples,
             replace=True,
             )
+        ks[i] = k
         lower[i] = np.percentile(sample, lower_percentile)
         upper[i] = np.percentile(sample, upper_percentile)
     if trace:
         print 'lower', lower
         print 'upper', upper
         pdb.set_trace()
-    return (lower, upper)
+    return (ks, lower, upper)
 
 
-def add_regret(df, show_confidence_interval=True):
+def add_regret(df_caller, confidence_interval=None):
     'mutate plt object by adding 2 regret lines'
-    # TODO: remove abs
-    def maybe_adjust_y_value(series):
+    # confindence_interval in {'only', 'add', 'skip'}
+
+    # we are not interested in the direction of the regret, just its magnitude
+    df = df_caller.assign(  # create new data frame
+        abs_oracle_less_best=np.abs(df_caller.oracle_less_best),
+        abs_oracle_less_ensemble=np.abs(df_caller.oracle_less_ensemble),
+        index=df_caller.index,
+    )
+
+    def maybe_adjust_y_value(series, max_y):
+        'replace an all-zeroes value with one that plots just above the x axis'
         if sum(series == 0.0) == len(series):
             # all the values are zero and hence will plot on top of the x axis and will be invisible
             # subsitute small positive value
-            max_y = np.max(np.abs(df.oracle_less_ensemble))
             fraction = (  # put the line just above the x axis
                 .02 if max_y < 3000 else
                 .01 if max_y < 6000 else
@@ -174,49 +184,72 @@ def add_regret(df, show_confidence_interval=True):
         else:
             return series
 
+    def plot_regrets(markers=True, lines=True):
+        'mutate plt by adding 2 regret lines and one scatter plot'
+        if markers:
+            plt.plot(
+                df.k,
+                df.abs_oracle_less_ensemble,
+                'b.',  # blue point markers
+                label='abs(oracle_less_ensemble)',
+            )
+        if lines:
+            plt.plot(
+                df.k,
+                pd.Series([np.mean(df.abs_oracle_less_ensemble)] * len(df)),
+                'b-',  # blue line marker
+                label='mean(abs(oracle_less_ensemble))',
+            )
+            plt.plot(
+                df.k,
+                maybe_adjust_y_value(df.abs_oracle_less_best, max(np.max(df.abs_oracle_less_best), np.max(df.abs_oracle_less_ensemble))),
+                'r-',  # red line marker
+                label='abs(mean(oracle_less_best))',
+            )
+
+    def plot_confidence_intervals():
+        'mutate plt by adding confidence intervals for all K values for oracle_less_ensemble'
+        trace = False
+        ci = 90
+        ks, lower, upper = make_confidence_intervals(df, 'abs_oracle_less_ensemble', ci)
+        if trace:
+            print 'lower', lower
+            print 'upper', upper
+            print 'ks', ks
+            print len(ks), len(lower), len(ks)
+            assert len(ks) == len(lower) == len(lower)
+            pdb.set_trace()
+        plt.plot(
+            ks,
+            lower,
+            'bv',  # blue triangle-down marker
+            label='%d%% ci lower bound' % ci,
+            )
+        plt.plot(
+            ks,
+            upper,
+            'b^',  # blue triangle-up market
+            label='%d%% ci upper bound' % ci,
+            )
+
+    # main code starts here
     plt.autoscale(
         enable=True,
         axis='both',
         tight=False,  # let locator and margins expand the view limits
         )
-    plt.plot(
-        df.k,
-        np.abs(df.oracle_less_ensemble),
-        'b.',  # blue point markers
-        label='abs(oracle_less_ensemble)',
-        )
-    mean_value = np.mean(np.abs(df.oracle_less_ensemble))
-    plt.plot(
-        df.k,
-        pd.Series([mean_value] * len(df)),
-        'b-',  # blue line marker
-        label='mean(abs(oracle_less_ensemble))',
-    )
-    if show_confidence_interval:
-        # confidence interval for the blue dots (oracle_less_ensemble)
-        lower, upper = make_confidence_intervals(df, 'oracle_less_ensemble')
-        print 'lower', lower
-        print 'upper', upper
-        pdb.set_trace()
-        plt.plot(
-            df.k,
-            lower,
-            'mv',  # magenta triangle-down marker
-            label='90% ci lower bound',
-            )
-        plt.plot(
-            df.k,
-            upper,
-            'm^',  # magenta triangle-up market
-            label='90% ci upper bound',
-            )
 
-    plt.plot(
-        df.k,
-        np.abs(maybe_adjust_y_value(df.oracle_less_best)),
-        'r-',  # red line marker
-        label='mean(abs(oracle_less_best))',
-        )
+    if confidence_interval == 'add':
+        plot_regrets(markers=True, lines=True)
+        plot_confidence_intervals()
+    elif confidence_interval == 'only':
+        plot_regrets(markers=False, lines=True)
+        plot_confidence_intervals()
+    elif confidence_interval == 'skip':
+        plot_regrets(markers=True, lines=True)
+    else:
+        print 'bad confidence_interval', confidence_interval
+        pdb.set_trace()
 
 
 def add_title(s):
@@ -254,7 +287,7 @@ def set_layout():
         )
 
 
-def make_i_plt_1(df):
+def make_i_plt_1(df, confidence_interval=None):
     'return plt, a 1-up figure with one subplot for all the validation months'
     plt.subplot(1, 1, 1)  # 1 x 1 grid, draw first subplot
     first_month = '200612'
@@ -262,7 +295,9 @@ def make_i_plt_1(df):
     add_regret(
         df[np.logical_and(
             df.validation_month >= first_month,
-            df.validation_month <= last_month)])
+            df.validation_month <= last_month)],
+        confidence_interval=confidence_interval,
+    )
     add_title('yr mnth %s through yr mnth %s' % (first_month, last_month))
     add_labels()
     add_legend()
@@ -270,14 +305,14 @@ def make_i_plt_1(df):
     return plt
 
 
-def make_i_plt_12(i_df):
+def make_i_plt_12(i_df, confidence_interval=None):
     'return plt, a 12-up figure with one subplot for each validation month'
     # make the figure; imitate make_chart_a
     def make_subplot(validation_month):  # TODO: remove this dead code
         'mutate plt by adding an axes with the two regret lines for the validation_month'
         in_month = i_df[i_df.validation_month == validation_month]
         oracle_less_ensemble_x = in_month.k
-        oracle_less_ensemble_y = np.abs(in_month.oracle_less_ensemble)
+        oracle_less_ensemble_y = in_month.oracle_less_ensemble
         plt.autoscale(enable=True, axis='both', tight=True)
         plt.plot(
             oracle_less_ensemble_x,
@@ -288,7 +323,7 @@ def make_i_plt_12(i_df):
 
         oracle_less_best_x = in_month.k
         oracle_less_best_y = np.abs(in_month.oracle_less_best)  # always the same value
-        if sum(oracle_less_best_y == 0.0) == len(oracle_less_best_y):
+        if False and sum(oracle_less_best_y == 0.0) == len(oracle_less_best_y):
             # all the values are zero
             reset_value = 10.0  # replace 0 values with this value, so that the y value is not plotted on the x axis
             xx = pd.Series([reset_value] * len(oracle_less_best_y))
@@ -320,7 +355,10 @@ def make_i_plt_12(i_df):
             validation_month = validation_months[axes_number]
             axes_number += 1  # count across rows
             plt.subplot(len(row_seq), len(col_seq), axes_number)
-            add_regret(i_df[i_df.validation_month == validation_month])
+            add_regret(
+                i_df[i_df.validation_month == validation_month],
+                confidence_interval=confidence_interval,
+            )
             add_title('yr mnth %s' % validation_month)
             # make_subplot(validation_month)
         # annotate the bottom row only
@@ -564,20 +602,21 @@ def make_chart_hi(reduction, actuals, median_prices, control):
         # make graphical report to help select the best value of k
         if control.arg.locality == 'global':
             def write_i_plot_12(df, path):
-                i_plt = make_i_plt_12(df)
+                i_plt = make_i_plt_12(df, confidence_interval='skip')
                 i_plt.savefig(path)
                 i_plt.close()
 
-            def write_i_plot_1(df, path):
+            def write_i_plot_1(df, path, confidence_interval=None):
                 # replace df.oralce_less_best with it's mean value
                 copied = df.copy()
                 new_value = np.mean(df.oracle_less_best)
                 copied.oracle_less_best = pd.Series([new_value] * len(df), index=df.index)
-                i_plt = make_i_plt_1(copied)
+                i_plt = make_i_plt_1(copied, confidence_interval=confidence_interval)
                 i_plt.savefig(path)
                 i_plt.close()
 
-            write_i_plot_1(i_df, control.path_out_i_all_1_pdf)
+            write_i_plot_1(i_df, control.path_out_i_all_1_skip_pdf, confidence_interval='skip')
+            write_i_plot_1(i_df, control.path_out_i_all_1_only_pdf, confidence_interval='only')
             write_i_plot_12(i_df, control.path_out_i_all_12_pdf)
             write_i_plot_12(i_df[i_df.k <= 50], control.path_out_i_le_50_12_pdf)
 
