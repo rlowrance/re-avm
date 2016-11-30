@@ -83,8 +83,8 @@ def do_work(control):
                     n_duplicates += 1
                 new_df = pd.DataFrame(
                     data={
-                        'apn': apn,
-                        'date': date,
+                        'apn': int(apn),
+                        'date': int(date),
                         'sequence_number': sequence_number,
                         'actual_price': row[column_actual_price],
                         },
