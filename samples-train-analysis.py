@@ -48,7 +48,6 @@ def make_control(argv):
         path_out_log=path_out_dir + '0log.txt',
         path_out_csv=path_out_dir + 'transactions.csv',
         random_seed=random_seed,
-        validation_month=Month.Month(2005, 12),
         test=arg.test,
         timer=Timer.Timer(),
         )
@@ -81,10 +80,18 @@ def do_work(control):
                 if sequence_number > 0:
                     print 'duplicate apn|date', apn, date
                     n_duplicates += 1
+                date = int(date)
+                date_year = int(date / 10000)
+                date_month = int((date - date_year * 10000) / 100)
+                date_day = int(date - date_year * 10000 - date_month * 100)
+                assert date == date_year * 10000 + date_month * 100 + date_day, date
                 new_df = pd.DataFrame(
                     data={
                         'apn': int(apn),
-                        'date': int(date),
+                        'date': date,
+                        'year': date_year,
+                        'month': date_month,
+                        'day': date_day,
                         'sequence_number': sequence_number,
                         'actual_price': row[column_actual_price],
                         },
