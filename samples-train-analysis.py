@@ -41,7 +41,7 @@ def make_control(argv):
     random.seed(random_seed)
 
     dir_working = Path.Path().dir_working()
-    path_out_dir = dirutility.assure_exists(dir_working + arg.me + '/')
+    path_out_dir = dirutility.assure_exists(dir_working + arg.me + ('-test/' if arg.test else '') + '/')
     return Bunch.Bunch(
         arg=arg,
         path_in_samples=dir_working + 'samples-train.csv',
@@ -95,7 +95,6 @@ def do_work(control):
     print 'number of duplicate apn|date values', n_duplicates
     print 'number of training samples', len(df)
     print 'number of unique apn-date-sequence_numbers', len(result)
-    pdb.set_trace()
     result.to_csv(control.path_out_csv)
 
 
