@@ -5,10 +5,18 @@
 
 PYTHON = ~/anaconda2/bin/python
 
-WORKING = ../data/working
+# input files are in shared data directory
+# working files are in project-specific directory (separate from source code)
+DATA = ~/Dropbox/data
+LOSANGELES = $(DATA)/real-estate-los-angeles
+PROJECT = $(DATA)/shasha/re-avm
+
+INPUT = $(LOSANGELES)/input
+WORKING = $(PROJECT)/working
 
 ALL += $(WORKING)/census-features-derived.csv
 ALL += $(WORKING)/interesting_cities.txt
+ALL += $(WORKING)/samples-train-analysis/transactions.csv
 
 #ALL += valavm.makefile
 
@@ -148,6 +156,10 @@ $(WORKING)/parcels-features-census_tract.csv: parcels-features.py layout_parcels
 
 $(WORKING)/parcels-features-zip5.csv: parcels-features.py layout_parcels.py
 	$(PYTHON) parcels-features.py --geo zip5
+
+# samples-train-analysis
+$(WORKING)/samples-train-analysis/transactions.csv: samples-train-analysis.py $(WORKING)/samples-train.csv
+	python samples-train-analysis.py
 
 # transactions-al-g-srf
 RLA = $(WORKING)/real-estate-log-angeles

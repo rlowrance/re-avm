@@ -1,10 +1,11 @@
 '''create derived features for the year 2000 census
 
 INPUT FILES
- INPUT/corelogic-deeds-*/CAC*.txt
+ INPUT/.../census.csv
 
 OUTPUT FILES
  WORKING/census-features-derived.csv
+ WORKING/census-features[-test]/0log.txt
 
 The fields in the output csv files are
  index: the code for either the census_tract (6 digits) or zip5 (5 digits)
@@ -16,6 +17,7 @@ The fields in the output csv files are
  has_school
 '''
 
+import argparse
 import collections
 import numpy as np
 import pandas as pd
@@ -25,10 +27,10 @@ import random
 import sys
 
 from Bunch import Bunch
+import dirutility
 import layout_census as census
 from Logger import Logger
 from Path import Path
-from ParseCommandLine import ParseCommandLine
 
 
 def usage(msg=None):
@@ -46,24 +48,29 @@ def make_control(argv):
     if len(argv) not in (1, 2):
         usage('invalid number of arguments')
 
-    pcl = ParseCommandLine(argv)
-    arg = Bunch(
-        base_name=argv[0].split('.')[0],
-        test=pcl.has_arg('--test'),
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument('invocation')
+    parser.add_argument('--test', action='store_true')
+    arg = parser.parse_args(argv)
+    arg.base_name = arg.invocation.split('.')[0]
+
+    path = Path()
+
+    dir_out = dirutility.assure_exists(path._dir_working + arg.base_name + ('-test' if arg.test else '')) + '/'
+    file_out = path._dir_working + arg.base_name + '-derived' + ('-test' if arg.test else '') + '.csv'
+    path_in = path._dir_input + 'neighborhood-data/census.csv'
 
     random_seed = 123456
     random.seed(random_seed)
-
-    path = Path()  # use the default dir_input
 
     debug = False
 
     return Bunch(
         arg=arg,
         debug=debug,
-        path=path,
-        path_out=path.dir_working() + arg.base_name + '-' + 'derived.csv',
+        path_in=path_in,
+        path_out=file_out,
+        path_out_log=dir_out + '0log.txt',
         random_seed=random_seed,
         test=arg.test,
     )
@@ -152,12 +159,13 @@ def make_census_reduced_df(d):
 
 def main(argv):
     control = make_control(argv)
-    sys.stdout = Logger(base_name=control.arg.base_name)
+    sys.stdout = Logger(logfile_path=control.path_out_log)
     print control
 
     # read the census
+    print 'reading input file', control.path_in
     census_df = pd.read_csv(
-        control.path.dir_input('census'),
+        control.path_in,
         sep='\t',
     )
 

@@ -5,10 +5,14 @@ import pdb
 
 
 class Path(object):
-    def __init__(self, dir_input='~/Dropbox/real-estate-los-angeles/'):
-        assert dir_input[-1] == '/', dir_input + ' does not end in /'
-        self._dir_input = os.path.expanduser(dir_input)
-        self._dir_working = '../data/working/'  # relative to src directory
+    def __init__(self, dir_input=None):
+        if dir_input is not None:
+            print 'check code as API changed'
+            print dir_input
+            pdb.set_trace()
+        self._dir_data = os.path.expanduser('~/Dropbox/data/')
+        self._dir_input = self._dir_data + 'real-estate-los-angeles/input/'
+        self._dir_working = self._dir_data + 'shasha/re-avm/working/'
         self._dir_src = '../src/'
 
     def dir_input(self, file_id=None):
@@ -47,14 +51,14 @@ class Path(object):
             print 'bad input file_id', file_id
             pdb.set_trace()
 
-    def dir_src(self, file_id=None):
+    def _dir_src(self, file_id=None):
         if file_id is None:
             return self._dir_src
         else:
             print 'bad file_id', file_id
             pdb.set_trace()
 
-    def dir_working(self, sub_dir_name=None):
+    def _dir_working(self, sub_dir_name=None):
         if sub_dir_name is None:
             return self._dir_working
         elif sub_dir_name == 'log':
