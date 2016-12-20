@@ -51,14 +51,14 @@ class Path(object):
             print 'bad input file_id', file_id
             pdb.set_trace()
 
-    def _dir_src(self, file_id=None):
+    def dir_src(self, file_id=None):
         if file_id is None:
             return self._dir_src
         else:
             print 'bad file_id', file_id
             pdb.set_trace()
 
-    def _dir_working(self, sub_dir_name=None):
+    def dir_working(self, sub_dir_name=None):
         if sub_dir_name is None:
             return self._dir_working
         elif sub_dir_name == 'log':
