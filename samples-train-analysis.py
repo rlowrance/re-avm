@@ -1,6 +1,6 @@
 '''analyze WORKING/samples-train.csv
 
-INVOCATION: python samles-train-analys.py ARGS
+INVOCATION: python samples-train-analysis.py ARGS
 
 INPUT FILES:
  WORKING/samples-train.csv
