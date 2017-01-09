@@ -11,7 +11,6 @@ class Path(object):
             print dir_input
             pdb.set_trace()
         if sys.platform == 'win32':
-            pdb.set_trace()
             self._dir_data = os.path.join('C:\\', 'Users', 'roylo', 'Dropbox', 'data', '')
             self._dir_input = os.path.join(self._dir_data, 'real-estate-los-angeles', 'input', '')
             self._dir_working = os.path.join(self._dir_data, 'shasha', 're-avm', 'working', '')
