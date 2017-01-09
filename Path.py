@@ -2,7 +2,7 @@
 
 import os
 import pdb
-
+import sys
 
 class Path(object):
     def __init__(self, dir_input=None):
@@ -10,10 +10,16 @@ class Path(object):
             print 'check code as API changed'
             print dir_input
             pdb.set_trace()
-        self._dir_data = os.path.expanduser('~/Dropbox/data/')
-        self._dir_input = self._dir_data + 'real-estate-los-angeles/input/'
-        self._dir_working = self._dir_data + 'shasha/re-avm/working/'
-        self._dir_src = '../src/'
+        if sys.platform == 'win32':
+            pdb.set_trace()
+            self._dir_data = os.path.join('C:\\', 'Users', 'roylo', 'Dropbox', 'data', '')
+            self._dir_input = os.path.join(self._dir_data, 'real-estate-los-angeles', 'input', '')
+            self._dir_working = os.path.join(self._dir_data, 'shasha', 're-avm', 'working', '')
+        else:  # assume that we are running on Unix or MacOS
+            self._dir_data = os.path.expanduser('~/Dropbox/data/')
+            self._dir_input = self._dir_data + 'real-estate-los-angeles/input/'
+            self._dir_working = self._dir_data + 'shasha/re-avm/working/'
+        self._dir_src = os.path.join('..', 'src', '')
 
     def dir_input(self, file_id=None):
         def file_name(file_id):
