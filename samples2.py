@@ -7,14 +7,17 @@ INPUT FILES:
  WORKING/samples-test.csv
 
 OUTPUT FILES:
- WORKING/Samples2/0log.txt         log file containing what is printed
- WORKING/Samples2/duplicates.csv   duplicate APN|date|price
- WORKING/Samples2/test.csv         transactions from samples-test.csv that are not duplicated
- WORKING/Samples2/train.csv        transactions from samples-train.csv that are not duplicated
+ WORKING/samples2/0log.txt           log file containing what is printed
+ WORKING/samples2/duplicates.pickle  duplicate TransactionId set
+ WORKING/samples/uniques.pickle      unique TransactionId set
+ WORKING/samples2/test.csv           enques transactions from samples-test.csv
+ WORKING/samples2/train.csv          uniques transactions from samples-train.csv
+ WORKING/samples22/all.csv           unique transactions from samples-test and sampes-train
 '''
 
 import argparse
 import collections
+import cPickle as pickle
 import math
 import multiprocessing
 import numpy as np
@@ -26,10 +29,11 @@ import sys
 
 import Bunch
 import dirutility
+import layout_transactions
 import Logger
-import Month
 import Path
 import Timer
+from TransactionId import TransactionId
 
 
 def make_control(argv):
@@ -49,303 +53,102 @@ def make_control(argv):
 
     dir_working = Path.Path().dir_working()
     path_out_dir = (
-        os.path.join(dir_working, arg.me, '-test', '') if arg.test else
+        os.path.join(dir_working, arg.me +'-test', '') if arg.test else
         os.path.join(dir_working, arg.me, '')
     )
     dirutility.assure_exists(path_out_dir)
     # path_out_dir = dirutility.assure_exists(dir_working + arg.me + ('-test' if arg.test else '') + '/')
     return Bunch.Bunch(
         arg=arg,
-        path_in_samples=dir_working + 'samples-train.csv',
-        path_out_log=path_out_dir + '0log.txt',
-        path_out_csv=path_out_dir + 'transactions.csv',
+        path_in_test=os.path.join(dir_working, 'samples-test.csv'),
+        path_in_train=os.path.join(dir_working, 'samples-train.csv'),
+        path_out_log=os.path.join(path_out_dir, '0log.txt'),
+        path_out_test=os.path.join(path_out_dir, 'test.csv'),
+        path_out_train=os.path.join(path_out_dir, 'train.csv'),
+        path_out_all=os.path.join(path_out_dir, 'all.csv'),
+        path_out_duplicates=os.path.join(path_out_dir, 'duplicates.pickle'),
+        path_out_uniques=os.path.join(path_out_dir, 'uniques.pickle'),
         random_seed=random_seed,
         test=arg.test,
         timer=Timer.Timer(),
         )
 
 
-def make_index(apn, date, sequence_number):
-    return '%d-%d-%d' % (apn, date, sequence_number)
+def make_transaction_id(row):
+    apn = row[layout_transactions.apn]
+    sale_date = row[layout_transactions.sale_date]
+    assert int(sale_date) == sale_date, sale_date
+    assert long(apn) == apn, APN_Date
+    return TransactionId(apn=int(apn), sale_date=long(sale_date))
 
 
-APN_Date = collections.namedtuple('APN_Date', 'apn date')
-ColumnName = collections.namedtuple('ColumnName', 'apn date actual_price')
+def read_extract_transform(path, nrows):
+    'return (DataFrame with transaction_id, collections.counter of Ids)'
+    df = pd.read_csv(path, low_memory=False, nrows=nrows)
+    id_count = collections.Counter()
+    transaction_ids = []
+    for index, row in df.iterrows():
+        transaction_id = make_transaction_id(row)
+        transaction_ids.append(transaction_id)
+        id_count[transaction_id] += 1
+    name = 'transaction_id'
+    assert name not in df
+    df[name] = transaction_ids
+    df.index = transaction_ids
+    return df, id_count
 
 
-def column_names():
-    'return names of columns in the input csv'
-    return ColumnName(
-        apn='APN UNFORMATTED_deed',
-        date='SALE DATE_deed',
-        actual_price='SALE AMOUNT_deed',
-        )
-
-
-def create_new_row(apn, date, sequence_number, row, column):
-    'return DataFrame with one row'
-    date = int(date)
-    date_year = int(date / 10000)
-    date_month = int((date - date_year * 10000) / 100)
-    date_day = int(date - date_year * 10000 - date_month * 100)
-    assert date == date_year * 10000 + date_month * 100 + date_day, date
-    new_df = pd.DataFrame(
-        data={
-            'apn': int(apn),
-            'date': date,
-            'year': date_year,
-            'month': date_month,
-            'day': date_day,
-            'sequence_number': sequence_number,
-            'actual_price': row[column.actual_price],
-        },
-        index=[make_index(apn, date, sequence_number)],
-    )
-    return new_df
-
-
-class DuplicateFinder(object):
-    def __init__(self, df, column):
-        self.df = df
-        self.column = column
-
-    def find_duplicates_method(self, apn_date):
-        mask_apn = self.df[self.column.apn] == apn_date.apn
-        mask_date = self.df[self.column.date] == apn_date.date
-        mask = mask_apn & mask_date
-        df_apn_date = self.df[mask]
-        sequence_number = 0
-        result_duplicates = set()
-        result_df = None
-        for i, row in df_apn_date.iterrows():
-            if sequence_number > 0:
-                result_duplicates.add(apn_date)
-            new_df = create_new_row(apn_date.apn, apn_date.date, sequence_number, row, self.column)
-            result_df = new_df if result_df is None else result_df.append(new_df, verify_integrity=True)
-            sequence_number += 1
-        return result_df, result_duplicates
-
-
-Info = collections.namedtuple('Info', 'apn_date, df, column')
-MappedItem = collections.namedtuple('MappedItem', 'transactions duplicates')
-
-
-def make_transactions_mapper(info):
-    'return (df of transactions, set of duplicates)'
-    verbose = False
-    if verbose:
-        print 'make_transactions_mapper begin', info.apn_date, 'pid', os.getpid()
-    apn_date, df, column = info.apn_date, info.df, info.column
-    mask_apn = df[column.apn] == apn_date.apn
-    mask_date = df[column.date] == apn_date.date
-    mask = mask_apn & mask_date
-    df_apn_date = df[mask]
-    sequence_number = 0
-    result_duplicates = set()
-    result_df = pd.DataFrame()
-    for label, row in df_apn_date.iterrows():
-        if verbose:
-            print 'make_transactions_mapper iter row label', info.apn_date, label
-        if sequence_number > 0:
-            result_duplicates.add(apn_date)
-        new_df = create_new_row(apn_date.apn, apn_date.date, sequence_number, row, column)
-        result_df = result_df.append(new_df, ignore_index=True, verify_integrity=True)
-        # result_df = new_df if result_df is None else result_df.append(new_df, verify_integrity=True)
-        sequence_number += 1
-    if verbose:
-        print 'make_transactions_mapper end', len(result_df), len(result_duplicates)
-    return MappedItem(
-        transactions=result_df,
-        duplicates=result_duplicates,
-        )
-
-
-def make_transactions_reducer(mapped_items, sofar_transactions=pd.DataFrame(), sofar_duplicates=set()):
-    'reduce list of results from mapper to final result'
-    for mapped_item in mapped_items:
-        transactions, duplicates = mapped_item.transactions, mapped_item.duplicates
-        sofar_transactions = sofar_transactions.append(transactions, verify_integrity=True, ignore_index=True)
-        if len(duplicates) > 0:
-            sofar_duplicates = sofar_duplicates.update(duplicates)
-            # otherwise set().update(set()) --> None (not set(), which would be reasonable)
-    return sofar_transactions, sofar_duplicates
-
-
-def make_transactions_parallel(df, test, in_parallel):
-    'return (df of transaction with unique APNs and IDs, set(APN_Date) of duplicates)'
-    # use 4 cores
-    def make_infos():
-        'return list of Info'
-        column = column_names()
-        result = []
-        for apn in set(df[column.apn]):
-            df_apn = df[df[column.apn] == apn]
-            for date in set(df_apn[column.date]):
-                result.append(Info(
-                    apn_date=(APN_Date(apn, date)),
-                    df=df,
-                    column=column,
-                ))
-        return result
-
-    all_infos = make_infos()
-    print 'len(all_infos)', len(all_infos)
-    infos = all_infos[:100] if test else all_infos
-    print 'len(infos)', len(infos)
-
-    if in_parallel:
-        n_processes = 1
-        print 'n_processes', n_processes
-        p = multiprocessing.Pool(n_processes)
-        mapped = p.map(make_transactions_mapper, infos)
-        all_transactions, all_duplicates = make_transactions_reducer(
-            mapped,
-            sofar_transactions=pd.DataFrame(),
-            sofar_duplicates=set(),
-            )
-    else:
-        # conserve memory by processing each info one by one
-        verbose = False
-        all_transactions = pd.DataFrame()
-        all_duplicates = set()
-        for info in infos:
-            if verbose:
-                print all_transactions
-                print all_duplicates
-            mapped_item = make_transactions_mapper(info)
-            if verbose:
-                print mapped_item.transactions
-                print mapped_item.duplicates
-                print len(mapped_item)
-            all_transactions, all_duplicates = make_transactions_reducer(
-                [mapped_item],
-                sofar_transactions=all_transactions,
-                sofar_duplicates=all_duplicates,
-                )
-            assert len(all_transactions) > 0
-            assert all_duplicates is not None
-    return all_transactions, all_duplicates
-
-
-def make_transactionsOLD(df, test):
-    'return (df of transaction IDs and prices, set(APN_Date) of duplicates)'
-    column = column_names()
-    result_df = None
-    result_set = set()
-    for apn in set(df[column.apn]):
-        if test and len(result_set) > 10:
-            break
-        df_apn = df[df[column.apn] == apn]
-        for date in set(df_apn[column.date]):
-            duplicates_df, duplicates_set = make_transactions_mapper(APN_Date(apn, date), df, column)
-            result_df = duplicates_df if result_df is None else result_df.append(duplicates_df, verify_integrity=True, ignore_index=True)
-            result_set.append(duplicates_set)
-    return result_df, result_set
-
-
-def make_how_different(df, duplicates):
-    'return tuple (dict[column] = set((value0, value1)), matched_counter) of mismatched fields'
-    def isnan(x):
-        if isinstance(x, float):
-            return math.isnan(x)
-        if isinstance(x, np.float64):
-            return np.isnan(x)
-        return False
-
-    def find_mismatched_values(ordered_columns, matched):
-        'return None or (column, value0, value1) of mistmatched fields in first 2 records'
-        # TODO: can compare all records until a mismatch is found
-        match0 = matches.iloc[0]
-        match1 = matches.iloc[1]
-        for column in ordered_columns:
-            value0 = match0[column]
-            value1 = match1[column]
-            # print value0, value1, type(value0), type(value1)
-            if isnan(value0) and isnan(value1):
-                # NaN stands for Missing in pandas.DataFrame
-                continue  # pretend that two NaN values are equal to each other
-            if value0 != value1:
-                print column, value0, value1
-                return column, value0, value1
-        return None  # should not happen
-
-    def make_ordered_columns(column, df):
-        'return list of column names to examine'
-        all_but_price = [
-            column_name
-            for column_name in df.columns
-            if column_name not in (
-                    column.actual_price,
-                    'Unnamed: 0',
-                    'Unnamed: 0.1',
-            )
-        ]
-        ordered_columns = [column.actual_price]
-        ordered_columns.extend(all_but_price)
-        return ordered_columns
-
-    column = column_names()
-    ordered_columns = make_ordered_columns(column, df)
-    result = collections.defaultdict(list)
-    matched_counter = collections.Counter()
-    for duplicate in duplicates:
-        mask_apn = df[column.apn] == duplicate.apn
-        mask_date = df[column.date] == duplicate.date
-        mask = mask_apn & mask_date
-        matches = df[mask]
-        matched_counter[len(matches)] += 1
-        if len(matches) > 1:
-            maybe_mismatched_values = find_mismatched_values(ordered_columns, matches)
-            if maybe_mismatched_values is None:
-                print ' all fields in first 2 records were equal'
-                pdb.set_trace()
-            else:
-                column_name, value0, value1 = maybe_mismatched_values
-                result[column_name].append((value0, value1))
+def make_uniques_dups(counts_a, counts_b):
+    all_counts = collections.Counter()
+    all_counts.update(counts_a)
+    all_counts.update(counts_b)
+    uniques = set()
+    dups = set()
+    for id in all_counts:
+        if all_counts[id] == 1:
+            assert id not in uniques
+            uniques.add(id)
         else:
-            print matches
-            print duplicate
-            print len(matches)
-            print 'no mismatched fields'
-            pdb.set_trace()
-    return result, matched_counter
+            assert id not in dups
+            dups.add(id)
+    return uniques, dups
+
+
+def select_uniques(df, uniques):
+    'return df containing only unique transactions; add transaction_id; set index to transaction_id'
+    has_unique_transaction_id = [
+        transaction_id in uniques
+        for transaction_id in df['transaction_id']
+        ]
+    result = df.loc[has_unique_transaction_id]
+    return result
 
 
 def do_work(control):
-    pdb.set_trace()
-    df = pd.read_csv(
-        control.path_in_samples,
-        low_memory=False,
-        nrows=1000 if control.test and False else None,
-        )
+    # read input files
+    nrows = 2000 if control.test else None  # 2000 will find duplicates, 1000 will not
+    in_test_df, in_test_counts = read_extract_transform(control.path_in_test, nrows)
+    in_train_df, in_train_counts = read_extract_transform(control.path_in_train, nrows)
+    in_all = in_train_df.append(in_test_df)
 
-    print 'column names in input file', control.path_in_samples
-    for i, column_name in enumerate(df.columns):
-        print i, column_name
+    # determine unique transaction ids
 
-    control.timer.lap('printed column names')
-    transactions_df2, duplicates2 = make_transactions_parallel(df, control.test, False)
-    print 'not parallel lens', len(transactions_df2), len(duplicates2)
-    control.timer.lap('make transactions without parallel')
-    transactions_df, duplicates = make_transactions_parallel(df, control.test, True)
-    print 'parallel lens', len(transactions_df), len(duplicates)
-    control.timer.lap('make  transactions in parallel')
-    print 'number of duplicate apn|date values', len(duplicates)
-    print 'number of training samples', len(df)
-    print 'number of unique apn-date-sequence_numbers', len(transactions_df)
-    transactions_df.to_csv(control.path_out_csv)
+    uniques, duplicates = make_uniques_dups(in_test_counts, in_train_counts)
 
-    how_different, matched_counter = make_how_different(df, duplicates)
-    print 'first field difference in first 2 records of duplicate apn|date transactions'
-    for column, values in how_different.iteritems():
-        print column
-        for value in values:
-            print ' ', value
-    print
-    print 'number of matches in duplicate records'
-    for num_matched, num_times in matched_counter.iteritems():
-        print '%d records had identical APN and sale dates %d times' % (num_matched, num_times)
-    return None
+    # write unique transactions
+    out_test_df = select_uniques(in_test_df, uniques)
+    out_train_df = select_uniques(in_train_df, uniques)
+    out_all_df = select_uniques(in_all, uniques)
+
+    out_test_df.to_csv(control.path_out_test)
+    out_train_df.to_csv(control.path_out_train)
+    out_all_df.to_csv(control.path_out_all)
+
+    # write unique and duplicate
+    with open(control.path_out_duplicates, 'w') as f:
+        pickle.dump(duplicates, f)
+    with open(control.path_out_uniques, 'w') as f:
+        pickle.dump(uniques, f)
 
 
 def main(argv):
