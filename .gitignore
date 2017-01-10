@@ -1,3 +1,7 @@
 *.pyc
 *.sh
 valavm.makefile
+\#*\#
+*~
+.ropeproject
+.vscode/.reporproject
