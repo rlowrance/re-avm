@@ -4,7 +4,7 @@ INVOCATION
   python chart06.py FEATURESGROUP-HPS-global [--test] [--subset] [--norwalk] [--all]
   python chart06.py FEATURESGROUP-HPS-city [--test] [--subset] [--norwalk] [--all]  [--trace]
 where
-  FEAUTURES is one of {s, sw, swp, swpn}
+  FEATURESGROUP is one of {s, sw, swp, swpn}
   HPS is one of {all, best1}
   LOCALILTY is one of {city, global}
   FHL is FEATURESGROUP-HPS-LOCALITY
@@ -16,10 +16,12 @@ where
 INPUT FILES
  WORKING/chart01/data.pickle
  WORKING/valavm/FHL/YYYYMM.pickle
+ WORKING/samples-train-analysis/transactions.csv  has transaction IDs
 INPUT AND OUTPUT FILES (build with --data)
  WORKING/chart06/FHL/0data.pickle         | reduction for everything
  WORKING/chart06/FHL/0data-norwalk.pickle | reduction for just Norwalk (for testing); only if locality == city
  WORKING/chart06/FHL/0data-subset.pickle | random subset of everything (for testing)
+ WORKING/chart06/FHL/0all-price-histories.pickle |  
 OUTPUT FILES
  WORKING/chart06/FHL/0data-report.txt | records retained TODO: Decide whether to keep
  WORKING/chart06/FHL/a.pdf           | range of losses by model (graph)
@@ -80,15 +82,18 @@ def make_control(argv):
     'return a Bunch'
     print argv
     parser = argparse.ArgumentParser()
+    parser.add_argument('invocation')
     parser.add_argument('fhl', type=arg_type.features_hps_locality)
     parser.add_argument('--data', action='store_true')
     parser.add_argument('--test', action='store_true')
+    parser.add_argument('--debug', action='store_true')
     parser.add_argument('--subset', action='store_true')
     parser.add_argument('--norwalk', action='store_true')
-    parser.add_argument('-all', action='store_true')
+    parser.add_argument('--all', action='store_true')
     parser.add_argument('--trace', action='store_true')
-    arg = parser.parse_args(argv[1:])  # arg.__dict__ contains the bindings
-    arg.base_name = 'chart06'
+    parser.add_argument('--use-samples-train-analysis-test', action='store_true')
+    arg = parser.parse_args(argv)  # arg.__dict__ contains the bindings
+    arg.base_name = arg.invocation.split('.')[0]
 
     # for now, we only know how to process global files
     # local files will probably have a different path in WORKING/valavm/
@@ -133,7 +138,7 @@ def make_control(argv):
         all_k_values=all_k_values(),
         arg=arg,
         column_definitions=ColumnDefinitions(),
-        debug=False,
+        debug=arg.debug,
         errors=[],
         exceptions=[],
         path_in_valavm='%svalavm/%s/*.pickle' % (
@@ -147,6 +152,11 @@ def make_control(argv):
             '0data.pickle'
         ),
         path_in_interesting_cities=dir_working + 'interesting_cities.txt',
+        path_in_transactions=(
+            dir_working +
+            'samples-train-analysis%s/transactions.csv' % ('-test' if arg.use_samples_train_analysis_test else '')
+            ),
+        path_all_price_histories=dir_out + '0all_price_histories.pickle',
         path_out_a=dir_out + 'a.pdf' if arg.locality == 'global' else dir_out + 'a-%s.pdf',
         path_out_b=dir_out + 'b-%d.txt',
         path_out_cd=dir_out + '%s.txt',
@@ -324,7 +334,7 @@ class ReductionValue(object):
         return pattern % (self.mae, self.model_results, self.feature_group)
 
 
-def make_data(control):
+def make_reduction(control):
     '''return the reduction dict'''
 
     def path_city(path):
@@ -333,7 +343,7 @@ def make_data(control):
         date, city = last.split('.')[0].split('-')
         return city
 
-    def process_records(path):
+    def process_path(path):
         ''' return (dict, actuals, counter) for the path where
         dict has type dict[ModelDescription] ModelResult
         '''
@@ -368,15 +378,138 @@ def make_data(control):
             )
             return result
 
+        def update_price_history(
+                price_history=None,
+                ids=None,
+                validation_year=None,
+                validation_month=None,
+                valavm_result_value=None,
+                valavm_key=None,
+        ):
+            'return (augmented price history, counter)'
+            def same_apn(df):
+                return (df.apn == df.iloc[0].apn).all()
+
+            def same_actual_price(df):
+                return (df.actual_price == df.iloc[0].actual_price).all()
+
+            def make_data_dict(key, matched):
+                'return dictionary with the columns with want in the price history'
+                # common columns
+                assert isinstance(key, (ResultKeyEn, ResultKeyGbr, ResultKeyRfr)), (key, type(key))
+                # common results (across all methods)
+                result = {
+                    'apn': matched.apn,
+                    'year': matched.year,
+                    'month': matched.month,
+                    'day': matched.day,
+                    'sequence_number': matched.sequence_number,
+                    'date': matched.date,
+                    'price_actual': price_actual,
+                    'price_estimated': price_estimated,
+                    'n_months_back': key.n_months_back,
+                    'method': (
+                        'rfr' if isinstance(key, ResultKeyRfr) else
+                        'gbr' if isinstance(key, ResultKeyGbr) else
+                        'en'
+                        ),
+                }
+
+                # add columns appropriate for the type of result
+                if isinstance(key, (ResultKeyRfr, ResultKeyGbr)):
+                    result.update({
+                        'n_esimators': key.n_estimators,
+                        'max_features': key.max_features,
+                        'max_depth': key.max_depth,
+                    })
+                if isinstance(key, ResultKeyGbr):
+                    result.update({
+                        'loss': key.loss,
+                        'learning_rate': key.learning_rate,
+                        })
+                if isinstance(key, ResultKeyEn):
+                    result.update({
+                        'units_X': key.units_X,
+                        'units_y': key.units_y,
+                        'alpha': key.alpha,
+                        'l1_ratio': key.l1_ratio,
+                        })
+                return result
+
+            debug = False
+            verbose = False
+            if debug:
+                print validation_year, validation_month,
+                print len(ids)
+                print ids[:5]
+                print key
+                print 'len(price_history)', 0 if price_history is None else len(price_history)
+            assert len(valavm_result_value.actuals) == len(valavm_result_value.predictions)
+            counter = collections.Counter()
+            counter_key = 'year, month, price matched %d times'
+            result_price_history = price_history
+            for price_actual, price_estimated in zip(valavm_result_value.actuals, valavm_result_value.predictions):
+                # print price_actual, price_estimated
+                mask1 = ids.year == validation_year
+                mask2 = ids.month == validation_month
+                mask3 = ids.actual_price == price_actual
+                mask = mask1 & mask2 & mask3
+                if debug:
+                    print 'transaction in validation year:     ', sum(mask1)
+                    print 'transactions in validation month:   ', sum(mask2)
+                    print 'transactions with same actual price;', sum(mask3)
+                    print 'transactions that match on all:     ', sum(mask)
+                    print type(key)
+                matched_df = ids[mask]
+                if len(matched_df) == 1:
+                    counter[counter_key % 1] += 1
+                    matched = matched_df.iloc[0]
+                    print 'single match', matched_df.index[0]
+                    data_dict = make_data_dict(key, matched)
+                    df_new = pd.DataFrame(
+                        data=data_dict,
+                        index=[0 if result_price_history is None else len(result_price_history)],
+                    )
+                    # pdb.set_trace()
+                    result_price_history = (
+                        df_new if result_price_history is None else
+                        result_price_history.append(df_new, verify_integrity=True)
+                        )
+                else:
+                    counter[counter_key % len(matched_df)] += 1
+                    if len(matched_df) > 0:
+                        if verbose:
+                            print 'valavm matched %d training transactions' % len(matched_df)
+                            print matched_df
+                    continue
+                if control.debug and len(result_price_history) > 2:
+                    print 'DEBUG: breaking out of update_price_history'
+                    break
+            print 'identified %d price histories' % len(result_price_history)
+            return result_price_history, counter
+
+        ids = pd.read_csv(
+            control.path_in_transactions,
+            index_col=0,
+            low_memory=False,
+            )
         print 'reducing', path
         model = {}
         counter = collections.Counter()
         input_record_number = 0
         actuals = None
+        updated_price_history = None  # mutated in the while True loop below
+        validation_year_month = int(path.split('/')[-1].split('.')[0])
+        validation_year = int(validation_year_month / 100)
+        validation_month = int(validation_year_month - validation_year * 100)
+        assert validation_year_month == validation_year * 100 + validation_month
         with open(path, 'rb') as f:
             while True:  # process each record in path
                 counter['attempted to read'] += 1
                 input_record_number += 1
+                if control.debug and input_record_number > 10:
+                    print 'DEBUG: breaking out of record read in path', path
+                    break
                 try:
                     # model[model_key] = error_analysis, for next model result
                     record = pickle.load(f)
@@ -387,12 +520,29 @@ def make_data(control):
                     assert len(value) == 2, len(value)
                     # NOTE: importances is not used
                     valavm_result_value, importances = value
+                    # type(valavm_result_value) == namedtuple with fields actuals, predictions
+                    # the fields are parallel, corresponding transaction to transaction
+                    if len(ids) < 100000:
+                        print 'WARNING: TRUNCATED IDS'
                     # verify that actuals is always the same
                     if actuals is not None:
                         assert np.array_equal(actuals, valavm_result_value.actuals)
                     actuals = valavm_result_value.actuals
                     # verify that each model_key occurs at most once in the validation month
                     model_key = make_model_description(key)
+                    updated_price_history, update_counter = update_price_history(
+                        price_history=updated_price_history,
+                        ids=ids,
+                        validation_year=validation_year,
+                        validation_month=validation_month,
+                        valavm_result_value=valavm_result_value,
+                        valavm_key=key,
+                    )
+                    # NOTE: the counters are the same for every path because the actual transactions are the same
+                    if input_record_number == 1:
+                        print 'path update counters', path
+                        for k, v in update_counter.iteritems():
+                            print k, v
                     if model_key in model:
                         print '++++++++++++++++++++++'
                         print path, model_key
@@ -417,15 +567,20 @@ def make_data(control):
                     counter['UnpicklingError'] += 1
                     print 'cPickle.Unpicklingerror in record %d: %s' % (input_record_number, e)
 
-        return model, actuals, counter
+        return model, actuals, counter, updated_price_history
 
     reduction = collections.defaultdict(dict)
     all_actuals = collections.defaultdict(dict)
     paths = sorted(glob.glob(control.path_in_valavm))
     assert len(paths) > 0, paths
     counters = {}
+    all_price_histories = None
     for path in paths:
-        model, actuals, counter = process_records(path)
+        model, actuals, counter, price_history = process_path(path)
+        all_price_histories = (
+            price_history if all_price_histories is None else
+            all_price_histories.append(price_history, verify_integrity=True, ignore_index=True)
+            )
         # type(model) is dict[ModelDescription] ModelResults
         # sort models by increasing ModelResults.mae
         sorted_models = collections.OrderedDict(sorted(model.items(), key=lambda t: t[1].mae))
@@ -448,10 +603,13 @@ def make_data(control):
             print 'unexpected locality', control.arg.locality
             pdb.set_trace()
         counters[path] = counter
+        if control.debug and len(counters) > 1:
+            print 'DEBUG: stopping iteration over paths'
+            break
         if control.test:
             break
 
-    return reduction, all_actuals, counters
+    return reduction, all_actuals, counters, all_price_histories
 
 
 def make_subset_global(reduction, fraction):
@@ -576,9 +734,17 @@ def main(argv):
     lap = control.timer.lap
 
     if control.arg.data:
-        median_price = make_median_price(control.path_in_chart_01_reduction, control.arg.locality == 'city')
-        lap('make_median_price')
-        reduction, all_actuals, counters = make_data(control)
+        if not control.debug:
+            median_price = make_median_price(control.path_in_chart_01_reduction, control.arg.locality == 'city')
+            lap('make_median_price')
+        reduction, all_actuals, counters, all_price_histories = make_reduction(control)
+        lap('make_reduction')
+        with open(control.path_all_price_histories, 'wb') as f:
+            pdb.set_trace()
+            print 'len(all_price_histories)', len(all_price_histories)
+            print 'columns', all_price_histories.columns
+            pickle.dump(all_price_histories, f)
+            lap('write all price histories')
         if len(control.errors) > 0:
             print 'stopping because of errors'
             for error in control.errors:
