@@ -2,6 +2,7 @@
 import pdb
 import unittest
 
+
 class HPs(object):
     def __init__():
         assert False, 'not not instantiate me'
@@ -127,7 +128,7 @@ class TestHPs(unittest.TestCase):
         for hps in HPs.iter_hps_model('en'):
             count += 1
             if verbose:
-                print count, hps 
+                print count, hps
         self.assertEqual(1400, count)
 
     def test_iter_gb(self):
@@ -136,7 +137,7 @@ class TestHPs(unittest.TestCase):
         for hps in HPs.iter_hps_model('gb'):
             count += 1
             if verbose:
-                print count, hps 
+                print count, hps
         self.assertEqual(6720, count)
 
     def test_iter_rf(self):
@@ -145,7 +146,7 @@ class TestHPs(unittest.TestCase):
         for hps in HPs.iter_hps_model('rf'):
             count += 1
             if verbose:
-                print count, hps 
+                print count, hps
         self.assertEqual(1344, count)
 
 if __name__ == '__main__':
