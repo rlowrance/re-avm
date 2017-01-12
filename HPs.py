@@ -1,11 +1,68 @@
-'''HPs.py all the hyperparameters'''
+'''functions to manipulate dictionaries of hyperparameters'''
 import pdb
 import unittest
 
 
 class HPs(object):
+    names = (
+        'alpha',
+        'l1_ratio',
+        'learning_rate',
+        'max_depth',
+        'max_features',
+        'n_estimators',
+        'n_months_back',
+        'units_X',
+        'units_y',
+    )
+
     def __init__():
-        assert False, 'not not instantiate me'
+        assert False, 'do not instantiate me'
+
+    @staticmethod
+    def to_str(d):
+        'return string with hyperparameters in canonical order'
+        pdb.set_trace()
+        print d
+        result = ''
+        for name in HPs.names:
+            spacer = '-' if len(result) > 0 else ''
+            if name in d:
+                value = d[name]
+                print name, value
+                if isinstance(value, float):
+                    # assure no loss of precision
+                    printed_value = '%4.2f' % value
+                    assert float(printed_value) == value, (value, printed_value)
+                elif isinstance(value, int):
+                    printed_value = '%d' % value
+                    assert int(printed_value) == value, (value, printed_value)
+                else:
+                    printed_value = value
+                result += spacer + printed_value
+            else:
+                result += spacer
+            print result
+        pdb.set_trace()
+        return result
+
+    @staticmethod
+    def to_dict(s):
+        'return dictionary d, where s was created by to_str(d)'
+        pdb.set_trace()
+        values = s.split('-')
+        result = {}
+        for i, value in enumerate(values):
+            if value != '':
+                name = HPs.names[i]
+                stored_value = (
+                    value if name in ('units_X', 'units_y') else
+                    float(value) if name in ('alpha', 'l1_ratio') else
+                    int(value)
+                )
+                result[name] = stored_value
+        pdb.set_trace()
+        return result
 
     @staticmethod
     def iter_hps_model(model):
