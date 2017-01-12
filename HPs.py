@@ -18,14 +18,11 @@ values = {
 
 def to_str(d):
     'return string with hyperparameters in canonical order'
-    pdb.set_trace()
-    print d
     result = ''
     for name in values.keys():
         spacer = '-' if len(result) > 0 else ''
         if name in d:
             value = d[name]
-            print name, value
             if isinstance(value, float):
                 # assure no loss of precision
                 printed_value = '%4.2f' % value
@@ -38,27 +35,24 @@ def to_str(d):
             result += spacer + printed_value
         else:
             result += spacer
-        print result
-    pdb.set_trace()
     return result
 
 
 def to_dict(s):
     'return dictionary d, where s was created by to_str(d)'
-    pdb.set_trace()
     hp_names = values.keys()
-    values = s.split('-')
     result = {}
-    for i, value in enumerate(values):
+    for i, value in enumerate(s.split('-')):
         if value != '':
             name = hp_names[i]
             stored_value = (
                 value if name in ('units_X', 'units_y') else
-                float(value) if name in ('alpha', 'l1_ratio') else
-                int(value)
+                float(value) if name in ('alpha', 'l1_ratio', 'learning_rate') else
+                int(value) if name in ('max_depth', 'n_estimators') else
+                int(value) if name == 'max_features' and value == 1 else
+                value  # name == 'max_features'
             )
             result[name] = stored_value
-    pdb.set_trace()
     return result
 
 
@@ -143,6 +137,12 @@ class TestAll(unittest.TestCase):
             if verbose:
                 print count, hps
         self.assertEqual(1344, count)
+
+    def test_to_str_dict(self):
+        for hps in iter_hps_gb():
+            filename_base = to_str(hps)
+            d = to_dict(filename_base)
+            self.assertItemsEqual(hps, d)
 
 if __name__ == '__main__':
     unittest.main()
