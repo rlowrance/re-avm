@@ -110,14 +110,29 @@ class Features(object):
             feature_name, how_to_transform = feature_transform
             X_transposed[i] = transform_column(feature_name, how_to_transform, units_X)
 
-        y = np.empty(len(df),
-                     dtype='float64',
-                     )
         y = (transform_column(target_feature_name, 'log', units_y)
              if transform_y
              else None)
+        y_float64 = y.astype('float64', casting='safe')  # don't loose precision
+        assert y_float64.dtype == 'float64', (y.dtype, y_float64.dtype)
 
-        return X_transposed.T, y
+        return X_transposed.T, y_float64
+
+    def extract_and_transform(self, df, units_X, units_y):
+        'wrapper for common use case of extract_and_transform_X_y'
+        allowed_units = set(['log', 'natural'])
+        assert units_X in allowed_units, units_X
+        assert units_y in allowed_units, units_y
+        # replicate code form AVM_elastic_net.py
+        X, y = self.extract_and_transform_X_y(
+            df,
+            self.ege('swpn'),  # swpn ==> all features
+            t.price,           # column name of target
+            units_X,           # units for x
+            units_y,           # units for y
+            True,              # True ==> transform the y value
+        )
+        return X, y
 
 
 if __name__ == '__main__':
