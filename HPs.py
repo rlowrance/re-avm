@@ -94,6 +94,8 @@ def iter_hps_gb():
                             'max_features': max_features,
                             'n_estimators': n_estimators,
                             'learning_rate': learning_rate,
+                            'units_X': 'natural',
+                            'units_y': 'natural',
                         }
 
 
@@ -107,7 +109,8 @@ def iter_hps_rf():
                         'max_depth': max_depth,
                         'max_features': max_features,
                         'n_estimators': n_estimators,
-                    }
+                        'units_X': 'natural',
+                        'units_y': 'natural',                 }
 
 
 class TestAll(unittest.TestCase):
