@@ -33,7 +33,7 @@ class Timer(object):
         'return (cpu seconds, wall clock seconds) in last lap; maybe print time of current lap'
         # NOTE: Cannot use the python standard library to find the elapsed CPU time on Windows
         # instead, Windows returns the wall clock time
-
+        
         # inspired by Paul McGuire's timing.py
         # ref: http://stackoverflow.com/questions/1557571/how-to-get-time-of-a-python-program-execution
 
@@ -49,17 +49,17 @@ class Timer(object):
                 toStr(now[1] - start[1])
             )
 
-        pdb.set_trace()
         clock_time = self.clock_time()
         cumulative_seconds = diff(self._program, clock_time)
         lap_seconds = diff(self._lap, clock_time)
         self._lap = clock_time  # reset lap time
         if verbose:
-            print clue
+            visual_clue = '=' * 50
+            print visual_clue
             print 'lap: %s' % s
             print 'cumulative %s cpu %s wallclock' % cumulative_seconds
             print 'lap        %s cpu %s wallclock' % lap_seconds
-            print clue
+            print visual_clue
             print
         return lap_seconds
 
