@@ -1,7 +1,7 @@
 '''fit many models on the real estate data
 
 INVOCATION
-  python fit.py DATA MODEL FOCUS LASTMONTH
+  python fit.py DATA MODEL LASTMONTH NIEHGBORHOOD
 where
  DATA         in {train, all} specifies which data in Working/samples2 to use
  MODEL        in {en, gb, rf} specified which model to use
@@ -13,7 +13,7 @@ INPUTS
  WORKING/samples2/all.csv
 
 OUTPUTS
- WORKING/fit[-item]/DATA-MODEL-LASTMONTH/NEIGHBORHOOD/<filename>.pickle
+ WORKING/fit[-test]/DATA-MODEL-LASTMONTH-NEIGHBORHOOD/<filename>.pickle
 where 
  <filename> is the hyperparameters for the model
  the pickle files contains either
