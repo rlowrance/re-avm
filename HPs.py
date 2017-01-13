@@ -77,7 +77,9 @@ def to_str(d):
 def from_str(s):
     'return dictionary d, where s was created by to_str(d)'
     result = {}
-    for i, s_value in enumerate(s.split('-')):
+    pieces = s.split('-')
+    assert len(pieces) == len(names), 'too few hyperparameters in string: %s' % s
+    for i, s_value in enumerate(pieces):
         if s_value != '':
             name = names[i]
             result[name] = from_str_hp(name, s_value)
