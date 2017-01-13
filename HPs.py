@@ -1,21 +1,65 @@
 '''functions to manipulate dictionaries of hyperparameters'''
+import collections
 import pdb
 import unittest
 
 
-values = {
-    'alpha': (0.01, 0.03, 0.1, 0.3, 1.0),
-    'l1_ratio': (0.0, 0.25, 0.50, 0.75, 1.0),
-    'learning_rate': (.10, .25, .50, .75, .99),
-    'max_depth': (1, 3, 10, 30, 100, 300),
-    'max_features': (1, 'log2', 'sqrt', 'auto'),
-    'n_estimators': (10, 30, 100, 300),
-    'n_months_back': (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 24),
-    'units_X': ('natural', 'log'),
-    'units_y': ('natural', 'log'),
+Entries = collections.namedtuple('Entries', 'values kind')
+
+all = {
+    'alpha': Entries((0.01, 0.03, 0.1, 0.3, 1.0), float),
+    'l1_ratio': Entries((0.0, 0.25, 0.50, 0.75, 1.0), float),
+    'learning_rate': Entries((.10, .25, .50, .75, .99), float),
+    'max_depth': Entries((1, 3, 10, 30, 100, 300), int),
+    'max_features': Entries((1, 'log2', 'sqrt', 'auto'), 'max_features'),
+    'n_estimators': Entries((10, 30, 100, 300), int),
+    'n_months_back': Entries((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 24), int),
+    'units_X': Entries(('natural', 'log'), str),
+    'units_y': Entries(('natural', 'log'), str),
 }
 
-names = sorted(values.keys())
+names = sorted(all.keys())
+
+
+def values(name):
+    return all[name].values
+
+
+def kind(name):
+    return all[name].kind
+
+
+def to_str_hp(name, value):
+    'return string'
+    k = kind(name)
+    if k == float:
+        result = '%4.2f' % value
+        assert float(result) == value  # assure no loss of precision
+    elif k == int:
+        result = '%02d' % value
+        assert int(result) == value
+    elif k == str:
+        result = value
+    elif k == 'max_features':
+        if value == 1:
+            result = '%02d' % value
+            assert int(result) == value
+        else:
+            result = value
+    return result
+
+
+def from_str_hp(name, s):
+    'return value'
+    k = kind(name)
+    if k == 'max_features':
+        if s == '1':
+            result = 1
+        else:
+            result = s
+    else:
+        result = k(s)
+    return result
 
 
 def to_str(d):
@@ -24,36 +68,19 @@ def to_str(d):
     for i, name in enumerate(names):
         spacer = '-' if i > 0 else ''
         if name in d:
-            value = d[name]
-            if isinstance(value, float):
-                # assure no loss of precision
-                printed_value = '%4.2f' % value
-                assert float(printed_value) == value, (value, printed_value)
-            elif isinstance(value, int):
-                printed_value = '%d' % value
-                assert int(printed_value) == value, (value, printed_value)
-            else:
-                printed_value = value
-            result += spacer + printed_value
+            result += spacer + to_str_hp(name, d[name])
         else:
             result += spacer
     return result
 
 
-def to_dict(s):
+def from_str(s):
     'return dictionary d, where s was created by to_str(d)'
     result = {}
-    for i, value in enumerate(s.split('-')):
-        if value != '':
+    for i, s_value in enumerate(s.split('-')):
+        if s_value != '':
             name = names[i]
-            stored_value = (
-                value if name in ('units_X', 'units_y') else
-                float(value) if name in ('alpha', 'l1_ratio', 'learning_rate') else
-                int(value) if name in ('max_depth', 'n_estimators') else
-                int(value) if name == 'max_features' and value == 1 else
-                value  # name == 'max_features'
-            )
-            result[name] = stored_value
+            result[name] = from_str_hp(name, s_value)
     return result
 
 
@@ -69,11 +96,11 @@ def iter_hps_model(model):
 
 
 def iter_hps_en():
-    for n_months_back in values['n_months_back']:
-        for alpha in values['alpha']:
-            for l1_ratio in values['l1_ratio']:
-                for units_X in values['units_X']:
-                    for units_y in values['units_y']:
+    for n_months_back in values('n_months_back'):
+        for alpha in values('alpha'):
+            for l1_ratio in values('l1_ratio'):
+                for units_X in values('units_X'):
+                    for units_y in values('units_y'):
                         yield {
                             'n_months_back': n_months_back,
                             'alpha': alpha,
@@ -84,11 +111,11 @@ def iter_hps_en():
 
 
 def iter_hps_gb():
-    for n_months_back in values['n_months_back']:
-        for max_depth in values['max_depth']:
-            for max_features in values['max_features']:
-                for n_estimators in values['n_estimators']:
-                    for learning_rate in values['learning_rate']:
+    for n_months_back in values('n_months_back'):
+        for max_depth in values('max_depth'):
+            for max_features in values('max_features'):
+                for n_estimators in values('n_estimators'):
+                    for learning_rate in values('learning_rate'):
                         yield {
                             'n_months_back': n_months_back,
                             'max_depth': max_depth,
@@ -101,10 +128,10 @@ def iter_hps_gb():
 
 
 def iter_hps_rf():
-    for n_months_back in values['n_months_back']:
-        for max_depth in values['max_depth']:
-            for max_features in values['max_features']:
-                for n_estimators in values['n_estimators']:
+    for n_months_back in values('n_months_back'):
+        for max_depth in values('max_depth'):
+            for max_features in values('max_features'):
+                for n_estimators in values('n_estimators'):
                     yield {
                         'n_months_back': n_months_back,
                         'max_depth': max_depth,
@@ -145,7 +172,7 @@ class TestAll(unittest.TestCase):
     def test_to_str_dict(self):
         for hps in iter_hps_gb():
             filename_base = to_str(hps)
-            d = to_dict(filename_base)
+            d = from_str(filename_base)
             self.assertItemsEqual(hps, d)
 
 if __name__ == '__main__':
