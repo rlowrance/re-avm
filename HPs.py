@@ -15,12 +15,14 @@ values = {
     'units_y': ('natural', 'log'),
 }
 
+names = sorted(values.keys())
+
 
 def to_str(d):
-    'return string with hyperparameters in canonical order'
+    'return string with hyperparameters in alphabetic order'
     result = ''
-    for name in values.keys():
-        spacer = '-' if len(result) > 0 else ''
+    for i, name in enumerate(names):
+        spacer = '-' if i > 0 else ''
         if name in d:
             value = d[name]
             if isinstance(value, float):
@@ -40,11 +42,10 @@ def to_str(d):
 
 def to_dict(s):
     'return dictionary d, where s was created by to_str(d)'
-    hp_names = values.keys()
     result = {}
     for i, value in enumerate(s.split('-')):
         if value != '':
-            name = hp_names[i]
+            name = names[i]
             stored_value = (
                 value if name in ('units_X', 'units_y') else
                 float(value) if name in ('alpha', 'l1_ratio', 'learning_rate') else
