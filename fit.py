@@ -34,15 +34,17 @@ import pandas as pd
 import pdb
 from pprint import pprint
 import random
+import sklearn
 import sys
+import time
 
 import arg_type
 import AVM
 from Bunch import Bunch
 from columns_contain import columns_contain
 import dirutility
-# from Features import Features
-from HPs import HPs
+from Features import Features
+import HPs
 import layout_transactions
 from Logger import Logger
 from Month import Month
@@ -749,7 +751,56 @@ def select_in_city(df, city):
     return df_in_city
 
 
+def select_in_time_period_and_in_city(df, last_month, n_months_back, city):
+    'return new df with the specified training data'
+    in_time_period = select_in_time_period(
+        df.copy(),
+        last_month,
+        n_months_back,
+    )
+    in_neighborhood = (
+        in_time_period if city is None else
+        select_in_city(in_time_period, city)
+    )
+    print 'neighborhood %s: %d in time period, %d also in neighborhood' % (
+        'all' if city is None else city,
+        len(in_time_period),
+        len(in_neighborhood),
+    )
+    return in_neighborhood
+
+
+def fit_en(dir_out, x, y, hps, random_seed, timer):
+    'write one fitted model'
+    start_time = time.clock()
+    assert len(hps) == 5
+    model = sklearn.linear_model.ElasticNet(
+        alpha=hps['alpha'],
+        l1_ratio=hps['l1_ratio'],
+        random_state=random_seed,
+        # all these parameters are at the default value format skikit-learn version 0.18.1
+        fit_intercept=True,
+        normalize=False,
+        max_iter=1000,
+        copy_X=False,
+        tol=0.0001,
+        warm_start=False,
+        selection='cyclic',
+    )
+    fitted = model.fit(x, y)
+    out_filename = HPs.to_str(hps)
+    path_out = os.path.join(dir_out, out_filename + '.pickle')
+    with open(path_out, 'w') as f:
+        obj = (True, fitted)  # True ==> fitted successfully
+        pickle.dump(obj, f)
+    print 'fit and write en %s in wallclock secs %s' % (
+        out_filename,
+        time.clock() - start_time,
+    )
+
+
 def do_work(control):
+    'write fitted models to file system'
     path_in = os.path.join(control.path_in_dir, control.arg.data + '.csv')
     training_data = pd.read_csv(
         path_in,
@@ -758,33 +809,36 @@ def do_work(control):
         low_memory=False,
     )
     print 'read %d rows of training data from file %s' % (len(training_data), path_in)
-    pdb.set_trace()
+    count_fitted = 0
     for hps in HPs.iter_hps_model(control.arg.model):
-        print hps
-        # reduce training data 
-        in_time_period = select_in_time_period(
+        relevant = select_in_time_period_and_in_city(
             training_data,
             control.arg.last_month,
             hps['n_months_back'],
+            control.arg.city,
         )
-        in_neighborhood = (
-            in_time_period if control.arg.neighborhood == 'all' else
-            select_in_city(in_time_period, control.arg.city)
-        )
-        print '#training samples: %d, of which in time period: %d' % (len(training_data), len(in_time_period))
-        print '#in time period: %d, of which in neighborhood: %d' % (len(in_time_period), len(in_neighborhood))
-        pdb.set_trace()
-        if len(in_neighborhood) == 0:
+        if len(relevant) == 0:
             print 'skipping fitting of model, because no training samples for those hyperparameters'
             continue
-        if control.arg.model == 'en':
-            fit_en(control, in_neighborhood, hps)
-        elif control.arg.model == 'gb':
-            fit_gb(control, in_neighborhood, hps)
-        else:
-            fit_rf(control, in_nieghborhood, hps)
 
-    assert False, 'write more'
+        X, y = Features().extract_and_transform(
+            relevant,
+            hps['units_X'],
+            hps['units_y'],
+        )
+
+        if control.arg.model == 'en':
+            fit_en(control.path_out_dir, X, y, hps, control.random_seed, control.timer)
+        elif control.arg.model == 'gb':
+            pdb.set_trace()
+            fit_gb(control.path_out_dir, X, y, hps, control.random_seed, control.timer)
+        else:
+            pdb.set_trace()
+            fit_rf(control.path_out_dir, X, y, hps, control.random_seed, control.timer)
+        count_fitted += 1
+        if control.arg.test and count_fitted == 5:
+            print 'breaking because we are tracing'
+            break
 
 
 def main(argv):
@@ -796,12 +850,11 @@ def main(argv):
     do_work(control)
 
     lap('work completed')
-    if control.test:
+    if control.arg.test:
         print 'DISCARD OUTPUT: test'
     print control
     print 'done'
     return
-
 
 
 if __name__ == '__main__':
