@@ -154,7 +154,7 @@ def select_in_time_period_and_in_city(df, last_month, n_months_back, city):
     return in_neighborhood
 
 
-def fit_en(dir_out, x, y, hps, random_seed, timer):
+def fit_enOLD(dir_out, x, y, hps, random_seed, timer):
     'write one fitted model'
     verbose = False
     start_time = time.clock()
@@ -183,6 +183,53 @@ def fit_en(dir_out, x, y, hps, random_seed, timer):
             out_filename,
             time.clock() - start_time,
         )
+
+
+def fit_en(X, y, hps, random_seed):
+    'return fitted ElastNet model'
+    assert len(hps) == 5
+    model = sklearn.linear_model.ElasticNet(
+        alpha=hps['alpha'],
+        l1_ratio=hps['l1_ratio'],
+        random_state=random_seed,
+        # all these parameters are at the default value format skikit-learn version 0.18.1
+        fit_intercept=True,
+        normalize=False,
+        max_iter=1000,
+        copy_X=False,
+        tol=0.0001,
+        warm_start=False,
+        selection='cyclic',
+    )
+    fitted = model.fit(X, y)
+    return fitted
+
+
+def fit_gb(X, y, hps, random_seed):
+    'return fittedGradientBoostingRegressor model'
+    assert len(hps) == 7
+    model = sklearn.ensemble.GradientBoostingRegressor(
+        learning_rate=hps['learning_rate'],
+        n_estimators=hps['n_estimators'],
+        max_depth=hps['max_depth'],
+        max_features=hps['max_features'],
+        random_state=random_seed,
+        # all these parameters are at the default value format skikit-learn version 0.18.1
+        loss='ls',
+        criterion='friedman_mse',
+        min_samples_split=2,
+        min_samples_leaf=1,
+        min_weight_fraction_leaf=0,
+        subsample=1.0,
+        max_leaf_nodes=None,
+        min_impurity_split=1e-7,
+        alpha=0.9,
+        init=None,
+        verbose=0,
+        presort='auto',
+    )
+    fitted = model.fit(X, y)
+    return fitted
 
 
 def do_work(control):
@@ -214,14 +261,18 @@ def do_work(control):
             hps['units_y'],
         )
 
-        if control.arg.model == 'en':
-            fit_en(control.path_out_dir, X, y, hps, control.random_seed, control.timer)
-        elif control.arg.model == 'gb':
-            pdb.set_trace()
-            fit_gb(control.path_out_dir, X, y, hps, control.random_seed, control.timer)
-        else:
-            pdb.set_trace()
-            fit_rf(control.path_out_dir, X, y, hps, control.random_seed, control.timer)
+        fitted = (
+            fit_en(X, y, hps, control.random_seed) if control.arg.model == 'en' else
+            fit_gb(X, y, hps, control.random_seed) if control.arg.model == 'gb' else
+            fit_rf(X, y, hps, control.random_seed) 
+        )
+        with open(os.path.join(control.path_out_dir, HPs.to_str(hps) + '.pickle'), 'w') as f:
+            obj = (
+                (False, fitted) if isinstance(fitted, str) else
+                (True, fitted)  # not an error message 
+            )
+            pickle.dump(obj, f)
+
         count_fitted += 1
         print 'fitted #%4d on:%6d in: %6.2f %s %s %s %s hps: %s ' % (
             count_fitted,
