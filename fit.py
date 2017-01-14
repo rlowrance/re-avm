@@ -134,6 +134,7 @@ def select_in_city(df, city):
 
 def select_in_time_period_and_in_city(df, last_month, n_months_back, city):
     'return new df with the specified training data'
+    verbose = False
     in_time_period = select_in_time_period(
         df.copy(),
         last_month,
@@ -143,16 +144,18 @@ def select_in_time_period_and_in_city(df, last_month, n_months_back, city):
         in_time_period if city is None else
         select_in_city(in_time_period, city)
     )
-    print 'neighborhood %s: %d in time period, %d also in neighborhood' % (
-        'all' if city is None else city,
-        len(in_time_period),
-        len(in_neighborhood),
-    )
+    if verbose:
+        print 'neighborhood %s: %d in time period, %d also in neighborhood' % (
+            'all' if city is None else city,
+            len(in_time_period),
+            len(in_neighborhood),
+        )
     return in_neighborhood
 
 
 def fit_en(dir_out, x, y, hps, random_seed, timer):
     'write one fitted model'
+    verbose = False
     start_time = time.clock()
     assert len(hps) == 5
     model = sklearn.linear_model.ElasticNet(
@@ -174,10 +177,11 @@ def fit_en(dir_out, x, y, hps, random_seed, timer):
     with open(path_out, 'w') as f:
         obj = (True, fitted)  # True ==> fitted successfully
         pickle.dump(obj, f)
-    print 'fit and write en %s in wallclock secs %s' % (
-        out_filename,
-        time.clock() - start_time,
-    )
+    if verbose:
+        print 'fit and write en %s in wallclock secs %s' % (
+            out_filename,
+            time.clock() - start_time,
+        )
 
 
 def do_work(control):
@@ -192,6 +196,7 @@ def do_work(control):
     print 'read %d rows of training data from file %s' % (len(training_data), path_in)
     count_fitted = 0
     for hps in HPs.iter_hps_model(control.arg.model):
+        start_time = time.clock()
         relevant = select_in_time_period_and_in_city(
             training_data,
             control.arg.last_month,
@@ -217,6 +222,16 @@ def do_work(control):
             pdb.set_trace()
             fit_rf(control.path_out_dir, X, y, hps, control.random_seed, control.timer)
         count_fitted += 1
+        print 'fitted #%4d on:%6d in: %6.2f %s %s %s %s hps: %s ' % (
+            count_fitted,
+            len(relevant),
+            time.clock() - start_time,            control.arg.data,
+            control.arg.model,
+            control.arg.last_month,
+            control.arg.neighborhood,
+            HPs.to_str(hps),
+
+        )
         if control.arg.test and count_fitted == 5:
             print 'breaking because we are tracing'
             break
