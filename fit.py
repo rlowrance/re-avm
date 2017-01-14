@@ -206,7 +206,7 @@ def fit_en(X, y, hps, random_seed):
 
 
 def fit_gb(X, y, hps, random_seed):
-    'return fittedGradientBoostingRegressor model'
+    'return fitted GradientBoostingRegressor model'
     assert len(hps) == 7
     model = sklearn.ensemble.GradientBoostingRegressor(
         learning_rate=hps['learning_rate'],
@@ -227,6 +227,31 @@ def fit_gb(X, y, hps, random_seed):
         init=None,
         verbose=0,
         presort='auto',
+    )
+    fitted = model.fit(X, y)
+    return fitted
+
+
+def fit_rf(X, y, hps, random_seed):
+    'return fitted RandomForestRegressor model'
+    assert len(hps) == 6
+    model = sklearn.ensemble.RandomForestRegressor(
+        n_estimators=hps['n_estimators'],
+        max_features=hps['max_features'],
+        max_depth=hps['max_depth'],
+        random_state=random_seed,
+        # all these parameters are at the default value format skikit-learn version 0.18.1
+        criterion='mse',
+        min_samples_split=2,
+        min_samples_leaf=1,
+        min_weight_fraction_leaf=0,
+        max_leaf_nodes=None,
+        min_impurity_split=1e-7,
+        bootstrap=True,
+        oob_score=False,
+        n_jobs=1,
+        verbose=0,
+        warm_start=False,
     )
     fitted = model.fit(X, y)
     return fitted
@@ -292,7 +317,7 @@ def do_work(control):
             print 'gc reports %d unreachable objects' % unreachable
             pdb.set_trace()
         if control.arg.test and count_fitted == 5:
-            print 'breaking because we are tracing'
+            print 'breaking because we are testing'
             break
 
 
