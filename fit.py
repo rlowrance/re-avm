@@ -14,7 +14,7 @@ INPUTS
 
 OUTPUTS
  WORKING/fit[-test]/DATA-MODEL-LASTMONTH-NEIGHBORHOOD/<filename>.pickle
-where 
+where
  <filename> is the hyperparameters for the model
  the pickle files contains either
   (True, <fitted-model>)
@@ -24,12 +24,9 @@ where
 from __future__ import division
 
 import argparse
-import collections
 import cPickle as pickle
 import datetime
 import gc
-import itertools
-import numpy as np
 import os
 import pandas as pd
 import pdb
@@ -39,10 +36,7 @@ import sklearn
 import sys
 import time
 
-import arg_type
-import AVM
 from Bunch import Bunch
-from columns_contain import columns_contain
 import dirutility
 from Features import Features
 import HPs
@@ -50,12 +44,7 @@ import layout_transactions
 from Logger import Logger
 from Month import Month
 from Path import Path
-from Report import Report
-from SampleSelector import SampleSelector
-from valavmtypes import ResultKeyEn, ResultKeyGbr, ResultKeyRfr, ResultValue
 from Timer import Timer
-# from TimeSeriesCV import TimeSeriesCV
-cc = columns_contain
 
 
 def make_control(argv):
@@ -257,6 +246,14 @@ def fit_rf(X, y, hps, random_seed):
     return fitted
 
 
+def num_hps(model):
+    'return number of hyperparameters'
+    count = 0
+    for hps in HPs.iter_hps_model(model):
+        count += 1
+    return count
+
+
 def do_work(control):
     'write fitted models to file system'
     path_in = os.path.join(control.path_in_dir, control.arg.data + '.csv')
@@ -267,6 +264,7 @@ def do_work(control):
         low_memory=False,
     )
     print 'read %d rows of training data from file %s' % (len(training_data), path_in)
+    n_hps = num_hps(control.arg.model)
     count_fitted = 0
     for hps in HPs.iter_hps_model(control.arg.model):
         start_time = time.clock()
@@ -289,18 +287,19 @@ def do_work(control):
         fitted = (
             fit_en(X, y, hps, control.random_seed) if control.arg.model == 'en' else
             fit_gb(X, y, hps, control.random_seed) if control.arg.model == 'gb' else
-            fit_rf(X, y, hps, control.random_seed) 
+            fit_rf(X, y, hps, control.random_seed)
         )
         with open(os.path.join(control.path_out_dir, HPs.to_str(hps) + '.pickle'), 'w') as f:
             obj = (
                 (False, fitted) if isinstance(fitted, str) else
-                (True, fitted)  # not an error message 
+                (True, fitted)  # not an error message
             )
             pickle.dump(obj, f)
 
         count_fitted += 1
-        print 'fitted #%4d on:%6d in: %6.2f %s %s %s %s hps: %s ' % (
+        print 'fitted #%4d/%4d on:%6d in: %6.2f %s %s %s %s hps: %s ' % (
             count_fitted,
+            n_hps,
             len(relevant),
             time.clock() - start_time,            control.arg.data,
             control.arg.model,
@@ -342,7 +341,5 @@ if __name__ == '__main__':
         # avoid pyflakes warnings
         pdb.set_trace()
         pprint()
-        pd.DataFrame()
-        np.array()
 
     main(sys.argv)
