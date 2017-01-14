@@ -27,6 +27,7 @@ import argparse
 import collections
 import cPickle as pickle
 import datetime
+import gc
 import itertools
 import numpy as np
 import os
@@ -232,6 +233,13 @@ def do_work(control):
             HPs.to_str(hps),
 
         )
+        # gc.set_debug(gc.DEBUG_STATS + gc.DEBUG_UNCOLLECTABLE)
+        # collect to get memory usage stable
+        # this enables multiprocessing
+        unreachable = gc.collect()
+        if False and unreachable != 0:
+            print 'gc reports %d unreachable objects' % unreachable
+            pdb.set_trace()
         if control.arg.test and count_fitted == 5:
             print 'breaking because we are tracing'
             break
