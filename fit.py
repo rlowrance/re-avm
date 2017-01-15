@@ -33,6 +33,8 @@ import pdb
 from pprint import pprint
 import random
 import sklearn
+import sklearn.ensemble
+import sklearn.linear_model
 import sys
 import time
 
@@ -59,6 +61,7 @@ def make_control(argv):
     parser.add_argument('neighborhood')
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--trace', action='store_true')
+    parser.add_argument('--dry', action='store_true')     # don't write output
     arg = parser.parse_args(argv)
     arg.me = arg.invocation.split('.')[0]
 
@@ -289,12 +292,13 @@ def do_work(control):
             fit_gb(X, y, hps, control.random_seed) if control.arg.model == 'gb' else
             fit_rf(X, y, hps, control.random_seed)
         )
-        with open(os.path.join(control.path_out_dir, HPs.to_str(hps) + '.pickle'), 'w') as f:
-            obj = (
-                (False, fitted) if isinstance(fitted, str) else
-                (True, fitted)  # not an error message
-            )
-            pickle.dump(obj, f)
+        if not control.arg.dry:
+            with open(os.path.join(control.path_out_dir, HPs.to_str(hps) + '.pickle'), 'w') as f:
+                obj = (
+                    (False, fitted) if isinstance(fitted, str) else
+                    (True, fitted)  # not an error message
+                )
+                pickle.dump(obj, f)
 
         count_fitted += 1
         print 'fitted #%4d/%4d on:%6d in: %6.2f %s %s %s %s hps: %s ' % (
