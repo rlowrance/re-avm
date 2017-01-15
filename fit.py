@@ -146,37 +146,6 @@ def select_in_time_period_and_in_city(df, last_month, n_months_back, city):
     return in_neighborhood
 
 
-def fit_enOLD(dir_out, x, y, hps, random_seed, timer):
-    'write one fitted model'
-    verbose = False
-    start_time = time.clock()
-    assert len(hps) == 5
-    model = sklearn.linear_model.ElasticNet(
-        alpha=hps['alpha'],
-        l1_ratio=hps['l1_ratio'],
-        random_state=random_seed,
-        # all these parameters are at the default value format skikit-learn version 0.18.1
-        fit_intercept=True,
-        normalize=False,
-        max_iter=1000,
-        copy_X=False,
-        tol=0.0001,
-        warm_start=False,
-        selection='cyclic',
-    )
-    fitted = model.fit(x, y)
-    out_filename = HPs.to_str(hps)
-    path_out = os.path.join(dir_out, out_filename + '.pickle')
-    with open(path_out, 'w') as f:
-        obj = (True, fitted)  # True ==> fitted successfully
-        pickle.dump(obj, f)
-    if verbose:
-        print 'fit and write en %s in wallclock secs %s' % (
-            out_filename,
-            time.clock() - start_time,
-        )
-
-
 def fit_en(X, y, hps, random_seed):
     'return fitted ElastNet model'
     assert len(hps) == 5
