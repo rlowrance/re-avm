@@ -1,4 +1,4 @@
-'''run many jobs to train en models
+'''run many jobs to train models
 
 INOVOCATION
  python fit-train-en-LASTMONTH-all.py model processes
