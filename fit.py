@@ -256,31 +256,40 @@ def do_work(control):
             hps['units_y'],
         )
 
-        fitted = (
-            fit_en(X, y, hps, control.random_seed) if control.arg.model == 'en' else
-            fit_gb(X, y, hps, control.random_seed) if control.arg.model == 'gb' else
-            fit_rf(X, y, hps, control.random_seed)
-        )
-        if not control.arg.dry:
-            with open(os.path.join(control.path_out_dir, HPs.to_str(hps) + '.pickle'), 'w') as f:
-                obj = (
-                    (False, fitted) if isinstance(fitted, str) else
-                    (True, fitted)  # not an error message
-                )
-                pickle.dump(obj, f)
-
+        # implement checkpoint restart
+        # by skipping creating of output files that already exist
         count_fitted += 1
-        print 'fitted #%4d/%4d on:%6d in: %6.2f %s %s %s %s hps: %s ' % (
-            count_fitted,
-            n_hps,
-            len(relevant),
-            time.clock() - start_time,            control.arg.data,
-            control.arg.model,
-            control.arg.last_month,
-            control.arg.neighborhood,
-            HPs.to_str(hps),
+        file_path = os.path.join(control.path_out_dir,  HPs.to_str(hps) + '.pickle')
+        if os.path.exists(file_path):
+            print 'skipped #%4d/%4d as already exists: hps: %s' % (
+                count_fitted,
+                n_hps,
+                HPs.to_str(hps),
+            )
+        else:
+            fitted = (
+                fit_en(X, y, hps, control.random_seed) if control.arg.model == 'en' else
+                fit_gb(X, y, hps, control.random_seed) if control.arg.model == 'gb' else
+                fit_rf(X, y, hps, control.random_seed)
+            )
+            if not control.arg.dry:
+                with open(file_path, 'w') as f:
+                    obj = (
+                        (False, fitted) if isinstance(fitted, str) else
+                        (True, fitted)  # not an error message
+                    )
+                    pickle.dump(obj, f)
+            print 'fitted #%4d/%4d on:%6d in: %6.2f %s %s %s %s hps: %s ' % (
+                count_fitted,
+                n_hps,
+                len(relevant),
+                time.clock() - start_time,            control.arg.data,
+                control.arg.model,
+                control.arg.last_month,
+                control.arg.neighborhood,
+                HPs.to_str(hps),
+            )
 
-        )
         # gc.set_debug(gc.DEBUG_STATS + gc.DEBUG_UNCOLLECTABLE)
         # collect to get memory usage stable
         # this enables multiprocessing
