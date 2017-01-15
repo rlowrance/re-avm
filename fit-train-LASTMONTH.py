@@ -1,7 +1,9 @@
 '''run many jobs to train models
 
 INOVOCATION
- python fit-train-en-LASTMONTH-all.py model processes
+ python fit-train-all.py model processes
+which repeatedly runs in {processes} processes
+ python fit.py train {model} LASTMONTH all
 where
  model      is one of {en, gb, rf}, the model to train
  processes  is an int, the number of processes to run
