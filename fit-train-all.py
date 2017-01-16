@@ -34,8 +34,8 @@ def make_control(argv):
 
     print argv
     parser = argparse.ArgumentParser()
-    parser.add_argument('model', choices=('en', 'gb', 'rf'))
     parser.add_argument('invocation')
+    parser.add_argument('model', choices=('en', 'gb', 'rf'))
     parser.add_argument('processes')
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--trace', action='store_true')
@@ -99,7 +99,7 @@ def reducer(map_result_list):
         error_level = map_result.error_level
         max_error_level = (
             error_level if max_error_level is None else
-            math.max(max_error_level, error_level)
+            max(max_error_level, error_level)
         )
     return max_error_level
 
