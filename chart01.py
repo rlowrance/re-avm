@@ -4,8 +4,8 @@ INVOCATION
   python chart01.py [--data] [--test]
 
 INPUT FILES
- INPUT/interesting_cities.txt
- INPUT/samples-train.csv
+ INPUT/interesting_cities.txt  # TODO: determine if this file is actually used to create output
+ INPUT/samples2/train.csv
 
 OUTPUT FILES
  WORKING/chart01/0data.pickle   # pd.DataFrame with columns date, month, city, price
@@ -31,6 +31,7 @@ import math
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import pdb
 from pprint import pprint
@@ -57,23 +58,29 @@ def make_control(argv):
     parser.add_argument('invocation')
     parser.add_argument('--data', help='reduce input and create data file in WORKING', action='store_true')
     parser.add_argument('--test', help='set internal test flag', action='store_true')
-    arg = Bunch.from_namespace(parser.parse_args(argv))
+    arg = parser.parse_args(argv)
+    # arg = Bunch.from_namespace(parser.parse_args(argv))
     base_name = arg.invocation.split('.')[0]
+    arg.me = base_name
 
     random_seed = 123
     random.seed(random_seed)
 
     dir_working = Path().dir_working()
 
-    debug = False
-
-    reduced_file_name = '0data.pickle'
-
     # assure output directory exists
-    def assure_exists(dir_path):
-        return dirutility.assure_exists(dir_path) + '/'
+    def create_dir(path1, path2):
+        result_path = os.path.join(path1, path2)
+        dirutility.assure_exists(result_path)
+        return result_path
 
-    dir_path = assure_exists(dir_working + 'chart01/')
+    dir_chart01 = (
+        create_dir(dir_working, arg.me + '-test') if arg.test else
+        create_dir(dir_working, arg.me)
+    )
+    dir_date_price = create_dir(dir_chart01, 'date_price')
+    dir_median_price = create_dir(dir_chart01, 'median_price')
+    dir_prices_volume = create_dir(dir_chart01, 'prices_volume')
 
     all_months = [Month(year, month)
                   for year in (2003, 2004, 2005, 2006, 2007, 2008, 2009)
@@ -84,20 +91,21 @@ def make_control(argv):
         all_months=all_months,
         arg=arg,
         base_name=base_name,
-        debug=debug,
-        path_in_interesting_cities=dir_working + 'interesting_cities.txt',
-        path_in_samples=dir_working + 'samples-train.csv',
-        path_out_dir_date_price=assure_exists(dir_path + 'date_price'),
-        path_out_dir_median_price=assure_exists(dir_path + 'median_price'),
-        path_out_dir_prices_volume=assure_exists(dir_path + 'prices_volume'),
-        path_out_price_statistics_city_name=dir_path + 'price-statistics-city-name.txt',
-        path_out_price_statistics_count=dir_path + 'price-statistics-count.txt',
-        path_out_price_statistics_median_price=dir_path + 'price-statistics-median-price.txt',
-        path_out_price_volume=dir_path + 'price-volume.pdf',
-        path_out_stats_all=dir_path + 'price-stats-all.txt',
-        path_out_stats_count_by_city_in_2007=dir_path + 'count-by-city-in-2007.txt',
-        path_out_stats_2006_2008=dir_path + 'price-stats-2006-2008.txt',
-        path_reduction=dir_path + reduced_file_name,
+        debug=False,
+        path_in_interesting_cities=os.path.join(dir_working, 'interesting_cities.txt'),
+        path_in_samples=os.path.join(dir_working, 'samples2', 'train.csv'),
+        path_out_dir_date_price=dir_date_price,
+        path_out_dir_median_price=dir_median_price,
+        path_out_dir_prices_volume=dir_prices_volume,
+        path_out_log=os.path.join(dir_chart01, '0log.txt'),
+        path_out_price_statistics_city_name=os.path.join(dir_chart01, 'price-statistics-city-name.txt'),
+        path_out_price_statistics_count=os.path.join(dir_chart01, 'price-statistics-count.txt'),
+        path_out_price_statistics_median_price=os.path.join(dir_chart01, 'price-statistics-median-price.txt'),
+        path_out_price_volume=os.path.join(dir_chart01, 'price-volume.pdf'),
+        path_out_stats_all=os.path.join(dir_chart01, 'price-stats-all.txt'),
+        path_out_stats_count_by_city_in_2007=os.path.join(dir_chart01, 'count-by-city-in-2007.txt'),
+        path_out_stats_2006_2008=os.path.join(dir_chart01, 'price-stats-2006-2008.txt'),
+        path_reduction=os.path.join(dir_chart01, '0data.pickle'),
         random_seed=random_seed,
         test=arg.test,
     )
@@ -617,7 +625,7 @@ def main(argv):
         make_table_stats_2006_2008(data, control)
 
     control = make_control(argv)
-    sys.stdout = Logger(base_name=control.base_name)
+    sys.stdout = Logger(control.path_out_log)
     print control
 
     if control.arg.data:
