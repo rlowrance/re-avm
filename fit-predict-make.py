@@ -88,9 +88,11 @@ def mapper(mapper_arg):
         #  /WAIT         wait for app to terminate
         #  /B            start app without opening a new command window
         # NOTE: this approach seems to start 2 processes, which is 1 too many
-        command = 'START "%s" /BELOWNORMAL /WAIT /B %s' % (invocation_args, invocation)
-        print 'nt:', command
-        return_code = subprocess.call(command, shell=True)
+        command = 'START "%s" /BELOWNORMAL /B %s' % (invocation_args, invocation)
+        command_list = command.split(' ')
+        print 'nt:', invocation
+        # return_code = subprocess.call(command_list, shell=True)
+        return_code = subprocess.call(invocation)  # it lowers its own priority
     elif os.name == 'posix':
         command = "nice 18 " + invocation  # set very low priority (19 is lowest)
         command_list = command.split(' ')
@@ -121,6 +123,7 @@ def reducer(map_result_list):
 
 
 def do_work(control):
+    pdb.set_trace()
     pool = mp.Pool(processes=control.arg.n_processes)
 
     prediction_months = [
