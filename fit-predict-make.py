@@ -145,7 +145,6 @@ def do_work(control):
     )
     print 'mapper_arg'
     print mapper_arg
-    pdb.set_trace()
 
     mapped = pool.map(mapper, mapper_arg)
     print mapped
