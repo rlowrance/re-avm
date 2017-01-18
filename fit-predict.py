@@ -62,6 +62,7 @@ from Features import Features
 import HPs
 import layout_transactions
 from Logger import Logger
+from lower_priority import lower_priority
 from Month import Month
 from Path import Path
 from Timer import Timer
@@ -317,6 +318,9 @@ def do_work(control):
         )
         print 'read %d samples from file %s' % (len(df), path)
         return df
+
+    # reduce process priority, to try to keep the system responsible
+    lower_priority()
 
     with open(control.path_out_feature_names, 'w') as f:
         feature_names = Features().ege_names('swpn')
