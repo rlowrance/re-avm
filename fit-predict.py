@@ -200,6 +200,7 @@ def fit_en(X, y, hps, random_seed):
 
 def fit_gb(X, y, hps, random_seed):
     'return fitted GradientBoostingRegressor model'
+    pdb.set_trace()
     assert len(hps) == 7
     model = sklearn.ensemble.GradientBoostingRegressor(
         learning_rate=hps['learning_rate'],
