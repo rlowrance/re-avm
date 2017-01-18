@@ -88,7 +88,7 @@ def mapper(mapper_arg):
         #  /WAIT         wait for app to terminate
         #  /B            start app without opening a new command window
         # NOTE: this approach seems to start 2 processes, which is 1 too many
-        command = 'START "%s" /LOW /WAIT /B %s' % (invocation_args, invocation)
+        command = 'START "%s" /BELOWNORMAL /WAIT /B %s' % (invocation_args, invocation)
         print 'nt:', command
         return_code = subprocess.call(command, shell=True)
     elif os.name == 'posix':
