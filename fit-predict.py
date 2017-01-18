@@ -24,7 +24,7 @@ OUTPUTS
   WORKING/fit[-test]/{training-data}-{neighborhood}-{model}-{prediction_month}/transaction_ids.pickle
    A list of TransactionId(apn, date) of the query transactions
  WORKING/fit[-test]/{training-data}-{neighborhood}-{model}-{prediction_month}/actuals.pickle
-   A numpy 1D array with the actual prices
+   A numpy 1D array with the actual prices, parallel to the transaction_ids
 
  WORKING/fit[-test]/{training_data}-{neighborhood}-{model}-{prediction_month}/{hps}.pickle
    A dictionary represents successful fitting and prediction. It has these keys:
@@ -259,7 +259,7 @@ def make_n_hps(model):
 
 
 def fit_and_predict(training_samples, query_samples, hps, control):
-    'return (actuals, predictions, attributes, n_training_samples)'
+    'return (predictions, attributes, n_training_samples)'
     def X_y(df):
         return Features().extract_and_transform(df, hps['units_X'], hps['units_y'])
 
@@ -291,7 +291,7 @@ def fit_and_predict(training_samples, query_samples, hps, control):
         {'feature_importances_': fitted.feature_importances_}
     )
     predictions = fitted.predict(X_query)
-    return actuals, predictions, attributes, len(relevant_training_samples)
+    return predictions, attributes, len(relevant_training_samples)
 
 
 def do_work(control):
@@ -327,9 +327,11 @@ def do_work(control):
     with open(control.path_out_transaction_ids, 'w') as f:
         transaction_ids = make_transaction_ids(query_samples)
         pickle.dump(transaction_ids, f)
+    with open(control.path_out_actuals, 'w') as f:
+        X, actuals = Features().extract_and_transform(query_samples, 'natural', 'natural')
+        pickle.dump(actuals, f)
 
     count_fitted = 0
-    actuals_common = None
     n_hps = make_n_hps(control.arg.model)
     for hps in HPs.iter_hps_model(control.arg.model):
         count_fitted += 1
@@ -340,7 +342,7 @@ def do_work(control):
             print 'skipped as exists: %s' % hp_path
         else:
             try:
-                actuals, predictions, fitted_attributes, n_training_samples = fit_and_predict(
+                predictions, fitted_attributes, n_training_samples = fit_and_predict(
                     training_samples,
                     query_samples,
                     hps, control,
@@ -350,7 +352,7 @@ def do_work(control):
                         {'predictions': predictions, 'fitted_attributes': fitted_attributes},
                         f,
                     )
-                print 'fitt-predict #%4d/%4d on:%6d in: %6.2f %s %s %s %s hps: %s ' % (
+                print 'fit-predict #%4d/%4d on:%6d in: %6.2f %s %s %s %s hps: %s ' % (
                     count_fitted,
                     n_hps,
                     n_training_samples,
@@ -361,13 +363,6 @@ def do_work(control):
                     control.arg.prediction_month,
                     hps_str,
                 )
-                if actuals_common is None:
-                    with open(control.path_out_actuals, 'w') as f:
-                        pickle.dump(actuals, f)
-                else:
-                    pdb.set_trace()
-                    assert (actuals_common == actuals).all()
-                    actuals_common = actuals
             except Exception as e:
                 print 'exception: %s' % e
                 pdb.set_trace()
