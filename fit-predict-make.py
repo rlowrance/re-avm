@@ -79,7 +79,9 @@ def mapper(mapper_arg):
         mapper_arg.prediction_month)
     invocation = 'python fit-predict.py ' + invocation_args
     print 'invocation', invocation
-    if os.name == 'nt':
+    if mapper_arg.test:
+        return_code = 0
+    elif os.name == 'nt':
         # options:
         #  /BELOWNORMAL  use BELOWNORMAL priority class
         #  /LOW          use IDLE priority class
@@ -87,20 +89,17 @@ def mapper(mapper_arg):
         #  /B            start app without opening a new command window
         # NOTE: this approach seems to start 2 processes, which is 1 too many
         command = 'START "%s" /LOW /WAIT /B %s' % (invocation_args, invocation)
+        print 'nt:', command
+        return_code = subprocess.call(command, shell=True)
     elif os.name == 'posix':
         command = "nice 18 " + invocation  # set very low priority (19 is lowest)
+        command_list = command.split(' ')
+        print 'posix:', command_list
+        return_code = subprocess.call(command_list)
     else:
         msg = 'unexpected os.name: ', os.name
         print msg
         raise RuntimeError(msg)
-    print 'mapper', command
-    if False:
-        return_code = (
-            0 if mapper_arg.test else
-            subprocess.call(invocation)  # fit and predict for all HPs
-        )
-    else:
-        return_code = subprocess.call(invocation)
     return MapResult(
         mapper_arg=mapper_arg,
         error_level=return_code,
@@ -144,7 +143,7 @@ def do_work(control):
         mapper_arg
     )
     print 'mapper_arg'
-    print mapper_arg
+    pprint(mapper_arg)
 
     mapped = pool.map(mapper, mapper_arg)
     print mapped
