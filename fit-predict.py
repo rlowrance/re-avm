@@ -26,17 +26,15 @@ OUTPUTS
  WORKING/fit[-test]/{training-data}-{neighborhood}-{model}-{prediction_month}/actuals.pickle
    A numpy 1D array with the actual prices, parallel to the transaction_ids
 
- WORKING/fit[-test]/{training_data}-{neighborhood}-{model}-{prediction_month}/{hps}.pickle
-   A dictionary represents successful fitting and prediction. It has these keys:
-     'predictions': numpy 1D array (or pd.Series) of predicted values for all samples in samples2
+ WORKING/fit[-test]/{training_data}-{neighborhood}-{model}-{prediction_month}/predictions-attributes.pickle
+   A file with pickled tuples (hps_str, predictions: vector, fitted_attribues: dict) or
+                              (hps_str, error: str)
+   for transactions in the {prediction_month}
+   where
      'fitted_attributes': dict of fitted attributes
          for en: 'coef_', 'interecept_'
          for gb: 'feature_importances_'
-   A string represents that an exception occured. It is the text of the exception message.
-
-where
-
- {hps} is a str containing all the hyperparameters
+      A string represents that an exception occured. It is the text of the exception message.
 '''
 
 from __future__ import division
@@ -95,7 +93,7 @@ def make_control(argv):
     parser.add_argument('--trace', action='store_true')
     parser.add_argument('--dry', action='store_true')     # don't write output
     arg = parser.parse_args(argv)
-    arg.me = arg.invocation.split('.')[0]
+    arg.me = arg.invocation.split('.')[0] + '-v2'
 
     if arg.trace:
         pdb.set_trace()
@@ -118,6 +116,7 @@ def make_control(argv):
         path_in_training_samples=os.path.join(dir_working, 'samples2', arg.training_data + '.csv'),
         path_out_actuals=os.path.join(path_out_dir, 'actuals.pickle'),
         path_out_transaction_ids=os.path.join(path_out_dir, 'transaction_ids.pickle'),
+        path_out_predictions_attributes=os.path.join(path_out_dir, "predictions-attributes.pickle"),
         path_out_dir=path_out_dir,
         path_out_feature_names=os.path.join(path_out_dir, 'feature_names.pickle'),
         path_out_log=os.path.join(path_out_dir, '0log.txt'),
@@ -312,14 +311,39 @@ def do_work(control):
     def read_csv(path):
         df = pd.read_csv(
             path,
-            nrows=10 if control.arg.test else None,
+            nrows=100 if control.arg.test else None,
             usecols=None,  # TODO: change to columns we actually use
             low_memory=False
         )
         print 'read %d samples from file %s' % (len(df), path)
         return df
 
-    # reduce process priority, to try to keep the system responsible
+    def in_prediction_month(query_samples, prediction_YYYYMM):
+        'return DataFrame of sample in the month we are predicting'
+        def splitYYYYMMDD(dates):
+            year_factor = 10000.0
+            years = (dates / year_factor).astype('int64')
+            month_factor = 100.0
+            months = ((dates - years * year_factor) / month_factor).astype('int64')
+            return years, months
+
+        def splitYYYYMM(date_str):
+            date = int(date_str)
+            year_factor = 100.0
+            year = int(date / year_factor)
+            month = int(date - year * year_factor)
+            return year, month
+
+        sale_dates = query_samples[layout_transactions.sale_date]
+        query_years, query_months = splitYYYYMMDD(sale_dates)
+        prediction_year, prediction_month = splitYYYYMM(prediction_YYYYMM)
+        mask_year = query_years == prediction_year
+        mask_month = query_months == prediction_month
+        mask = mask_year & mask_month
+        result = query_samples.loc[mask]
+        return result
+
+    # reduce process priority, to try to keep the system responsive
     lower_priority()
 
     with open(control.path_out_feature_names, 'w') as f:
@@ -328,7 +352,13 @@ def do_work(control):
 
     training_samples = read_csv(control.path_in_training_samples)
 
-    query_samples = read_csv(control.path_in_query_samples)
+    query_samples_all = read_csv(control.path_in_query_samples)
+    query_samples = in_prediction_month(query_samples_all, control.arg.prediction_month)
+    print 'read %s query samples of which %d are in the prediction month %s' % (
+        len(query_samples_all),
+        len(query_samples),
+        control.arg.prediction_month,
+    )
     with open(control.path_out_transaction_ids, 'w') as f:
         transaction_ids = make_transaction_ids(query_samples)
         pickle.dump(transaction_ids, f)
@@ -338,25 +368,39 @@ def do_work(control):
 
     count_fitted = 0
     n_hps = make_n_hps(control.arg.model)
-    for hps in HPs.iter_hps_model(control.arg.model):
-        count_fitted += 1
-        start_time = time.clock()  # wall clock time on Windows, processor time on Unix
-        hps_str = HPs.to_str(hps)
-        hp_path = os.path.join(control.path_out_dir, hps_str + ".pickle")
-        if os.path.exists(hp_path):
-            print 'skipped as exists: %s' % hp_path
-        else:
+
+    # determine hps we have already fitted and predicted
+    already_seen = set()
+    if os.path.exists(control.path_out_predictions_attributes):
+        with open(control.path_out_predictions_attributes, 'r') as f:
+            unpickler = pickle.Unpickler(f)
+            try:
+                while True:
+                    hps_str, predictions, fitted_attributes = unpickler.load()
+                    print 'existing', hps_str
+                    already_seen.add(hps_str)
+            except EOFError as e:
+                pass
+    print 'have already seen %d hps_str values' % len(already_seen)
+
+    # fit and predict HPs that we have not already seen
+    with open(control.path_out_predictions_attributes, 'w') as results_file:
+        pickler = pickle.Pickler(results_file)
+        for hps in HPs.iter_hps_model(control.arg.model):
+            count_fitted += 1
+            start_time = time.clock()  # wall clock time on Windows, processor time on Unix
+            hps_str = HPs.to_str(hps)
+            if hps_str in already_seen:
+                print 'skipping already seen: %s' % hps_str
+                continue
             try:
                 predictions, fitted_attributes, n_training_samples = fit_and_predict(
                     training_samples,
                     query_samples,
                     hps, control,
                 )
-                with open(hp_path, 'w') as f:
-                    pickle.dump(
-                        {'predictions': predictions, 'fitted_attributes': fitted_attributes},
-                        f,
-                    )
+                pickler.dump((hps_str, predictions, fitted_attributes))
+                pickler.clear_memo()  # don't build up a large data structure
                 print 'fit-predict #%4d/%4d on:%6d in: %6.2f %s %s %s %s hps: %s ' % (
                     count_fitted,
                     n_hps,
@@ -371,22 +415,13 @@ def do_work(control):
             except Exception as e:
                 print 'exception: %s' % e
                 pdb.set_trace()
-                with (hp_path, 'w') as f:
-                    pickle.dump(
-                        'error in fit_and_predict: %s' % e,
-                        f,
-                    )
+                pickler.dump((hps_str, e))
 
-        # gc.set_debug(gc.DEBUG_STATS + gc.DEBUG_UNCOLLECTABLE)
-        # collect to get memory usage stable
-        # this enables multiprocessing
-        unreachable = gc.collect()
-        if False and unreachable != 0:
-            print 'gc reports %d unreachable objects' % unreachable
-            pdb.set_trace()
-        if control.arg.test and count_fitted == 5:
-            print 'breaking because we are testing'
-            break
+            # collect to get memory usage stable, so that we can run this program many time in parallel
+            gc.collect()
+            if control.arg.test and count_fitted == 5:
+                print 'breaking because we are testing'
+                break
 
 
 def main(argv):
