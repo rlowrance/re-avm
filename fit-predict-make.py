@@ -94,7 +94,7 @@ def mapper(mapper_arg):
         # return_code = subprocess.call(command_list, shell=True)
         return_code = subprocess.call(invocation)  # it lowers its own priority
     elif os.name == 'posix':
-        command = "nice 18 " + invocation  # set very low priority (19 is lowest)
+        command = invocation 
         command_list = command.split(' ')
         print 'posix:', command_list
         return_code = subprocess.call(command_list)
@@ -123,7 +123,6 @@ def reducer(map_result_list):
 
 
 def do_work(control):
-    pdb.set_trace()
     pool = mp.Pool(processes=control.arg.n_processes)
 
     prediction_months = [
