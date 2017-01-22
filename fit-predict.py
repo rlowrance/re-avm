@@ -54,6 +54,7 @@ import sklearn.linear_model
 import sys
 import time
 
+import arg_type
 from Bunch import Bunch
 import dirutility
 from Features import Features
@@ -69,26 +70,14 @@ from TransactionId import TransactionId
 
 def make_control(argv):
     'return a Bunch'
-    def neighborhood_type(s):
-        return (
-            s if s == 'global' else
-            s.replace('_', ' ')
-        )
-
-    def month_type(s):
-        try:
-            Month(s)
-            return s
-        except:
-            raise argparse.ArgumentTypeError('%s is not a valid month (YYYYMM)' % s)
 
     print argv
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
-    parser.add_argument('training_data', choices=['all', 'train'])
-    parser.add_argument('neighborhood', type=neighborhood_type)
+    parser.add_argument('training_data', type=arg_type.training_data)
+    parser.add_argument('neighborhood', type=arg_type.neighborhood)
     parser.add_argument('model', choices=['en', 'gb', 'rf'])
-    parser.add_argument('prediction_month', type=month_type)
+    parser.add_argument('prediction_month', type=arg_type.month)
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--trace', action='store_true')
     parser.add_argument('--dry', action='store_true')     # don't write output
@@ -200,7 +189,6 @@ def fit_en(X, y, hps, random_seed):
 
 def fit_gb(X, y, hps, random_seed):
     'return fitted GradientBoostingRegressor model'
-    pdb.set_trace()
     assert len(hps) == 7
     model = sklearn.ensemble.GradientBoostingRegressor(
         learning_rate=hps['learning_rate'],
