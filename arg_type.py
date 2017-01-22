@@ -1,4 +1,4 @@
-'''type verifies for argparse
+'''type verifiers for argparse
 
 each function either
 - returns an argument parsed from a string (possible the string); OR
@@ -6,6 +6,7 @@ each function either
 '''
 
 import argparse
+import multiprocessing
 import pdb
 
 if False:
@@ -14,12 +15,7 @@ if False:
 
 def features(s):
     's is a name for a group of features'
-    allowed = ('s', 'sw', 'swp', 'swpn')
-    try:
-        assert s in allowed
-        return s
-    except:
-        raise argparse.ArgumentTypeError('%s is not one of %s' % (s, allowed))
+    return _in_set(s, set('s', 'sw', 'swp', 'swpn'))
 
 
 def features_hps(s):
@@ -85,21 +81,24 @@ def features_hps_locality_month(s):
 
 def hps(s):
     's is the name of a group of hyperparameters'
-    allowed = ('all', 'best1')
-    try:
-        assert s in allowed, s
-        return s
-    except:
-        raise argparse.ArgumentTypeError('%s is not one of %s' % (s, allowed))
+    return in_set(s, set('all', 'best1'))
 
 
-def locality(s):
-    allowed = ('census', 'city', 'global', 'zip')
+def _in_set(s, allowed):
+    'return s or raise ArgumentTypeError'
     try:
         assert s in allowed
         return s
     except:
-        raise argparse.ArgumentTYpeError('%s is not one of %s', (s, allowed))
+        raise argparse.ArgumentTypeError('s not in allowed values {%s}' (s, allowed))
+
+
+def locality_choices(s):
+    return set(['census', 'city', 'global', 'zip'])
+
+
+def model_choices(s):
+    return set(['en', 'gb', 'rf'])
 
 
 def month(s):
@@ -113,14 +112,37 @@ def month(s):
         assert 1 <= int_month <= 12
         return s
     except:
-        raise argparse.ArgumentTypeError('%s is not a yearmonth' % s)
+        raise argparse.ArgumentTypeError('%s is not a yearmonth of form YYYYMM' % s)
+
+
+def neighborhood(s):
+    's is global or a city name'
+    # if a city name, replace _ by ' '
+    return (
+        s if s == 'global' else
+        s.replace('_', ' ')
+    )
+
+
+def n_processes(s):
+    cpu_count = multiprocessing.cpu_count()
+    try:
+        result = int(s)
+        assert 1 <= result <= cpu_count
+        return result
+    except:
+        raise argparse.ArgumentTypeError('%s not an itteger in [1,%d]' % (s, cpu_count))
 
 
 def positive_int(s):
-    'convert s to a positive integer'
+    'convert s to a positive integer or raise exception'
     try:
         value = int(s)
         assert value > 0
         return value
     except:
         raise argparse.ArgumentTypeError('%s is not a positive integer' % s)
+
+
+def training_data_choices():
+    return set(['all', 'train'])
