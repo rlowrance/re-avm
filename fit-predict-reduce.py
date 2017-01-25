@@ -86,11 +86,10 @@ def make_control(argv):
     random.seed(random_seed)
 
     dir_working = Path().dir_working()
-    dir_out = os.path.join(
-        dir_working,
-        arg.me,
-        '%s-%s-%s' % (arg.training_data, arg.neighborhood, arg.model) + '-test' if arg.test else '',
-    )
+    dir_final = '%s-%s-%s' % (arg.training_data, arg.neighborhood, arg.model)
+    if arg.test:
+        final_dir += '-test'
+    dir_out = os.path.join(dir_working, arg.me, dir_final)
     dirutility.assure_exists(dir_out)
 
     return Bunch(
@@ -99,9 +98,9 @@ def make_control(argv):
         path_in_dir_fit_predict=os.path.join(dir_working, 'fit-predict-v2', ''),  # TODO: remove v2
         path_in_query_samples_all=os.path.join(dir_working, 'samples2', 'all.csv'),
         path_in_query_samples_train=os.path.join(dir_working, 'samples2', 'train.csv'),
-        path_out_csv=os.path.join(dir_out, 'reduction.csv'),
+        # path_out_csv=os.path.join(dir_out, 'reduction.csv'),
         path_out_dir=dir_out,
-        path_out_fitted_attributes=os.path.join(dir_out, 'fitted-attributes.pickle'),
+        # path_out_fitted_attributes=os.path.join(dir_out, 'fitted-attributes.pickle'),
         path_out_log=os.path.join(dir_out, '0log.txt'),
         random_seed=random_seed,
         timer=Timer(),
@@ -346,7 +345,6 @@ def do_work(control):
         if dirname_model(dirname) == control.arg.model
     ]
     print 'will process %d dirnames in %d processes' % (len(worker_args), control.arg.n_processes)
-    pdb.set_trace()
     # mapped_results is a list of results from the mapper
     mapped_results = (
         [mapper(worker_args[0])] if control.arg.testmapper else
