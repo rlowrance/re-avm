@@ -97,8 +97,7 @@ def locality_choices(s):
     return set(['census', 'city', 'global', 'zip'])
 
 
-def model_choices(s):
-    return set(['en', 'gb', 'rf'])
+model_choices = set(['en', 'gb', 'rf'])
 
 
 def month(s):
@@ -118,13 +117,14 @@ def month(s):
 def neighborhood(s):
     's is global or a city name'
     # if a city name, replace _ by ' '
-    return (
-        s if s == 'global' else
-        s.replace('_', ' ')
-    )
+    if s == 'global':
+        return s
+    else:
+        return s.replace('_', ' ')
 
 
 def n_processes(s):
+    'return int value of s, if it is valid for system we are running on'
     cpu_count = multiprocessing.cpu_count()
     try:
         result = int(s)
@@ -144,5 +144,4 @@ def positive_int(s):
         raise argparse.ArgumentTypeError('%s is not a positive integer' % s)
 
 
-def training_data_choices():
-    return set(['all', 'train'])
+training_data_choices = set(['all', 'train'])
