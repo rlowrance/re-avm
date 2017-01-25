@@ -1,7 +1,7 @@
 '''reduce all the fit-predict output into a single large CSV file with all predictions
 
 INVOCATION
-  python fit-predict-reduce.py trainin_data n_processes [--test] [--trace] [--cache] [--testmapper]
+  python fit-predict-reduce.py trainin_data  training_data neighborhood model n_processes [--test] [--trace] [--cache] [--testmapper]
 
 where
  n_processes is the number of CPUs to alloccate
@@ -27,6 +27,9 @@ OUTPUTS
    model_neighborhood
    price_actual price_predicted
    model_coef model_intercept model_importances
+
+OPERATIONAL NOTES:
+- Running on 16 processes uses about 25 GB RAM on Windows 10.
 '''
 
 from __future__ import division
@@ -64,8 +67,8 @@ def make_control(argv):
     print argv
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
-    parser.add_argument('training_data', choices=arg_type.training_data_choices())
-    parser.add_argument('neighborhood', type=arg_type.neigborhood)
+    parser.add_argument('training_data', choices=arg_type.training_data_choices)
+    parser.add_argument('neighborhood', type=arg_type.neighborhood)
     parser.add_argument('model', choices=arg_type.model_choices)
     parser.add_argument('n_processes', type=arg_type.n_processes)
     parser.add_argument('--cache', action='store_true')
@@ -83,9 +86,10 @@ def make_control(argv):
     random.seed(random_seed)
 
     dir_working = Path().dir_working()
-    dir_out = (
-        os.path.join(dir_working, arg.me + '-test') if arg.test else
-        os.path.join(dir_working, arg.me)
+    dir_out = os.path.join(
+        dir_working,
+        arg.me,
+        '%s-%s-%s' % (arg.training_data, arg.neighborhood, arg.model) + '-test' if arg.test else '',
     )
     dirutility.assure_exists(dir_out)
 
@@ -289,7 +293,6 @@ def do_work(control):
     def make_testing_training_sets(control):
         all = transaction_id_set(control.path_in_query_samples_all)
         train = transaction_id_set(control.path_in_query_samples_train)
-        pdb.set_trace()
         query_in_testing_set = set()
         query_in_training_set = set()
         for query in all:
@@ -300,15 +303,15 @@ def do_work(control):
         return query_in_testing_set, query_in_training_set
 
     def dirname_training_data(dirname):
-        training_data, neighbhood, model, prediction_month = dirname.split('-')
+        training_data, neighborhood, model, prediction_month = dirname.split('-')
         return training_data
 
     def dirname_neighborhood(dirname):
-        training_data, neighbhood, model, prediction_month = dirname.split('-')
-        return nieghborhood
+        training_data, neighborhood, model, prediction_month = dirname.split('-')
+        return neighborhood
 
-    def dirname_training_data(dirname):
-        training_data, neighbhood, model, prediction_month = dirname.split('-')
+    def dirname_model(dirname):
+        training_data, neighborhood, model, prediction_month = dirname.split('-')
         return model
 
     # BODY STARTS HERE
@@ -328,7 +331,6 @@ def do_work(control):
 
     # create DataFrame in subprocess for each input directory in dirnames below
     dirpath, dirnames, filenames = next(os.walk(control.path_in_dir_fit_predict))
-    print 'will process %d dirnames in %d processes' % (len(dirnames), control.arg.n_processes)
     pool = multiprocessing.Pool(control.arg.n_processes)
     worker_args = [
         MapperArg(
@@ -343,7 +345,7 @@ def do_work(control):
         if dirname_neighborhood(dirname) == control.arg.neighborhood
         if dirname_model(dirname) == control.arg.model
     ]
-    print 'len(worker_args):', len(worker_args)
+    print 'will process %d dirnames in %d processes' % (len(worker_args), control.arg.n_processes)
     pdb.set_trace()
     # mapped_results is a list of results from the mapper
     mapped_results = (
