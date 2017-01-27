@@ -54,7 +54,7 @@ class ColumnsTable(object):
         self._verbose = verbose
         self._header()
 
-    def append_legend(self):
+    def append_legend(self, prefix_width=20):
         def cat_headers(headers):
             text = ''
             for header in headers:
@@ -67,7 +67,8 @@ class ColumnsTable(object):
         self.append_line('column legend:')
         for cd in self._columns:
             # TODO: replace fix width below with value detemined from column headings
-            line = '%20s -> %s' % (cat_headers(cd.headers), cd.legend)
+            format = '%%%ds -> %%s' % prefix_width
+            line = format % (cat_headers(cd.headers), cd.legend)
             self.append_line(line)
 
     def iterlines(self):
