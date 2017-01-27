@@ -29,7 +29,8 @@ OUTPUTS
    model_coef model_intercept model_importances
 
 OPERATIONAL NOTES:
-- Running on 16 processes uses about 25 GB RAM on Windows 10.
+- Running train global en on 16 processes uses about 25 GB RAM on Windows 10
+- Running train global rf on 16 processes uses about 28 GB RAM on Windows 10
 '''
 
 from __future__ import division
