@@ -145,3 +145,13 @@ def positive_int(s):
 
 
 training_data_choices = set(['all', 'train'])
+
+
+def year(s):
+    'convert s to integer that could be a year'
+    try:
+        assert len(s) == 4
+        value = int(s)
+        return value
+    except:
+        raise argparse.ArgumentTypeError('%s is not a year' % s)
