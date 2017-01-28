@@ -1,7 +1,7 @@
 '''reduce all the fit-predict output into a single large CSV file with all predictions
 
 INVOCATION
-  python fit-predict-reduce.py trainin_data  training_data neighborhood model n_processes [--test] [--trace] [--cache] [--testmapper]
+  python fit-predict-reduce.py training_data neighborhood model n_processes [--test] [--trace] [--cache] [--testmapper]
 
 where
  n_processes is the number of CPUs to alloccate
