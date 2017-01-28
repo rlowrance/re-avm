@@ -56,7 +56,6 @@ import HPs
 import layout_transactions
 from Logger import Logger
 from lower_priority import lower_priority
-from Month import Month
 from Path import Path
 from Timer import Timer
 from TransactionId import TransactionId
@@ -143,8 +142,8 @@ def mapper(mapper_arg):
         pdb.set_trace()
         return False
 
-    def make_rows(actuals, dirname, hps_str, predictions, transaction_ids):
-        'for now, return pd.DataFrame; later return several DataFrames'
+    def make_rows(dirname, hps_str, predictions, transaction_ids):
+        'for now, return pd.DataFrame containing the predictions; later return several DataFrames'
         def in_prediction_month(sale_date, prediction_month):
             factor_year = 10000.0
             factor_month = 100.0
@@ -152,64 +151,27 @@ def mapper(mapper_arg):
             sale_date_month = int((sale_date - sale_date_year * factor_year) / factor_month)
             return sale_date_year == prediction_month.year and sale_date_month == prediction_month.month
 
-        debug = False
         assert len(actuals) == len(predictions)
         assert len(actuals) == len(transaction_ids)
         print 'making %d rows dirname %s hps %s' % (len(actuals), dirname, hps_str)
         training_data, neighborhood, model, prediction_month_str = dirname.split('-')
-        prediction_month = Month(prediction_month_str)
         hps = HPs.from_str(hps_str)
         if False:
             hps  # use variable
+        apns = [transaction_id.apn for transaction_id in transaction_ids]
+        sale_dates = [transaction_id.sale_date for transaction_id in transaction_ids]
         result2 = pd.DataFrame(
             data={
-                'transaction_id': transaction_ids,
-                'dirname': dirname * len(transaction_ids),
-                'hps_str': hps_str * len(transaction_ids),
-                'actual': actuals,
+                # 'transaction_id': transaction_ids,
+                'apn': apns,
+                'sale_date': sale_dates,
+                'dirname': dirname,
+                'hps_str': hps_str,
                 'prediction': predictions,
             },
             index=range(len(transaction_ids))
         )
         return result2
-        # this row-by-row approach was my first attempt
-        # the code is dead and can be removed from the final version
-        result = pd.DataFrame()
-        for i in xrange(len(actuals)):
-            sale_date = transaction_ids[i].sale_date
-            assert in_prediction_month(sale_date, prediction_month), (sale_date, prediction_month)
-            # only write the minimum
-            row = {
-                # transaction ID
-                'transaction_id': transaction_ids[i],
-                # 'apn': transaction_ids[i].apn,
-                # 'sale_date': transaction_ids[i].sale_date,
-                # what model was trained
-                'dirname': dirname,
-                # 'training_data': training_data,
-                # 'neighborhood': neighborhood,
-                # 'model': model,
-                # 'prediction_month': prediction_month_str,
-                # hyperparameters for that model
-                'hps_str': hps_str,
-                # 'alpha': hps.get('alpha'),
-                # 'l1_ratio': hps.get('l1_ratio'),
-                # 'learning_rate': hps.get('learning_rate'),
-                # 'max_depth': hps.get('max_depth'),
-                # 'max_features': hps.get('max_features'),
-                # 'n_estimators': hps.get('n_estimators'),
-                # 'n_months_back': hps.get('n_months_back'),
-                # 'units_X': hps.get('units_X'),
-                # 'units_y': hps.get('units_y'),
-                # prices
-                'actual': actuals[i],
-                'predictions': predictions[i],
-            }
-            result = result.append(row, ignore_index=True)
-            if debug and len(result) > 10:
-                print 'truncated rows, since debugging'
-                break
-        return result
 
     # BODY STARTS HERE
     debug = False
@@ -248,7 +210,6 @@ def mapper(mapper_arg):
                     hps_str, predictions, fitted_attributes = obj
                     all_fitted_attributes[(mapper_arg.fitted_dirname, hps_str)] = fitted_attributes
                     rows = make_rows(
-                        actuals,
                         mapper_arg.fitted_dirname,
                         hps_str,
                         predictions,
