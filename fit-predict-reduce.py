@@ -89,7 +89,7 @@ def make_control(argv):
     dir_working = Path().dir_working()
     dir_final = '%s-%s-%s' % (arg.training_data, arg.neighborhood, arg.model)
     if arg.test:
-        final_dir += '-test'
+        dir_final += '-test'
     dir_out = os.path.join(dir_working, arg.me, dir_final)
     dirutility.assure_exists(dir_out)
 
@@ -110,12 +110,16 @@ def make_control(argv):
 
 MapperArg = collections.namedtuple(
     'MapperArg',
-    'in_dir out_path_actuals_predictions out_path_fitted_attributes fitted_dirname, test',
+    'in_dir dirname out_path_actuals_predictions out_path_fitted_attributes fitted_dirname, test',
     )
 MapperResult = collections.namedtuple(
     'MapperResult',
     'mapper_arg ok n_rows_written',
     )
+ActualPrediction = collections.namedtuple(
+    'ActualPrediction',
+    'actual prediction',
+)
 
 
 def mapper(mapper_arg):
@@ -155,32 +159,48 @@ def mapper(mapper_arg):
         training_data, neighborhood, model, prediction_month_str = dirname.split('-')
         prediction_month = Month(prediction_month_str)
         hps = HPs.from_str(hps_str)
+        if False:
+            hps  # use variable
+        result2 = pd.DataFrame(
+            data={
+                'transaction_id': transaction_ids,
+                'dirname': dirname * len(transaction_ids),
+                'hps_str': hps_str * len(transaction_ids),
+                'actual': actuals,
+                'prediction': predictions,
+            },
+            index=range(len(transaction_ids))
+        )
+        return result2
+        # this row-by-row approach was my first attempt
+        # the code is dead and can be removed from the final version
         result = pd.DataFrame()
         for i in xrange(len(actuals)):
             sale_date = transaction_ids[i].sale_date
             assert in_prediction_month(sale_date, prediction_month), (sale_date, prediction_month)
+            # only write the minimum
             row = {
                 # transaction ID
                 'transaction_id': transaction_ids[i],
-                'apn': transaction_ids[i].apn,
-                'sale_date': transaction_ids[i].sale_date,
+                # 'apn': transaction_ids[i].apn,
+                # 'sale_date': transaction_ids[i].sale_date,
                 # what model was trained
                 'dirname': dirname,
-                'training_data': training_data,
-                'neighborhood': neighborhood,
-                'model': model,
-                'prediction_month': prediction_month_str,
+                # 'training_data': training_data,
+                # 'neighborhood': neighborhood,
+                # 'model': model,
+                # 'prediction_month': prediction_month_str,
                 # hyperparameters for that model
                 'hps_str': hps_str,
-                'alpha': hps.get('alpha'),
-                'l1_ratio': hps.get('l1_ratio'),
-                'learning_rate': hps.get('learning_rate'),
-                'max_depth': hps.get('max_depth'),
-                'max_features': hps.get('max_features'),
-                'n_estimators': hps.get('n_estimators'),
-                'n_months_back': hps.get('n_months_back'),
-                'units_X': hps.get('units_X'),
-                'units_y': hps.get('units_y'),
+                # 'alpha': hps.get('alpha'),
+                # 'l1_ratio': hps.get('l1_ratio'),
+                # 'learning_rate': hps.get('learning_rate'),
+                # 'max_depth': hps.get('max_depth'),
+                # 'max_features': hps.get('max_features'),
+                # 'n_estimators': hps.get('n_estimators'),
+                # 'n_months_back': hps.get('n_months_back'),
+                # 'units_X': hps.get('units_X'),
+                # 'units_y': hps.get('units_y'),
                 # prices
                 'actual': actuals[i],
                 'predictions': predictions[i],
@@ -234,7 +254,6 @@ def mapper(mapper_arg):
                         predictions,
                         transaction_ids,
                     )
-                    # print 'added %d rows from %s' % (len(rows), path)
                     result = result.append(rows, ignore_index=True)
                     records_processed += 1
                     gc.collect()
@@ -249,9 +268,10 @@ def mapper(mapper_arg):
         mapper_arg,
     )
     # write files
-    result.to_csv(mapper_arg.out_path_actuals_predictions)
+    result.to_csv(mapper_arg.out_path_actuals_predictions + '.csv')
     with open(mapper_arg.out_path_fitted_attributes, 'w') as f:
         pickle.dump(all_fitted_attributes, f)
+
     return MapperResult(
         mapper_arg=mapper_arg,
         ok=True,
@@ -335,7 +355,8 @@ def do_work(control):
     worker_args = [
         MapperArg(
             in_dir=os.path.join(dirpath, dirname),
-            out_path_actuals_predictions=os.path.join(control.path_out_dir, dirname + '-actuals-predictions.csv'),
+            dirname=dirname,
+            out_path_actuals_predictions=os.path.join(control.path_out_dir, dirname + '-actuals-predictions'),
             out_path_fitted_attributes=os.path.join(control.path_out_dir, dirname + '-fitted-attributes.pickle'),
             fitted_dirname=dirname,
             test=control.arg.test
