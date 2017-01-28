@@ -74,9 +74,9 @@ def make_control(argv):
     print argv
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
-    parser.add_argument('training_data', type=arg_type.training_data)
+    parser.add_argument('training_data', choices=arg_type.training_data_choices)
     parser.add_argument('neighborhood', type=arg_type.neighborhood)
-    parser.add_argument('model', choices=['en', 'gb', 'rf'])
+    parser.add_argument('model', choices=arg_type.model_choices)
     parser.add_argument('prediction_month', type=arg_type.month)
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--trace', action='store_true')
