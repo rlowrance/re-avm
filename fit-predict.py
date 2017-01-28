@@ -19,14 +19,14 @@ INPUTS
 
 OUTPUTS
 
-  WORKING/fit[-test]/{training-data}-{neighborhood}-{model}-{prediction_month}/feature_names.pickle
+  WORKING/fit-predict[-test]/{training-data}-{neighborhood}-{model}-{prediction_month}/feature_names.pickle
    A tuple with X feature names in order (use to decode the fitted_attributes)
-  WORKING/fit[-test]/{training-data}-{neighborhood}-{model}-{prediction_month}/transaction_ids.pickle
+  WORKING/fit-predict[-test]/{training-data}-{neighborhood}-{model}-{prediction_month}/transaction_ids.pickle
    A list of TransactionId(apn, date) of the query transactions
- WORKING/fit[-test]/{training-data}-{neighborhood}-{model}-{prediction_month}/actuals.pickle
+ WORKING/fit-predict[-test]/{training-data}-{neighborhood}-{model}-{prediction_month}/actuals.pickle
    A numpy 1D array with the actual prices, parallel to the transaction_ids
 
- WORKING/fit[-test]/{training_data}-{neighborhood}-{model}-{prediction_month}/predictions-attributes.pickle
+ WORKING/fit-predict[-test]/{training_data}-{neighborhood}-{model}-{prediction_month}/predictions-attributes.pickle
    A file with pickled tuples (hps_str, predictions: vector, fitted_attribues: dict) or
                               (hps_str, error: str)
    for transactions in the {prediction_month}
