@@ -81,7 +81,7 @@ def features_hps_locality_month(s):
 
 def hps(s):
     's is the name of a group of hyperparameters'
-    return in_set(s, set('all', 'best1'))
+    return s in set('all', 'best1')
 
 
 def _in_set(s, allowed):
@@ -92,10 +92,7 @@ def _in_set(s, allowed):
     except:
         raise argparse.ArgumentTypeError('s not in allowed values {%s}' (s, allowed))
 
-
-def locality_choices(s):
-    return set(['census', 'city', 'global', 'zip'])
-
+locality_choices = set(['census', 'city', 'global', 'zip'])
 
 model_choices = set(['en', 'gb', 'rf'])
 
