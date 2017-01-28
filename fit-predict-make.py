@@ -35,7 +35,7 @@ def make_control(argv):
     print argv
     parser = argparse.ArgumentParser()
     parser.add_argument('invocation')
-    parser.add_argument('training_data', choices=['all', 'train'])
+    parser.add_argument('training_data', choices=arg_type.training_data_choices)
     parser.add_argument('neighborhood', type=arg_type.neighborhood)
     parser.add_argument('model', choices=['en', 'gb', 'rf'])
     parser.add_argument('n_processes', type=int)
@@ -44,7 +44,6 @@ def make_control(argv):
     parser.add_argument('--year', type=arg_type.year)
     arg = parser.parse_args(argv)
     arg.me = arg.invocation.split('.')[0]
-    pdb.set_trace()
 
     if arg.trace:
         pdb.set_trace()
@@ -128,7 +127,6 @@ def do_work(control):
         for year in years
         for month in ((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12) if year != 2009 else (1, 2, 3))
     ]
-    pdb.set_trace()
     print prediction_months
     mapper_arg = [
         MapperArg(
