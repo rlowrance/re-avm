@@ -8,8 +8,8 @@ where
  --cache means to cache the reading of the training and testing data from samples2
 
 EXAMPLES OF INVOCATIONS
- python fit-predict.py train-global en 200701   # fit on training data global en models and predict Jan 2007
- python fit-predict.py all-MALIBU gb 200903      # fit on train + test data using just MALIBU data
+ python fit-predict.py train global en 200701   # fit on training data global en models and predict Jan 2007
+ python fit-predict.py all MALIBU gb 200903     # fit on train + test data using just MALIBU data
 
 INPUTS
  WORKING/samples2/train.csv
@@ -66,7 +66,6 @@ def make_control(argv):
 
     print argv
     parser = argparse.ArgumentParser()
-    parser.add_argument('invocation')
     parser.add_argument('training_data', choices=arg_type.training_data_choices)
     parser.add_argument('neighborhood', type=arg_type.neighborhood)
     parser.add_argument('model', choices=arg_type.model_choices)
@@ -76,7 +75,7 @@ def make_control(argv):
     parser.add_argument('--testmapper', action='store_true')
     parser.add_argument('--trace', action='store_true')
     parser.add_argument('--dry', action='store_true')     # don't write output
-    arg = parser.parse_args(argv)
+    arg = parser.parse_args(argv[1:])
     arg.me = arg.invocation.split('.')[0]
 
     if arg.trace:
