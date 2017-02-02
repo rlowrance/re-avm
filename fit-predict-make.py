@@ -83,7 +83,7 @@ def mapper(mapper_arg):
         #  /LOW          use IDLE priority class
         #  /WAIT         wait for app to terminate
         #  /B            start app without opening a new command window
-        # NOTE: this approach seems to start 2 processes, which is 1 too many
+        # NOTE: this approach seems to start 2 processes
         command = 'START "%s" /BELOWNORMAL /B %s' % (invocation_args, invocation)
         command_list = command.split(' ')
         print 'nt:', invocation
