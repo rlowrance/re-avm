@@ -196,7 +196,7 @@ def fit_gb(X, y, hps, random_seed):
         max_depth=hps['max_depth'],
         max_features=hps['max_features'],
         random_state=random_seed,
-        # all these parameters are at the default value format skikit-learn version 0.18.1
+        # all these parameters are at the default value for skikit-learn version 0.18.1
         loss='ls',
         criterion='friedman_mse',
         min_samples_split=2,
@@ -222,7 +222,7 @@ def fit_rf(X, y, hps, random_seed):
         max_features=hps['max_features'],
         max_depth=hps['max_depth'],
         random_state=random_seed,
-        # all these parameters are at the default value format skikit-learn version 0.18.1
+        # all these parameters are at the default value for skikit-learn version 0.18.1
         criterion='mse',
         min_samples_split=2,
         min_samples_leaf=1,
