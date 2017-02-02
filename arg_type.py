@@ -7,6 +7,7 @@ each function either
 
 import argparse
 import multiprocessing
+import os
 import pdb
 
 if False:
@@ -120,6 +121,10 @@ def neighborhood(s):
         return s.replace('_', ' ')
 
 
+def n_cities(s):
+    return positive_int(s)
+
+
 def n_processes(s):
     'return int value of s, if it is valid for system we are running on'
     cpu_count = multiprocessing.cpu_count()
@@ -129,6 +134,25 @@ def n_processes(s):
         return result
     except:
         raise argparse.ArgumentTypeError('%s not an itteger in [1,%d]' % (s, cpu_count))
+
+
+def path_creatable(s):
+    'is is a path to a file that can be created'
+    try:
+        # I can't get the statement below to work
+        # assert os.access(s, os.W_OK)
+        return s
+    except:
+        raise argparse.ArgumentTypeError('%s is not a path to a creatable file' % s)
+
+
+def path_existing(s):
+    's is a path to an existing file or directory'
+    try:
+        assert os.path.exists(s)
+        return s
+    except:
+        raise argparse.ArgumentTypeError('%s is not a path to an existing file or dir' % s)
 
 
 def positive_int(s):
