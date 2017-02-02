@@ -1,0 +1,26 @@
+{
+    "city": {
+        "width": 30,
+        "format": "%30s",
+        "labels": ["city"],
+        "legend":"city name"
+    },
+    "median_price": {
+        "width": 7,
+        "format": "%7.0f",
+        "labels": ["median", "price"],
+        "legend":"median price"        
+    },
+    "n_trades": {
+        "width": 7,
+        "format": "%7.0f",
+        "labels": ["count", "trades"],
+        "legend":"count of trades in city"        
+    },
+    "selected": {
+        "width": 8,
+        "format": "%8s",
+        "labels": ["whether", "selected"],
+        "legend":"whether city was selected"        
+    }
+}
