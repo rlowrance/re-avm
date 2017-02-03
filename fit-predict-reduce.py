@@ -76,7 +76,7 @@ def make_control(argv):
     parser.add_argument('--trace', action='store_true')
     parser.add_argument('--dry', action='store_true')     # don't write output
     arg = parser.parse_args(argv[1:])
-    arg.me = arg.invocation.split('.')[0]
+    arg.me = parser.prog.split('.')[0]
 
     if arg.trace:
         pdb.set_trace()
