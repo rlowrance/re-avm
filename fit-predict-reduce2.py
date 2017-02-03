@@ -1,4 +1,4 @@
-'''reduce all the fit-predict output into a single large pickled file with all predictions
+'''reduce all the fit-predict output. Convert transaction_ids to have datetime.dates
 
 INVOCATION
   python fit-predict-reduce.py [--test] [--trace]
@@ -11,7 +11,8 @@ INPUTS
 
 OUTPUTS
  WORKING/fit-predict-reduce2/reduction.pickle: Dict[(date,apn), Dict[(fitted, hps_str), prediction]]
- WORKING/fit-predict-reduce2/no-data.pickle: Set[dirname]  # dirnames without any data (must be refitted)
+ WORKING/fit-predict-reduce2/reduction_2007.pickle: Dict[(date,apn), Dict[(fitted, hps_str), prediction]]
+ WORKING/fit-predict-reduce2/no_data.pickle: Set[dirname]  # dirnames without any data (must be refitted)
 
 OPERATIONAL NOTES:
  single threaded
@@ -20,32 +21,22 @@ OPERATIONAL NOTES:
 from __future__ import division
 
 import argparse
-import collections
 import cPickle as pickle
-import gc
-import math
-import multiprocessing
 import numpy as np
 import os
-import pandas as pd
 import pdb
 from pprint import pprint
 import random
 import sys
-import time
 
-import arg_type
 from Bunch import Bunch
-from Cache import Cache
 import dirutility
 from Fitted import Fitted
 import HPs
-import layout_transactions
 from Logger import Logger
-from lower_priority import lower_priority
+from Month import Month
 from Path import Path
 from Timer import Timer
-from TransactionId import TransactionId
 
 
 def make_control(argv):
@@ -71,9 +62,10 @@ def make_control(argv):
     return Bunch(
         arg=arg,
         path_in_dir=os.path.join(dir_working, 'fit-predict-v2'),
-        # path_out_csv=os.path.join(dir_out, 'reduction.csv'),
-        path_out_no_data=os.path.join(dir_out, 'no-data.pickle'),
+        path_out_no_data=os.path.join(dir_out, 'no_data.pickle'),
         path_out_reduction=os.path.join(dir_out, 'reduction.pickle'),
+        path_out_reduction_2007=os.path.join(dir_out, 'reduction_2007.pickle'),
+        path_out_reduction_200701=os.path.join(dir_out, 'reduction_200701.pickle'),
         path_out_log=os.path.join(dir_out, '0log.txt'),
         random_seed=random_seed,
         timer=Timer(),
@@ -88,17 +80,24 @@ def read_transaction_ids(dirpath, dirname):
     return tuple(reduction)
 
 
-def process_dirname(dirpath, dirname, reduction, no_data, test):
+def process_dirname(dirpath, dirname, reduction, reduction_2007, reduction_200701, no_data, test):
     'mutate result and no_data to include info in the transactions and predictions files in dirname'
     verbose = False
     if verbose:
         print dirname
-    training_data, neighborhood, model, month = dirname.split('-')
+    training_data, neighborhood, model, month_str = dirname.split('-')
     if model == 'gb':
         print 'for now, skipping gb', dirname
         return
+    month = Month(month_str)
+    in_2007 = month.year == 2007
+    in_200701 = month.year == 2007 and month.month == 1
     fitted = Fitted(training_data, neighborhood, model)
-    transaction_ids = read_transaction_ids(dirpath, dirname)
+    transaction_ids_raw = read_transaction_ids(dirpath, dirname)
+    transaction_ids = (
+        TransactionId.canonical(transaction_id)
+        for transaction_id in transaction_ids_raw
+    )
     path = os.path.join(dirpath, dirname, 'predictions-attributes.pickle')
     n_records_processed = 0
     with open(path, 'r') as f:
@@ -130,19 +129,35 @@ def process_dirname(dirpath, dirname, reduction, no_data, test):
         except ValueError as e:
             print '%s' % e
             no_data.add(dirname)
-    reduction[(fitted, transaction_ids)] = dirname_reduction
-    print dirname, n_records_processed, len(reduction), len(no_data)
+    reduction_key = (fitted, transaction_ids)
+    reduction[reduction_key] = dirname_reduction
+    if in_2007:
+        reduction_2007[reduction_key] = dirname_reduction
+    if in_200701:
+        reduction_200701[reduction_key] = dirname_reduction
+    print dirname, n_records_processed, len(reduction), len(reduction_2007), len(no_data)
 
 
 def do_work(control):
-    result = {}
+    reduction = {}
+    reduction_2007 = {}
+    reduction_200701 = {}
     no_data = set()
     for dirpath, dirnames, filenames in os.walk(control.path_in_dir):
         for dirname in dirnames:
-            process_dirname(dirpath, dirname, result, no_data, control.arg.test)
+            process_dirname(
+                dirpath, dirname,
+                reduction, reduction_2007, reduction_200701,
+                no_data,
+                control.arg.test,
+            )
     print 'writing output files'
     with open(control.path_out_reduction, 'w') as f:
-        pickle.dump(result, f)
+        pickle.dump(reduction, f)
+    with open(control.path_out_reduction_2007, 'w') as f:
+        pickle.dump(reduction_2007, f)
+    with open(control.path_out_reduction_200701, 'w') as f:
+        pickle.dump(reduction_200701, f)
     with open(control.path_out_no_data, 'w') as f:
         pickle.dump(no_data, f)
     print 'found %d dirnames without data (need to refit these models)' % len(no_data)
