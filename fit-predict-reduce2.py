@@ -37,6 +37,7 @@ from Logger import Logger
 from Month import Month
 from Path import Path
 from Timer import Timer
+import TransactionId
 
 
 def make_control(argv):
@@ -94,10 +95,11 @@ def process_dirname(dirpath, dirname, reduction, reduction_2007, reduction_20070
     in_200701 = month.year == 2007 and month.month == 1
     fitted = Fitted(training_data, neighborhood, model)
     transaction_ids_raw = read_transaction_ids(dirpath, dirname)
-    transaction_ids = (
-        TransactionId.canonical(transaction_id)
-        for transaction_id in transaction_ids_raw
-    )
+    transaction_ids_list = []
+    for transaction_id_raw in transaction_ids_raw:
+        canonical = TransactionId.canonical(transaction_id_raw)
+        transaction_ids_list.append(canonical)
+    transaction_ids = tuple(transaction_ids_list)
     path = os.path.join(dirpath, dirname, 'predictions-attributes.pickle')
     n_records_processed = 0
     with open(path, 'r') as f:
