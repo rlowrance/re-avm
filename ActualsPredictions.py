@@ -5,7 +5,6 @@ import pdb
 from pprint import pprint
 import unittest
 
-import Date
 import layout_transactions
 import Path
 
@@ -15,9 +14,9 @@ class ActualsPredictions(object):
     def __init__(self, training_data, test=False, just_200701=False):
         'setup'
         assert training_data in ('train', 'all')
-        self.actuals = ActualsPredictions._load_actuals(training_data, test)
-        self.predictions = ActualsPredictions._load_predictions(training_data, just_200701)
-        self.transaction_ids = ActualsPredictions._make_common_transaction_ids(
+        self.actuals = self._load_actuals(training_data, test)
+        self.predictions = self._load_predictions(training_data, just_200701)
+        self.transaction_ids = self._make_common_transaction_ids(
             self.actuals,
             self.predictions,
         )
@@ -26,49 +25,48 @@ class ActualsPredictions(object):
     def actuals_predictions(self, date_apn):
         'return Dict[(fitted, hps_str), (actuals: numpy.ndarray, predictions: numpy.ndarray)]'
 
-    @staticmethod
-    def _load_actuals(training_data, test):
+    def _load_actuals(self, training_data, test):
         'return Dict[(date: datetime.date, apn: int), price:float]'
         'return Dict[date: datetime.date, Dict[apn, price: float]]'
         path = os.path.join(Path.Path().dir_working(), 'samples2', training_data + '.csv')
-        csv = pd.read_csv(
-            path,
-            nrows=10000 if test else None,
-            usecols=[
-                layout_transactions.sale_date,
-                layout_transactions.apn,
-                layout_transactions.price,
-            ],
-            low_memory=False,
-        )
-
-        def to_datetime_date(x):
-            return Date.Date(x).as_datetime_date()
-
-        # dates = csv[layout_transactions.sale_date].apply(to_datetime_date)
-        dates = csv[layout_transactions.sale_date]
-        apns = csv[layout_transactions.apn]
-        prices = csv[layout_transactions.price]
-        result = {}
-        for i, date in enumerate(dates):
-            dt = Date.Date(date).as_datetime_date()
-            result[(dt, apns[i])] = prices[i]
+        if False:
+            # I could not get this code to work
+            # hence the workaround below
+            result = pd.read_csv(
+                path,
+                usecols=[layout_transactions.price],
+                low_memory=False,
+                index_col=0,  # the transaction_ids
+            )
+        else:
+            df = pd.read_csv(
+                path,
+                nrows=10000 if test else None,
+                usecols=[
+                    layout_transactions.transaction_id,
+                    layout_transactions.price,
+                ],
+                low_memory=False,
+            )
+            result = pd.DataFrame(
+                data={
+                    'price': df[layout_transactions.price].values,
+                },
+                index=df[layout_transactions.transaction_id]
+            )
         return result
 
-    @staticmethod
-    def _load_predictions(training_data, just_200701):
+    def _load_predictions(self, training_data, just_200701):
         'return Dict[date: datetime.date, Dict[apn, Dict[fitted, Dict[hps_str, predictions: numpy.ndarray]]]]'
         filename = 'reduction' + ('_200701' if just_200701 else '') + '.pickle'
+        pdb.set_trace()
         path = os.path.join(Path.Path().dir_working(), 'fit-predict-reduce2', filename)
         with open(path, 'r') as f:
             d = pickle.load(f)
         print len(d)
-        # The transaction_ids have sale_dates as integers
-        # But the transaction_ids in 
         return d
 
-    @staticmethod
-    def _make_common_transaction_ids(actuals, predictions):
+    def _make_common_transaction_ids(self, actuals, predictions):
         'return Set[TransactionId] that are in both'
         pdb.set_trace()
         transaction_ids_actuals = set(actuals.keys())
