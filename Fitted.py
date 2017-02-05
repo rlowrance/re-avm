@@ -11,6 +11,9 @@ class Fitted(object):
         self.neighborhood = neighborhood
         self.model = model
 
+    def __repr__(self):
+        return 'Fitted(%s,%s,%s)' % (self.training_data, self.neighborhood, self.model)
+
     @staticmethod
     def model_choices():
         return ('en', 'gb', 'rf')
@@ -48,6 +51,9 @@ class TestFitted(unittest.TestCase):
             training_data, neighborhood, model = test
             x = Fitted(training_data, neighborhood, model)
             self.assertTrue(isinstance(x, Fitted))
+            self.assertEqual(training_data, x.training_data)
+            self.assertEqual(neighborhood, x.neighborhood)
+            self.assertEqual(model, x.model)
 
     def test_construction_bad(self):
         for test in (
@@ -57,6 +63,17 @@ class TestFitted(unittest.TestCase):
         ):
             training_data, neighborhood, model = test
             self.assertRaises(AssertionError, Fitted, training_data, neighborhood, model)
+
+    def test_repr(self):
+        verbose = False
+        for test in (
+            ('train', 'global', 'en'),
+        ):
+            a, b, c = test
+            x = Fitted(a, b, c)
+            s = '%s' % x
+            if verbose:
+                print s
 
 
 if __name__ == '__main__':
