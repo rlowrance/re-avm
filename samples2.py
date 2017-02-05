@@ -12,14 +12,15 @@ OUTPUT FILES:
  WORKING/samples/uniques.pickle      unique TransactionId set
  WORKING/samples2/test.csv           enques transactions from samples-test.csv
  WORKING/samples2/train.csv          uniques transactions from samples-train.csv
- WORKING/samples22/all.csv           unique transactions from samples-test and sampes-train
+ WORKING/samples2/all.csv            unique transactions from samples-test and sampes-train
+ WORKING/samples2/actauls-all.csv    transaction_ids & actual prices for all transactions
+ WORKING/samples2/actauls-test.csv   transaction_ids & actual prices for test transactions
+ WORKING/samples2/actauls-train.csv  transaction_ids & actual prices for train transactions
 '''
 
 import argparse
 import collections
 import cPickle as pickle
-import math
-import multiprocessing
 import numpy as np
 import os
 import pandas as pd
@@ -33,7 +34,7 @@ import layout_transactions
 import Logger
 import Path
 import Timer
-from TransactionId import TransactionId
+import TransactionId
 
 
 def make_control(argv):
@@ -53,7 +54,7 @@ def make_control(argv):
 
     dir_working = Path.Path().dir_working()
     path_out_dir = (
-        os.path.join(dir_working, arg.me +'-test', '') if arg.test else
+        os.path.join(dir_working, arg.me + '-test', '') if arg.test else
         os.path.join(dir_working, arg.me, '')
     )
     dirutility.assure_exists(path_out_dir)
@@ -74,26 +75,21 @@ def make_control(argv):
         )
 
 
-def make_transaction_id(row):
-    apn = row[layout_transactions.apn]
-    sale_date = row[layout_transactions.sale_date]
-    assert int(sale_date) == sale_date, sale_date
-    assert long(apn) == apn, APN_Date
-    return TransactionId(apn=int(apn), sale_date=long(sale_date))
-
-
 def read_extract_transform(path, nrows):
-    'return (DataFrame with transaction_id, collections.counter of Ids)'
+    'return (DataFrame with created transaction_id, collections.counter of transaction_ids)'
     df = pd.read_csv(path, low_memory=False, nrows=nrows)
+    canonical = TransactionId.canonical
+    TId = TransactionId.TransactionId
     id_count = collections.Counter()
     transaction_ids = []
     for index, row in df.iterrows():
-        transaction_id = make_transaction_id(row)
+        transaction_id = canonical(TId(
+            apn=row[layout_transactions.apn],
+            sale_date=row[layout_transactions.sale_date],
+        ))
         transaction_ids.append(transaction_id)
         id_count[transaction_id] += 1
-    name = 'transaction_id'
-    assert name not in df
-    df[name] = transaction_ids
+    df[layout_transactions.transaction_id] = transaction_ids
     df.index = transaction_ids
     return df, id_count
 
