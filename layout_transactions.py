@@ -12,6 +12,7 @@ import layout_parcels as parcels
 # map feature names to column names
 # features created in these programs are in lower case; added in subset unless otherwise indicated
 # features in the source files are in upper case
+transaction_id = 'transaction_id'  # this feature is added by program samples2.py
 apn = 'best_apn'  # added in transactions.py
 
 age = 'age'   # ages at sale date in years and fractions of a year
