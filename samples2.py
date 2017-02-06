@@ -13,9 +13,6 @@ OUTPUT FILES:
  WORKING/samples2/test.csv           enques transactions from samples-test.csv
  WORKING/samples2/train.csv          uniques transactions from samples-train.csv
  WORKING/samples2/all.csv            unique transactions from samples-test and sampes-train
- WORKING/samples2/actauls-all.csv    transaction_ids & actual prices for all transactions
- WORKING/samples2/actauls-test.csv   transaction_ids & actual prices for test transactions
- WORKING/samples2/actauls-train.csv  transaction_ids & actual prices for train transactions
 '''
 
 import argparse
@@ -131,7 +128,7 @@ def do_work(control):
 
     uniques, duplicates = make_uniques_dups(in_test_counts, in_train_counts)
 
-    # write unique transactions
+    # retain only unique transactions
     out_test_df = select_uniques(in_test_df, uniques)
     out_train_df = select_uniques(in_train_df, uniques)
     out_all_df = select_uniques(in_all, uniques)
