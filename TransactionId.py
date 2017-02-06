@@ -4,7 +4,8 @@ import unittest
 
 from Date import Date
 
-
+# NOTE: Don't change this definition, because the fit-predict programs depend
+# on it, and it would be very time-consuming to re-run them
 TransactionId = collections.namedtuple('TransactionId', 'sale_date apn')
 
 
