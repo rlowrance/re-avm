@@ -9,15 +9,22 @@ import unittest
 class Date(object):
     def __init__(self, from_float=None):
         if from_float is not None:
-            self.value = Date._from_float(from_float)
+            if isinstance(from_float, float):
+                self._value = Date._from_float(from_float)  # a datetime.date
+            else:
+                print 'arg from_float %s is of type %s, not float' % (from_float, type(from_float))
+                assert False, 'construction error'
         else:
-            assert False, 'bad construction'
+            print 'bad construction of Date'
+            assert False, 'construct via Data(from_float=<float value>)'
 
     def as_datetime_date(self):
-        return self.value
+        'return value as a datetime.date'
+        return self._value  # for now, the value is stored as a datetime.date
 
     @staticmethod
     def _from_float(x):
+        'return a datetime.date'
         assert isinstance(x, float), x
         assert 0 < x <= 99999999, x
         year = int(x / 10000)
@@ -39,6 +46,8 @@ class TestDate(unittest.TestCase):
         for test in tests:
             x, year, month, day = test
             d = Date(from_float=float(x))
+            self.assertTrue(isinstance(d, Date))
+            self.assertTrue(isinstance(d._value, datetime.date))
             dt = d.as_datetime_date()
             self.assertEqual(year, dt.year)
             self.assertEqual(month, dt.month)
