@@ -12,7 +12,7 @@ class Fitted(object):
         self.model = model
 
     def __repr__(self):
-        return 'Fitted(%s,%s,%s)' % (self.training_data, self.neighborhood, self.model)
+        return "Fitted('%s','%s','%s')" % (self.training_data, self.neighborhood, self.model)
 
     @staticmethod
     def model_choices():
