@@ -5,16 +5,16 @@ import unittest
 
 class TransactionId2(object):
     def __init__(self, sale_date=None, apn=None):
-        assert sale_date is not None
-        assert apn is not None
-        assert isinstance(sale_date, datetime.date)
-        assert isinstance(apn, long)
+        assert sale_date is not None, sale_date
+        assert apn is not None, apn
+        assert isinstance(sale_date, datetime.date), sale_date
+        assert isinstance(apn, long), apn
         self.sale_date = sale_date
         self.apn = apn
 
     def __str__(self):
         'return informal string representation'
-        return 'TId2(%s,%d)' % (self.sale_date, self.apn)
+        return '%sAPN%d' % (self.sale_date, self.apn)
 
     def __repr__(self):
         'return official string representation'
